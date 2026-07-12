@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SmartMount — הרכבת טלוויזיה חכמה נגד בוהק: זיהוי סנוור אוטומטי בחיישני אור, כיוון זווית בזמן אמת, לוח זמנים וסינכרון ענן.">
+  <meta property="og:title" content="SmartMount — לוח בקרה חכם נגד בוהק">
+  <meta property="og:description" content="ההרכבה שמזיזה את הטלוויזיה בשבילך — זיהוי בוהק אוטומטי, כיול חיישנים ושליטה מרחוק בענן.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#58a6ff">
+  <title>SmartMount — לוח בקרה</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0a0a0f; color: #e8e8f0; min-height: 100vh; }
+
+    header {
+      background: linear-gradient(135deg, #0d1117, #161b22);
+      padding: 20px 32px;
+      border-bottom: 1px solid #21262d;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header h1 { font-size: 1.5rem; font-weight: 700; color: #58a6ff; }
+    header span { color: #8b949e; font-size: 0.85rem; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+
+    .grid {
+      max-width: 1100px; margin: 32px auto; padding: 0 20px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    }
+    @media(max-width:768px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: #161b22; border-radius: 14px; padding: 24px;
+      border: 1px solid #21262d;
+    }
+    .card.full-width { grid-column: 1 / -1; }
+    .card h2 { font-size: 0.85rem; color: #58a6ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+
+    /* TV visualizer */
+    .tv-scene {
+      width: 100%; height: 220px; position: relative;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .tv-wrap {
+      transform-origin: bottom center;
+      transition: transform 0.8s cubic-bezier(.4,0,.2,1);
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .tv-screen {
+      width: 200px; height: 120px;
+      background: linear-gradient(135deg, #1c2128, #2d333b);
+      border: 3px solid #444c56; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; position: relative; overflow: hidden;
+    }
+    .glare-overlay {
+      position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(120deg, transparent 40%, rgba(255,200,50,0) 100%);
+      transition: background 0.6s;
+    }
+    .tv-stand { width: 6px; height: 40px; background: #444c56; }
+    .tv-base  { width: 60px; height: 8px; background: #444c56; border-radius: 4px; }
+
+    .sun {
+      position: absolute; top: 10px; right: 20px;
+      font-size: 2.5rem; transition: opacity 0.5s;
+    }
+
+    /* Angle arc */
+    .angle-display {
+      text-align: center; margin-top: 12px;
+    }
+    .angle-val { font-size: 2.5rem; font-weight: 700; color: #58a6ff; }
+    .angle-label { font-size: 0.8rem; color: #8b949e; margin-top: 4px; }
+
+    /* Lux meters */
+    .lux-row { display: flex; gap: 12px; margin-bottom: 16px; }
+    .lux-box {
+      flex: 1; background: #0d1117; border-radius: 10px; padding: 14px;
+      border: 1px solid #21262d; text-align: center;
+    }
+    .lux-val { font-size: 1.6rem; font-weight: 700; }
+    .lux-label { font-size: 0.75rem; color: #8b949e; margin-top: 4px; }
+    .lux-bar { height: 4px; background: #21262d; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+    .lux-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+
+    /* Glare indicator */
+    .glare-indicator {
+      background: #0d1117; border-radius: 10px; padding: 14px;
+      border: 1px solid #21262d; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .glare-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+    .glare-text { font-size: 0.88rem; }
+
+    /* Controls */
+    .panel-select {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .panel-btn {
+      flex: 1; padding: 10px; background: #0d1117; border: 1px solid #21262d;
+      color: #8b949e; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .panel-btn.active { background: #1f4068; border-color: #58a6ff; color: #58a6ff; }
+
+    .mode-toggle {
+      width: 100%; padding: 12px; border-radius: 10px; border: none;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+    .mode-auto { background: #1a3a2a; color: #3fb950; border: 1px solid #238636; }
+    .mode-manual { background: #2d1f00; color: #e3b341; border: 1px solid #9e6a03; }
+
+    .slider-wrap { margin-top: 8px; }
+    .slider-wrap label { font-size: 0.8rem; color: #8b949e; display: block; margin-bottom: 8px; }
+    input[type=range] {
+      width: 100%; accent-color: #58a6ff;
+      height: 6px; border-radius: 3px;
+    }
+    input[type=range]:disabled { opacity: 0.4; }
+
+    .status-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      margin-left: 6px; vertical-align: middle;
+    }
+    .dot-green { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+    .dot-red   { background: #f85149; }
+
+    /* ── Calibration button ── */
+    .calib-btn {
+      padding: 9px 18px; background: #1c1f26; border: 1px solid #444c56;
+      color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 0.88rem;
+      transition: all 0.2s;
+    }
+    .calib-btn:hover { background: #2d333b; border-color: #58a6ff; color: #58a6ff; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 999;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #161b22; border: 1px solid #21262d; border-radius: 16px;
+      padding: 32px; max-width: 420px; width: 90%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .modal h3 { font-size: 1.1rem; color: #58a6ff; margin-bottom: 8px; }
+    .modal p  { color: #8b949e; font-size: 0.9rem; margin-bottom: 24px; line-height: 1.6; }
+    .modal-step { font-size: 0.75rem; color: #3fb950; margin-bottom: 4px; letter-spacing: 1px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      padding: 10px 24px; background: #238636; border: none; color: #fff;
+      border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600;
+    }
+    .btn-primary:hover { background: #2ea043; }
+    .btn-secondary {
+      padding: 10px 24px; background: transparent; border: 1px solid #444c56;
+      color: #8b949e; border-radius: 8px; cursor: pointer; font-size: 0.9rem;
+    }
+    .btn-secondary:hover { background: #21262d; }
+    .calib-result {
+      background: #0d1117; border-radius: 10px; padding: 16px; margin-bottom: 20px;
+      border: 1px solid #238636; text-align: right;
+    }
+    .calib-result div { font-size: 0.85rem; color: #8b949e; margin-bottom: 6px; }
+    .calib-result span { color: #e8e8f0; font-weight: 600; }
+
+    /* ── Lux History Chart ── */
+    .chart-container {
+      position: relative; width: 100%; height: 200px;
+      background: #0d1117; border-radius: 10px; overflow: hidden;
+      border: 1px solid #21262d;
+    }
+    .chart-container svg { width: 100%; height: 100%; display: block; }
+    .chart-labels {
+      display: flex; justify-content: space-between; margin-top: 8px;
+    }
+    .chart-labels span { font-size: 0.75rem; color: #8b949e; }
+    .chart-legend { display: flex; gap: 20px; margin-bottom: 14px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #8b949e; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* ── Schedule Panel ── */
+    .schedule-list { list-style: none; margin-bottom: 16px; }
+    .schedule-item {
+      display: flex; align-items: center; gap: 10px;
+      background: #0d1117; border-radius: 8px; padding: 10px 14px;
+      border: 1px solid #21262d; margin-bottom: 8px;
+    }
+    .schedule-item .sched-day {
+      background: #1f4068; color: #58a6ff; border-radius: 6px;
+      padding: 2px 8px; font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+    }
+    .schedule-item .sched-time { flex: 1; font-size: 0.88rem; color: #c9d1d9; }
+    .schedule-item .sched-active {
+      font-size: 0.75rem; color: #3fb950;
+    }
+    .schedule-item .sched-del {
+      background: none; border: none; color: #f85149; cursor: pointer;
+      font-size: 1rem; padding: 0 4px;
+    }
+    .sched-add-row {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .sched-add-row select, .sched-add-row input[type=time] {
+      background: #0d1117; border: 1px solid #21262d; color: #e8e8f0;
+      border-radius: 8px; padding: 8px 10px; font-size: 0.85rem;
+    }
+    .sched-add-row button {
+      padding: 8px 16px; background: #238636; border: none; color: #fff;
+      border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+    }
+    .sched-add-row button:hover { background: #2ea043; }
+    .sched-empty { color: #8b949e; font-size: 0.85rem; text-align: center; padding: 16px 0; }
+    .sched-active-badge {
+      background: #1a3a2a; border: 1px solid #238636; border-radius: 8px;
+      padding: 8px 14px; margin-bottom: 14px; color: #3fb950; font-size: 0.85rem;
+      display: none;
+    }
+    .sched-active-badge.visible { display: block; }
+
+    /* ── Glare alert toast ── */
+    #glareToast {
+      display: none; position: fixed; top: 0; left: 50%; transform: translateX(-50%) translateY(-60px);
+      background: #7c3500; border: 1px solid #f0a500; color: #fcd34d;
+      padding: 12px 28px; border-radius: 0 0 14px 14px; font-size: 0.9rem; font-weight: 600;
+      z-index: 2000; white-space: nowrap; box-shadow: 0 6px 24px rgba(240,165,0,0.3);
+      transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+    }
+    #glareToast.visible { display: block; transform: translateX(-50%) translateY(0); }
+    #glareToast.hiding  { transform: translateX(-50%) translateY(-60px); }
+
+    /* ── Event log fade-in ── */
+    @keyframes logFadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .log-entry { animation: logFadeIn 0.3s ease; }
+
+    /* ── Angle gauge ── */
+    .angle-gauge-wrap { display: flex; flex-direction: column; align-items: center; margin-top: 12px; }
+    #angleGaugeSvg { width: 160px; height: 90px; overflow: visible; }
+
+    /* ── Schedule inline error ── */
+    #schedError {
+      display: none; color: #f85149; font-size: 0.8rem; margin-top: 6px;
+    }
+    #schedError.visible { display: block; }
+
+    /* ── Mobile header ── */
+    @media (max-width: 600px) {
+      .header-subtitle { display: none; }
+      header h1 { font-size: 1.2rem; }
+    }
+
+    /* ── Connection pulse ── */
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(63,185,80,0.6); }
+      50%       { box-shadow: 0 0 0 6px rgba(63,185,80,0); }
+    }
+    .dot-pulse { animation: pulse 1.4s infinite; }
+  </style>
+</head>
+<body>
+
+<!-- Glare alert toast -->
+<div id="glareToast">⚠️ בוהק חזק זוהה — מכוון מחדש</div>
+
+<header>
+  <div>
+    <h1>📺 SmartMount</h1>
+    <span class="header-subtitle">לוח בקרה — הרכבה חכמה נגד בוהק
+      <span class="status-dot" id="connDot"></span>
+      <span id="connStatus">מחפש...</span>
+    </span>
+  </div>
+  <div class="header-actions">
+    <button class="calib-btn" onclick="openCalib()">🎯 כיול</button>
+    <button id="loginBtn" class="calib-btn" style="border-color:#1f6feb;color:#58a6ff" onclick="openAuth()">התחבר</button>
+    <div id="avatarWrap" style="position:relative;display:none">
+      <div id="userAvatar" onclick="toggleUserMenu(event)" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1f6feb,#388bfd);display:flex;align-items:center;justify-content:center;font-size:0.95rem;font-weight:700;cursor:pointer;color:#fff">👤</div>
+      <div id="userMenu" class="user-menu">
+        <div class="user-menu-name" id="userMenuName"></div>
+        <button onclick="alert('החשבון שלי — בקרוב!')">👤 החשבון שלי</button>
+        <button onclick="logoutUser()">🚪 התנתק</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Calibration Modal -->
+<div class="modal-overlay" id="calibModal">
+  <div class="modal">
+    <div class="modal-step" id="calibStepLabel">שלב 1 מתוך 3</div>
+    <h3 id="calibTitle">כיול חיישן בוהק</h3>
+    <p id="calibDesc">כבה את המסך או הכהה את החדר ולחץ "כייל" כדי לקרוא את רמת האור הבסיסית.</p>
+    <div class="calib-result" id="calibResult" style="display:none"></div>
+    <div class="modal-actions" id="calibActions">
+      <button class="btn-primary" onclick="calibNext()">📏 כייל</button>
+      <button class="btn-secondary" onclick="closeCalib()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cloud Banner -->
+<div style="background:linear-gradient(135deg,#0d1f3c,#162032);border-bottom:1px solid #1f4068;padding:12px 32px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-size:1.1rem">⚡</span>
+    <span style="font-size:0.9rem;color:#c9d1d9"><strong style="color:#58a6ff">SmartMount Cloud</strong> — חבר לענן לסינכרון ולוח זמנים חכם</span>
+  </div>
+  <button onclick="openCloudModal()" style="background:linear-gradient(135deg,#1f6feb,#388bfd);border:none;color:#fff;padding:8px 18px;border-radius:20px;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap">הפעל ניסיון 30 יום ☁️</button>
+</div>
+
+<!-- Cloud Pricing Modal -->
+<div id="cloudModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#161b22;border:1px solid #21262d;border-radius:20px;padding:36px;max-width:580px;width:95%;position:relative">
+    <button onclick="closeCloudModal()" style="position:absolute;top:16px;left:16px;background:none;border:none;color:#6b7280;font-size:1.3rem;cursor:pointer">✕</button>
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:1.5rem;font-weight:800;color:#e8e8f0;margin-bottom:6px">☁️ SmartMount Cloud</div>
+      <div style="color:#8b949e;font-size:0.88rem">בחר תוכנית — גישה מרחוק ללא גבולות</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <!-- Basic -->
+      <div style="background:#0d1117;border:1px solid #21262d;border-radius:14px;padding:22px;text-align:center">
+        <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Basic</div>
+        <div style="font-size:2.2rem;font-weight:800;color:#e8e8f0;margin-bottom:4px">חינמי</div>
+        <div style="font-size:0.78rem;color:#8b949e;margin-bottom:20px">לנצח</div>
+        <ul style="list-style:none;text-align:right;font-size:0.82rem;color:#c9d1d9;line-height:2.1;margin-bottom:20px">
+          <li>✓ לוח בקרה מקומי</li>
+          <li>✓ כיול חיישנים</li>
+          <li>✓ לוח זמנים בסיסי</li>
+          <li style="color:#484f58">✗ ענן / סינכרון</li>
+          <li style="color:#484f58">✗ היסטוריה</li>
+          <li style="color:#484f58">✗ התראות Push</li>
+        </ul>
+        <button onclick="closeCloudModal()" style="width:100%;padding:10px;border-radius:10px;border:1px solid #30363d;background:transparent;color:#8b949e;cursor:default;font-size:0.85rem">תוכנית נוכחית</button>
+      </div>
+      <!-- Cloud -->
+      <div style="background:linear-gradient(180deg,#0d1f3c,#0a1628);border:2px solid #1f6feb;border-radius:14px;padding:22px;text-align:center;position:relative">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#1f6feb;color:#fff;font-size:0.72rem;font-weight:700;padding:3px 14px;border-radius:20px;white-space:nowrap">30 יום ניסיון חינם</div>
+        <div style="font-size:0.75rem;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Cloud</div>
+        <div style="font-size:2.2rem;font-weight:800;color:#e8e8f0;margin-bottom:4px">₪9.90</div>
+        <div style="font-size:0.78rem;color:#8b949e;margin-bottom:20px">לחודש</div>
+        <ul style="list-style:none;text-align:right;font-size:0.82rem;color:#c9d1d9;line-height:2.1;margin-bottom:20px">
+          <li>✓ הכל ב-Basic</li>
+          <li>✓ היסטוריה 30 יום</li>
+          <li>✓ התראות Push</li>
+          <li>✓ סינכרון מרחוק</li>
+          <li>✓ עד 3 מכשירים</li>
+          <li>✓ API גישה</li>
+        </ul>
+        <button onclick="startTrial()" style="width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#1f6feb,#388bfd);color:#fff;font-weight:700;cursor:pointer;font-size:0.85rem">התחל ניסיון חינם ☁️</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats bar -->
+<div style="background:#0d1117;border-bottom:1px solid #21262d">
+  <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)">
+    <div style="text-align:center;padding:14px 0;border-left:1px solid #21262d">
+      <div style="font-size:1.4rem;font-weight:800;color:#58a6ff" id="statSessions">0</div>
+      <div style="font-size:0.72rem;color:#8b949e;margin-top:2px">הגנות היום</div>
+    </div>
+    <div style="text-align:center;padding:14px 0;border-left:1px solid #21262d">
+      <div style="font-size:1.4rem;font-weight:800;color:#f0a500" id="statGlare">0</div>
+      <div style="font-size:0.72rem;color:#8b949e;margin-top:2px">אירועי בוהק</div>
+    </div>
+    <div style="text-align:center;padding:14px 0;border-left:1px solid #21262d">
+      <div style="font-size:1.4rem;font-weight:800;color:#3fb950" id="statAngleAvg">0°</div>
+      <div style="font-size:0.72rem;color:#8b949e;margin-top:2px">זווית ממוצעת</div>
+    </div>
+    <div style="text-align:center;padding:14px 0">
+      <div style="font-size:1.4rem;font-weight:800;color:#a371f7" id="statUptime">100%</div>
+      <div style="font-size:0.72rem;color:#8b949e;margin-top:2px">זמינות</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- TV Visualizer -->
+  <div class="card">
+    <h2>📐 מיקום הצג</h2>
+    <div class="tv-scene">
+      <div class="sun" id="sunIcon">☀️</div>
+      <div class="tv-wrap" id="tvWrap">
+        <div class="tv-screen">
+          📺
+          <div class="glare-overlay" id="glareOverlay"></div>
+        </div>
+        <div class="tv-stand"></div>
+        <div class="tv-base"></div>
+      </div>
+    </div>
+    <div class="angle-gauge-wrap">
+      <svg id="angleGaugeSvg" viewBox="-90 -80 180 90">
+        <!-- Background arc: -40° to +40° mapped to 140°→40° in SVG angles -->
+        <path d="M -63.1 -32.6 A 72 72 0 0 1 63.1 -32.6"
+              fill="none" stroke="#21262d" stroke-width="10" stroke-linecap="round"/>
+        <!-- Colored arc (dynamic) -->
+        <path id="gaugeArc" d="" fill="none" stroke="#3fb950" stroke-width="10" stroke-linecap="round"/>
+        <!-- Needle -->
+        <line id="gaugeNeedle" x1="0" y1="0" x2="0" y2="-60"
+              stroke="#e8e8f0" stroke-width="2.5" stroke-linecap="round"
+              transform="rotate(0)"/>
+        <circle cx="0" cy="0" r="5" fill="#58a6ff"/>
+        <!-- Labels -->
+        <text x="-76" y="-26" fill="#8b949e" font-size="9" font-family="sans-serif" text-anchor="middle">-40°</text>
+        <text x="76"  y="-26" fill="#8b949e" font-size="9" font-family="sans-serif" text-anchor="middle">40°</text>
+        <text x="0"   y="-68" fill="#8b949e" font-size="9" font-family="sans-serif" text-anchor="middle">0°</text>
+      </svg>
+      <div class="angle-val" id="angleVal" style="font-size:1.8rem;margin-top:-6px">0°</div>
+      <div class="angle-label">זווית נוכחית</div>
+    </div>
+  </div>
+
+  <!-- Sensor Readings -->
+  <div class="card">
+    <h2>💡 קריאות חיישנים</h2>
+    <div class="lux-row">
+      <div class="lux-box">
+        <div class="lux-val" id="luxTop" style="color:#f0a500">—</div>
+        <div class="lux-label">חיישן עליון (חיצוני)</div>
+        <div class="lux-bar"><div class="lux-fill" id="luxTopBar" style="background:#f0a500;width:0%"></div></div>
+      </div>
+      <div class="lux-box">
+        <div class="lux-val" id="luxBot" style="color:#58a6ff">—</div>
+        <div class="lux-label">חיישן תחתון (מסך)</div>
+        <div class="lux-bar"><div class="lux-fill" id="luxBotBar" style="background:#58a6ff;width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="glare-indicator" id="glareIndicator">
+      <div class="glare-dot" id="glareDot"></div>
+      <div class="glare-text" id="glareText">טוען נתונים...</div>
+    </div>
+
+    <!-- Controls -->
+    <h2 style="margin-bottom:12px">⚙️ הגדרות</h2>
+    <div class="panel-select">
+      <button class="panel-btn" onclick="setPanel(0)">OLED</button>
+      <button class="panel-btn" onclick="setPanel(1)">QLED</button>
+      <button class="panel-btn active" id="panelBtn2" onclick="setPanel(2)">LED</button>
+    </div>
+
+    <button class="mode-toggle mode-auto" id="modeBtn" onclick="toggleMode()">
+      🤖 מצב אוטומטי — פעיל
+    </button>
+
+    <div class="slider-wrap">
+      <label>שליטה ידנית על זווית: <span id="manualVal">0°</span></label>
+      <input type="range" id="manualSlider" min="-40" max="40" value="0"
+             disabled oninput="onSlider(this.value)">
+    </div>
+  </div>
+
+  <!-- History Panel (Cloud locked) -->
+  <div class="card full-width" style="position:relative;overflow:hidden">
+    <h2>🕐 היסטוריה — 30 יום אחרונים</h2>
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 60px,#161b22ee 100%);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:28px;z-index:2">
+      <div style="text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:8px">🔒</div>
+        <div style="font-size:1rem;font-weight:700;color:#e8e8f0;margin-bottom:4px">Cloud בלבד 🔒</div>
+        <div style="font-size:0.82rem;color:#8b949e;margin-bottom:14px">היסטוריית נתונים ב-30 יום — זמינה בתוכנית Cloud בלבד</div>
+        <button onclick="openCloudModal()" style="background:linear-gradient(135deg,#1f6feb,#388bfd);border:none;color:#fff;padding:9px 22px;border-radius:20px;font-size:0.85rem;font-weight:700;cursor:pointer">הפעל Cloud ☁️</button>
+      </div>
+    </div>
+    <div style="opacity:0.15;pointer-events:none">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div style="flex:1;background:#0d1117;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.3rem;font-weight:700;color:#58a6ff">847</div><div style="font-size:0.72rem;color:#8b949e">הגנות חודשיות</div></div>
+        <div style="flex:1;background:#0d1117;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.3rem;font-weight:700;color:#f0a500">23</div><div style="font-size:0.72rem;color:#8b949e">אירועי בוהק</div></div>
+        <div style="flex:1;background:#0d1117;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.3rem;font-weight:700;color:#3fb950">12.3°</div><div style="font-size:0.72rem;color:#8b949e">זווית ממוצעת</div></div>
+      </div>
+      <div style="height:80px;background:#0d1117;border-radius:8px"></div>
+    </div>
+  </div>
+
+  <!-- Lux History Chart (full width) -->
+  <div class="card full-width">
+    <h2>📊 היסטוריית בהירות — 60 שניות אחרונות</h2>
+    <div class="chart-legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#f0a500"></div>
+        <span>חיישן עליון (חיצוני)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#58a6ff"></div>
+        <span>חיישן תחתון (מסך)</span>
+      </div>
+    </div>
+    <div class="chart-container">
+      <svg id="luxChart" viewBox="0 0 600 200" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="gradTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f0a500" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#f0a500" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="gradBot" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#58a6ff" stop-opacity="0.2"/>
+            <stop offset="100%" stop-color="#58a6ff" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- Grid lines -->
+        <line x1="0" y1="50"  x2="600" y2="50"  stroke="#21262d" stroke-width="1"/>
+        <line x1="0" y1="100" x2="600" y2="100" stroke="#21262d" stroke-width="1"/>
+        <line x1="0" y1="150" x2="600" y2="150" stroke="#21262d" stroke-width="1"/>
+        <!-- Y axis labels -->
+        <text x="6" y="46"  fill="#8b949e" font-size="10" font-family="sans-serif">1000</text>
+        <text x="6" y="96"  fill="#8b949e" font-size="10" font-family="sans-serif">500</text>
+        <text x="6" y="146" fill="#8b949e" font-size="10" font-family="sans-serif">250</text>
+        <text x="6" y="196" fill="#8b949e" font-size="10" font-family="sans-serif">0</text>
+        <!-- Area fills -->
+        <path id="areaTop" fill="url(#gradTop)" stroke="none" d=""/>
+        <path id="areaBot" fill="url(#gradBot)" stroke="none" d=""/>
+        <!-- Lines -->
+        <path id="lineTop" fill="none" stroke="#f0a500" stroke-width="2" stroke-linejoin="round" d=""/>
+        <path id="lineBot" fill="none" stroke="#58a6ff" stroke-width="2" stroke-linejoin="round" d=""/>
+        <!-- Calibration threshold line -->
+        <line id="calibLine" x1="0" y1="0" x2="600" y2="0" stroke="#f85149" stroke-width="1.5"
+              stroke-dasharray="6,4" opacity="0" />
+        <text id="calibLineLabel" x="8" y="0" fill="#f85149" font-size="9" font-family="sans-serif" opacity="0">סף כיול</text>
+      </svg>
+    </div>
+    <div class="chart-labels">
+      <span>60 שנ' אחורה</span>
+      <span>כעת</span>
+    </div>
+  </div>
+
+  <!-- Event Log (full width) -->
+  <div class="card full-width">
+    <h2>📋 לוג אירועים — פעילות אחרונה</h2>
+    <div id="eventLog" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+      <div style="color:#8b949e;font-size:0.85rem;text-align:center;padding:16px">ממתין לנתונים...</div>
+    </div>
+  </div>
+
+  <!-- Schedule Panel (full width) -->
+  <div class="card full-width">
+    <h2>📅 לוח זמנים — הגנה אוטומטית</h2>
+
+    <div class="sched-active-badge" id="schedActiveBadge">
+      🛡️ הגנה אוטומטית פעילה לפי לוח זמנים
+    </div>
+
+    <ul class="schedule-list" id="schedList"></ul>
+
+    <div class="sched-add-row">
+      <select id="schedDay">
+        <option value="0">ראשון</option>
+        <option value="1">שני</option>
+        <option value="2">שלישי</option>
+        <option value="3">רביעי</option>
+        <option value="4" selected>חמישי</option>
+        <option value="5">שישי</option>
+        <option value="6">שבת</option>
+      </select>
+      <input type="time" id="schedFrom" value="14:00">
+      <span style="color:#8b949e;font-size:0.85rem">עד</span>
+      <input type="time" id="schedTo" value="17:00">
+      <button onclick="addSchedule()">+ הוסף</button>
+    </div>
+    <div id="schedError">⚠️ שעת הסיום חייבת להיות מאוחרת יותר</div>
+    <p style="font-size:0.78rem;color:#8b949e;margin-top:10px">
+      בזמני ההגנה המוגדרים, המערכת תעבור אוטומטית למצב מוגן גם בלי זיהוי בוהק חזק.
+    </p>
+  </div>
+
+</div>
+
+<script>
+// ── Demo simulation (no real ESP32 needed) ───────────────────────────
+let autoMode  = true;
+let panel     = 2;
+let angle     = 0;
+let targetAngle = 0;
+const LIMITS  = [20, 40, 30];
+const PANEL_NAMES = ['OLED','QLED','LED'];
+let simTime   = 0;
+
+// ── Calibration state ─────────────────────────────────────────────────
+let calibStep     = 0;
+let calibBaseline = null;
+let calibMax      = null;
+let calibThreshold = null;
+
+function loadCalib() {
+  const saved = localStorage.getItem('sm_calib');
+  if (saved) {
+    const c = JSON.parse(saved);
+    calibBaseline  = c.baseline;
+    calibMax       = c.max;
+    calibThreshold = c.threshold;
+  }
+}
+loadCalib();
+
+// ── Lux history ────────────────────────────────────────────────────────
+const HISTORY_LEN = 600; // 60 s × 10 samples/s
+const histTop = [];
+const histBot = [];
+
+function simSensors() {
+  simTime += 0.03;
+  const sunIntensity = Math.max(0, Math.sin(simTime) * 800 + 300 + Math.random() * 50);
+  const luxTop = Math.round(sunIntensity);
+  const luxBot = Math.round(50 + Math.random() * 30);
+  return { lux_top: luxTop, lux_bot: luxBot };
+}
+
+function calcAngle(luxTop, luxBot) {
+  const threshold = calibThreshold !== null ? calibThreshold : 3;
+  const ratio = luxTop / Math.max(luxBot, 1);
+  if (ratio > threshold) return Math.min((ratio - threshold) * 5, LIMITS[panel]);
+  return 0;
+}
+
+// ── Schedule logic ─────────────────────────────────────────────────────
+const DAY_NAMES = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+let schedules = JSON.parse(localStorage.getItem('sm_schedules') || '[]');
+
+function saveSchedules() {
+  localStorage.setItem('sm_schedules', JSON.stringify(schedules));
+}
+
+function isScheduleActive() {
+  const now = new Date();
+  const day = now.getDay();
+  const hhmm = now.getHours() * 60 + now.getMinutes();
+  return schedules.some(s => {
+    if (parseInt(s.day) !== day) return false;
+    const [fh, fm] = s.from.split(':').map(Number);
+    const [th, tm] = s.to.split(':').map(Number);
+    return hhmm >= fh * 60 + fm && hhmm <= th * 60 + tm;
+  });
+}
+
+function renderSchedules() {
+  const list = document.getElementById('schedList');
+  if (schedules.length === 0) {
+    list.innerHTML = '<li class="sched-empty">אין לוח זמנים מוגדר</li>';
+    return;
+  }
+  list.innerHTML = schedules.map((s, i) => `
+    <li class="schedule-item">
+      <span class="sched-day">${DAY_NAMES[s.day]}</span>
+      <span class="sched-time">${s.from} — ${s.to}</span>
+      <span class="sched-active">הגן אוטומטית</span>
+      <button class="sched-del" onclick="removeSchedule(${i})" title="מחק">✕</button>
+    </li>
+  `).join('');
+}
+
+function addSchedule() {
+  const day  = document.getElementById('schedDay').value;
+  const from = document.getElementById('schedFrom').value;
+  const to   = document.getElementById('schedTo').value;
+  const errEl = document.getElementById('schedError');
+  if (!from || !to || from >= to) {
+    errEl.classList.add('visible');
+    setTimeout(() => errEl.classList.remove('visible'), 3000);
+    return;
+  }
+  errEl.classList.remove('visible');
+  schedules.push({ day: parseInt(day), from, to });
+  saveSchedules();
+  renderSchedules();
+}
+
+function removeSchedule(i) {
+  schedules.splice(i, 1);
+  saveSchedules();
+  renderSchedules();
+}
+
+renderSchedules();
+
+// ── Chart rendering ────────────────────────────────────────────────────
+const SVG_W = 600, SVG_H = 200;
+const LUX_MAX_DISPLAY = 1200;
+
+function luxToY(lux) {
+  return SVG_H - (lux / LUX_MAX_DISPLAY) * SVG_H;
+}
+
+function buildPath(arr) {
+  if (arr.length === 0) return '';
+  const step = SVG_W / (HISTORY_LEN - 1);
+  const offset = HISTORY_LEN - arr.length;
+  return arr.map((v, i) =>
+    `${i === 0 ? 'M' : 'L'}${((offset + i) * step).toFixed(1)},${luxToY(v).toFixed(1)}`
+  ).join(' ');
+}
+
+function buildArea(arr) {
+  if (arr.length === 0) return '';
+  const line = buildPath(arr);
+  const step = SVG_W / (HISTORY_LEN - 1);
+  const offset = HISTORY_LEN - arr.length;
+  const lastX = ((offset + arr.length - 1) * step).toFixed(1);
+  const firstX = (offset * step).toFixed(1);
+  return `${line} L${lastX},${SVG_H} L${firstX},${SVG_H} Z`;
+}
+
+function updateChart() {
+  document.getElementById('lineTop').setAttribute('d', buildPath(histTop));
+  document.getElementById('lineBot').setAttribute('d', buildPath(histBot));
+  document.getElementById('areaTop').setAttribute('d', buildArea(histTop));
+  document.getElementById('areaBot').setAttribute('d', buildArea(histBot));
+
+  // Calibration threshold line
+  if (calibThreshold !== null && calibBaseline !== null) {
+    const thresholdLux = calibBaseline * calibThreshold;
+    const y = luxToY(thresholdLux);
+    const line  = document.getElementById('calibLine');
+    const label = document.getElementById('calibLineLabel');
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('opacity', '1');
+    label.setAttribute('y', Math.max(y - 3, 10));
+    label.setAttribute('opacity', '1');
+  }
+}
+
+// ── Main update loop ───────────────────────────────────────────────────
+function update() {
+  const { lux_top, lux_bot } = simSensors();
+
+  // Push history
+  histTop.push(lux_top);
+  histBot.push(lux_bot);
+  if (histTop.length > HISTORY_LEN) histTop.shift();
+  if (histBot.length > HISTORY_LEN) histBot.shift();
+
+  // Schedule override
+  const schedActive = isScheduleActive();
+  document.getElementById('schedActiveBadge').classList.toggle('visible', schedActive);
+
+  if (autoMode) {
+    if (schedActive) {
+      targetAngle = LIMITS[panel]; // full protection during scheduled hours
+    } else {
+      targetAngle = calcAngle(lux_top, lux_bot);
+    }
+    angle += (targetAngle - angle) * 0.1;
+  }
+
+  // TV tilt visual
+  document.getElementById('tvWrap').style.transform = `rotate(${angle}deg)`;
+  document.getElementById('angleVal').textContent = angle.toFixed(1) + '°';
+  updateGauge(angle);
+
+  // Lux displays
+  document.getElementById('luxTop').textContent = lux_top + ' lx';
+  document.getElementById('luxBot').textContent = lux_bot + ' lx';
+  document.getElementById('luxTopBar').style.width = Math.min(lux_top / 10, 100) + '%';
+  document.getElementById('luxBotBar').style.width = Math.min(lux_bot / 2, 100) + '%';
+
+  // Glare indicator
+  const ratio = lux_top / Math.max(lux_bot, 1);
+  const threshold = calibThreshold !== null ? calibThreshold : 6;
+  const dot  = document.getElementById('glareDot');
+  const text = document.getElementById('glareText');
+  if (ratio > threshold)           { dot.style.background='#f85149'; text.textContent='⚠️ בוהק חזק — מכוון מחדש'; showGlareToast(); }
+  else if (ratio > threshold * 0.5){ dot.style.background='#e3b341'; text.textContent='⚡ בוהק בינוני — מתאים זווית'; }
+  else                              { dot.style.background='#3fb950'; text.textContent='✅ אין בוהק — מיקום תקין'; }
+
+  // Glare overlay on screen
+  const glareAlpha = Math.min((ratio - 1) * 0.15, 0.7);
+  document.getElementById('glareOverlay').style.background =
+    `linear-gradient(120deg, transparent 30%, rgba(255,200,50,${Math.max(0,glareAlpha)}) 100%)`;
+
+  // Sun icon
+  document.getElementById('sunIcon').style.opacity = Math.min(lux_top / 500, 1);
+
+  // Connection status managed by startup animation
+
+  // Chart
+  updateChart();
+
+  // Stats + event log
+  updateStats(ratio, threshold, angle);
+}
+
+function setPanel(p) {
+  panel = p;
+  document.querySelectorAll('.panel-btn').forEach((b,i) =>
+    b.classList.toggle('active', i === p));
+  angle = Math.max(-LIMITS[p], Math.min(LIMITS[p], angle));
+}
+
+function toggleMode() {
+  autoMode = !autoMode;
+  const btn = document.getElementById('modeBtn');
+  const slider = document.getElementById('manualSlider');
+  if (autoMode) {
+    btn.textContent = '🤖 מצב אוטומטי — פעיל';
+    btn.className = 'mode-toggle mode-auto';
+    slider.disabled = true;
+  } else {
+    btn.textContent = '🕹️ מצב ידני — פעיל';
+    btn.className = 'mode-toggle mode-manual';
+    slider.disabled = false;
+    slider.value = Math.round(angle);
+    document.getElementById('manualVal').textContent = Math.round(angle) + '°';
+  }
+}
+
+function onSlider(val) {
+  document.getElementById('manualVal').textContent = val + '°';
+  angle = parseFloat(val);
+}
+
+// ── Calibration modal ──────────────────────────────────────────────────
+function openCalib() {
+  calibStep = 1;
+  showCalibStep();
+  document.getElementById('calibModal').classList.add('open');
+}
+
+function closeCalib() {
+  document.getElementById('calibModal').classList.remove('open');
+}
+
+function showCalibStep() {
+  const stepLabel = document.getElementById('calibStepLabel');
+  const title     = document.getElementById('calibTitle');
+  const desc      = document.getElementById('calibDesc');
+  const result    = document.getElementById('calibResult');
+  const actions   = document.getElementById('calibActions');
+  result.style.display = 'none';
+
+  if (calibStep === 1) {
+    stepLabel.textContent = 'שלב 1 מתוך 3';
+    title.textContent = 'קריאת רמת בסיס';
+    desc.textContent  = 'כבה את המסך והכהה את החדר ככל האפשר, ואז לחץ "כייל" כדי לקלוט את רמת האור הרקעית.';
+    actions.innerHTML = `
+      <button class="btn-primary" onclick="calibNext()">📏 כייל</button>
+      <button class="btn-secondary" onclick="closeCalib()">ביטול</button>`;
+  } else if (calibStep === 2) {
+    stepLabel.textContent = 'שלב 2 מתוך 3';
+    title.textContent = 'קריאת בוהק מקסימלי';
+    desc.textContent  = 'הפנה אור חזק (שמש ישירה / פנס) לעבר הצג, ואז לחץ "כייל".';
+    result.style.display = 'block';
+    result.innerHTML = `<div>רמת בסיס שנקלטה: <span>${calibBaseline} lx</span></div>`;
+    actions.innerHTML = `
+      <button class="btn-primary" onclick="calibNext()">📏 כייל</button>
+      <button class="btn-secondary" onclick="closeCalib()">ביטול</button>`;
+  } else if (calibStep === 3) {
+    stepLabel.textContent = 'שלב 3 מתוך 3 — הושלם!';
+    title.textContent = '✅ כיול הושלם';
+    desc.textContent  = 'הסף האוטומטי עודכן. המערכת תשתמש בערכים אלו לזיהוי בוהק.';
+    result.style.display = 'block';
+    result.innerHTML = `
+      <div>רמת בסיס: <span>${calibBaseline} lx</span></div>
+      <div>רמה מקסימלית: <span>${calibMax} lx</span></div>
+      <div>סף בוהק (יחס): <span>${calibThreshold.toFixed(2)}×</span></div>`;
+    actions.innerHTML = `<button class="btn-primary" onclick="closeCalib()">סגור</button>`;
+  }
+}
+
+function calibNext() {
+  // Read current sensor values from simulation
+  const { lux_top } = simSensors();
+
+  if (calibStep === 1) {
+    calibBaseline = lux_top;
+    calibStep = 2;
+  } else if (calibStep === 2) {
+    calibMax = lux_top;
+    // Threshold ratio: halfway between baseline ratio and max
+    const rawRatio = calibMax / Math.max(calibBaseline, 1);
+    calibThreshold = Math.max(1.5, rawRatio * 0.6);
+    // Save to localStorage
+    localStorage.setItem('sm_calib', JSON.stringify({
+      baseline:  calibBaseline,
+      max:       calibMax,
+      threshold: calibThreshold
+    }));
+    calibStep = 3;
+  }
+  showCalibStep();
+}
+
+// Close modal on overlay click
+document.getElementById('calibModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCalib();
+});
+
+// ── Stats & event log ─────────────────────────────────────────────────
+let statSessionCount = 0, statGlareCount = 0;
+let angleSum = 0, angleSamples = 0;
+let lastGlareState = false;
+const eventLog = [];
+
+function now() {
+  const d = new Date();
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0') + ':' + d.getSeconds().toString().padStart(2,'0');
+}
+
+function addEvent(icon, msg, color) {
+  eventLog.unshift({ t: now(), icon, msg, color });
+  if (eventLog.length > 20) eventLog.pop();
+  const el = document.getElementById('eventLog');
+  // Border color by type
+  const borderColor = color === '#f85149' ? '#3a1010' : color === '#3fb950' ? '#0d2a17' : '#1a2a4a';
+  el.innerHTML = eventLog.map((e, i) => `
+    <div class="log-entry" style="display:flex;align-items:center;gap:10px;background:#0d1117;border-radius:8px;padding:8px 12px;border:1px solid ${i===0?borderColor:'#21262d'};${i===0?'animation:logFadeIn 0.3s ease':''}">
+      <span style="font-size:1rem">${e.icon}</span>
+      <span style="font-size:0.8rem;color:#8b949e;white-space:nowrap">${e.t}</span>
+      <span style="font-size:0.83rem;color:${e.color||'#c9d1d9'};flex:1">${e.msg}</span>
+    </div>`).join('');
+}
+
+// ── Glare toast ────────────────────────────────────────────────────────────
+let lastGlareToastTime = 0;
+function showGlareToast() {
+  const now = Date.now();
+  if (now - lastGlareToastTime < 10000) return;
+  lastGlareToastTime = now;
+  const t = document.getElementById('glareToast');
+  t.classList.remove('hiding');
+  t.classList.add('visible');
+  setTimeout(() => {
+    t.classList.add('hiding');
+    setTimeout(() => t.classList.remove('visible','hiding'), 400);
+  }, 3000);
+}
+
+// ── Angle gauge ────────────────────────────────────────────────────────────
+function updateGauge(angleDeg) {
+  // Map angle (-40..40) → SVG rotation (-90..90 around center)
+  const svgAngle = (angleDeg / 40) * 90; // degrees to rotate needle
+  document.getElementById('gaugeNeedle').setAttribute('transform', `rotate(${svgAngle})`);
+
+  // Arc color
+  const arcColor = Math.abs(angleDeg) > 35 ? '#f85149'
+                 : Math.abs(angleDeg) > 20 ? '#e3b341'
+                 : '#3fb950';
+  document.getElementById('gaugeArc').setAttribute('stroke', arcColor);
+
+  // Draw arc from 0 to current angle
+  // SVG: center=0,0, radius=72, base angle = -90° (top), range ±90°
+  const R = 72;
+  const startAngleDeg = -90; // 0° position (top)
+  const endAngleDeg   = startAngleDeg + svgAngle;
+  function toRad(d) { return d * Math.PI / 180; }
+  const x1 = R * Math.cos(toRad(startAngleDeg));
+  const y1 = R * Math.sin(toRad(startAngleDeg));
+  const x2 = R * Math.cos(toRad(endAngleDeg));
+  const y2 = R * Math.sin(toRad(endAngleDeg));
+  const largeArc = Math.abs(svgAngle) > 180 ? 1 : 0;
+  const sweep    = svgAngle >= 0 ? 1 : 0;
+  if (Math.abs(angleDeg) < 0.5) {
+    document.getElementById('gaugeArc').setAttribute('d', '');
+  } else {
+    document.getElementById('gaugeArc').setAttribute('d',
+      `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${largeArc} ${sweep} ${x2.toFixed(2)} ${y2.toFixed(2)}`);
+  }
+}
+
+function updateStats(ratio, threshold, angleCur) {
+  const isGlare = ratio > threshold;
+  if (isGlare && !lastGlareState) {
+    statGlareCount++;
+    statSessionCount++;
+    document.getElementById('statSessions').textContent = statSessionCount;
+    document.getElementById('statGlare').textContent = statGlareCount;
+    addEvent('⚠️', `בוהק זוהה — יחס ${ratio.toFixed(1)}×, מכוון לזווית ${angleCur.toFixed(0)}°`, '#f85149');
+  }
+  if (!isGlare && lastGlareState) {
+    addEvent('✅', `בוהק טופל — חזרה לזווית 0°`, '#3fb950');
+  }
+  lastGlareState = isGlare;
+
+  angleSum += Math.abs(angleCur);
+  angleSamples++;
+  document.getElementById('statAngleAvg').textContent = (angleSum / angleSamples).toFixed(1) + '°';
+}
+
+// ── Connection animation ──────────────────────────────────────────────────
+(function startupConnection() {
+  const dot    = document.getElementById('connDot');
+  const status = document.getElementById('connStatus');
+
+  // Phase 1: searching
+  dot.className = 'status-dot dot-red';
+  status.textContent = '🔍 מחפש מכשיר...';
+
+  setTimeout(() => {
+    // Phase 2: connecting
+    dot.className = 'status-dot';
+    dot.style.background = '#e3b341';
+    status.textContent = '📡 מתחבר...';
+  }, 1000);
+
+  setTimeout(() => {
+    // Phase 3: connected with pulse
+    dot.style.background = '';
+    dot.className = 'status-dot dot-green dot-pulse';
+    status.textContent = '✅ מחובר (סימולציה)';
+    addEvent('🚀', 'מערכת SmartMount הופעלה בהצלחה', '#58a6ff');
+    setInterval(update, 100);
+    update();
+  }, 2500);
+})();
+
+// ── Cloud modal ───────────────────────────────────────────────────
+function openCloudModal() {
+  track('open_pricing');
+  document.getElementById('cloudModal').style.display = 'flex';
+}
+function closeCloudModal() {
+  document.getElementById('cloudModal').style.display = 'none';
+}
+document.getElementById('cloudModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCloudModal();
+});
+function startTrial() {
+  if (!getUser()) { closeCloudModal(); openAuth('צור חשבון חינם כדי להמשיך'); return; }
+  track('upgrade_click', { plan: 'cloud_trial' });
+  closeCloudModal();
+  addEvent('☁️', 'ניסיון Cloud 30 יום הופעל! סינכרון ענן פעיל', '#58a6ff');
+}
+</script>
+
+<!-- ══ Product Layer: Auth / Onboarding / Legal / Feedback / Analytics ══ -->
+<style>
+.user-menu{display:none;position:absolute;top:44px;left:0;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:8px;min-width:160px;z-index:1100;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.user-menu.open{display:block}
+.user-menu-name{font-size:0.8rem;color:#8b949e;padding:6px 10px;border-bottom:1px solid #21262d;margin-bottom:6px}
+.user-menu button{display:block;width:100%;text-align:right;background:none;border:none;color:#c9d1d9;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:0.85rem;font-family:inherit}
+.user-menu button:hover{background:rgba(88,166,255,.1)}
+.sm-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1200;align-items:center;justify-content:center}
+.sm-modal-overlay.open{display:flex}
+.sm-modal{background:#161b22;border:1px solid #30363d;border-radius:16px;padding:32px;max-width:420px;width:92%;position:relative;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.sm-modal .close-x{position:absolute;top:14px;left:14px;background:none;border:none;color:#8b949e;font-size:1.2rem;cursor:pointer}
+.auth-tabs{display:flex;gap:6px;margin-bottom:20px;background:#0d1117;border-radius:10px;padding:4px}
+.auth-tab{flex:1;padding:9px;border:none;border-radius:8px;background:transparent;color:#8b949e;cursor:pointer;font-size:0.88rem;font-weight:600;font-family:inherit}
+.auth-tab.active{background:linear-gradient(135deg,#1f6feb,#388bfd);color:#fff}
+.auth-field{margin-bottom:12px}
+.auth-field label{display:block;font-size:0.8rem;color:#58a6ff;margin-bottom:5px}
+.auth-field input{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:11px 14px;color:#e8e8f0;font-size:0.9rem;font-family:inherit}
+.auth-field input:focus{outline:none;border-color:#58a6ff}
+.auth-submit{width:100%;margin-top:8px;background:linear-gradient(135deg,#1f6feb,#388bfd);color:#fff;border:none;padding:12px;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer}
+.auth-error{color:#f85149;font-size:0.8rem;margin-top:8px;display:none}
+#authSubtitle{color:#8b949e;font-size:0.85rem;text-align:center;margin-bottom:16px}
+.sm-footer{max-width:1100px;margin:0 auto;padding:20px;border-top:1px solid #21262d;display:flex;justify-content:center;gap:20px;font-size:0.78rem;color:#8b949e}
+.sm-footer a{color:#8b949e;text-decoration:none;cursor:pointer}
+.sm-footer a:hover{color:#58a6ff}
+.legal-body{font-size:0.85rem;color:#c9d1d9;line-height:1.8}
+.legal-body p{margin-bottom:12px;color:#8b949e}
+#onboardOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1500;align-items:center;justify-content:center}
+#onboardOverlay.open{display:flex}
+.onboard-card{background:#161b22;border:1px solid #1f6feb;border-radius:16px;padding:36px;max-width:440px;width:92%;text-align:center;box-shadow:0 12px 48px rgba(31,111,235,.25)}
+.onboard-icon{font-size:3rem;margin-bottom:14px}
+.onboard-title{font-size:1.3rem;font-weight:800;color:#e8e8f0;margin-bottom:10px}
+.onboard-desc{font-size:0.9rem;color:#8b949e;line-height:1.7;margin-bottom:24px}
+.onboard-dots{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+.onboard-dot{width:8px;height:8px;border-radius:50%;background:#21262d}
+.onboard-dot.active{background:#58a6ff}
+.onboard-actions{display:flex;gap:10px;justify-content:center}
+.onboard-next{background:linear-gradient(135deg,#1f6feb,#388bfd);color:#fff;border:none;padding:11px 32px;border-radius:10px;font-size:0.9rem;font-weight:700;cursor:pointer}
+.onboard-skip{background:none;border:1px solid #30363d;color:#8b949e;padding:11px 20px;border-radius:10px;font-size:0.9rem;cursor:pointer}
+#feedbackFab{position:fixed;bottom:24px;left:24px;z-index:1100;background:linear-gradient(135deg,#1f6feb,#388bfd);color:#fff;border:none;border-radius:24px;padding:11px 18px;font-size:0.85rem;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(31,111,235,.4);font-family:inherit}
+#feedbackPanel{display:none;position:fixed;bottom:76px;left:24px;z-index:1100;background:#161b22;border:1px solid #30363d;border-radius:14px;padding:20px;width:280px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#feedbackPanel.open{display:block}
+.fb-stars{display:flex;gap:6px;justify-content:center;margin:10px 0 14px;flex-direction:row-reverse}
+.fb-star{font-size:1.5rem;cursor:pointer;filter:grayscale(1);transition:filter .15s,transform .15s}
+.fb-star.on{filter:none;transform:scale(1.1)}
+#feedbackPanel textarea{width:100%;height:70px;background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:10px;color:#e8e8f0;font-size:0.85rem;font-family:inherit;resize:none;direction:rtl}
+#fbToast{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a3a2a;border:1px solid #238636;color:#3fb950;padding:11px 22px;border-radius:12px;font-size:0.88rem;font-weight:600;z-index:1600}
+</style>
+
+<!-- Auth Modal -->
+<div class="sm-modal-overlay" id="authModal">
+  <div class="sm-modal">
+    <button class="close-x" onclick="closeAuth()">✕</button>
+    <div style="text-align:center;font-size:1.3rem;font-weight:800;margin-bottom:6px;color:#58a6ff">📺 SmartMount</div>
+    <div id="authSubtitle">התחבר לחשבון SmartMount שלך</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="setAuthMode('login')">התחברות</button>
+      <button class="auth-tab" id="tabSignup" onclick="setAuthMode('signup')">הרשמה</button>
+    </div>
+    <div class="auth-field" id="nameField" style="display:none">
+      <label>שם מלא</label>
+      <input type="text" id="authName" placeholder="השם שלך">
+    </div>
+    <div class="auth-field">
+      <label>אימייל</label>
+      <input type="email" id="authEmail" placeholder="you@email.com" dir="ltr">
+    </div>
+    <div class="auth-field">
+      <label>סיסמה</label>
+      <input type="password" id="authPass" placeholder="••••••••" dir="ltr">
+    </div>
+    <button class="auth-submit" id="authSubmit" onclick="submitAuth()">התחבר</button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<!-- Onboarding -->
+<div id="onboardOverlay">
+  <div class="onboard-card">
+    <div class="onboard-icon" id="obIcon">📺</div>
+    <div class="onboard-title" id="obTitle"></div>
+    <div class="onboard-desc" id="obDesc"></div>
+    <div class="onboard-dots" id="obDots"></div>
+    <div class="onboard-actions">
+      <button class="onboard-next" id="obNext" onclick="onboardNext()">הבא</button>
+      <button class="onboard-skip" onclick="finishOnboarding()">דלג</button>
+    </div>
+  </div>
+</div>
+
+<!-- Legal Modal -->
+<div class="sm-modal-overlay" id="legalModal">
+  <div class="sm-modal" style="max-width:560px">
+    <button class="close-x" onclick="closeLegal()">✕</button>
+    <div style="font-size:1.2rem;font-weight:800;margin-bottom:16px;color:#e8e8f0" id="legalTitle"></div>
+    <div class="legal-body" id="legalBody"></div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="sm-footer">
+  <span>© 2026 SmartMount</span>
+  <a onclick="openLegal('terms')">תנאי שימוש</a>
+  <a onclick="openLegal('privacy')">מדיניות פרטיות</a>
+</footer>
+
+<!-- Feedback widget -->
+<button id="feedbackFab" onclick="toggleFeedback()">💬 משוב</button>
+<div id="feedbackPanel">
+  <div style="font-size:0.9rem;font-weight:700;margin-bottom:4px;color:#e8e8f0">מה דעתך על SmartMount?</div>
+  <div class="fb-stars" id="fbStars"></div>
+  <textarea id="fbText" placeholder="ספר לנו מה אפשר לשפר..."></textarea>
+  <button class="auth-submit" style="margin-top:10px;padding:9px" onclick="sendFeedback()">שלח משוב</button>
+</div>
+<div id="fbToast">תודה על המשוב! 💙</div>
+
+<script>
+// ── Analytics stub ────────────────────────────────────────────────
+function track(event, props) {
+  try {
+    const log = JSON.parse(localStorage.getItem('smartmount_analytics') || '[]');
+    log.push({ event, props: props || {}, ts: new Date().toISOString() });
+    localStorage.setItem('smartmount_analytics', JSON.stringify(log.slice(-200)));
+  } catch (e) {}
+}
+
+// ── Auth ──────────────────────────────────────────────────────────
+let authMode = 'login';
+function getUser() {
+  try { return JSON.parse(localStorage.getItem('smartmount_user')); } catch (e) { return null; }
+}
+function openAuth(subtitle) {
+  document.getElementById('authSubtitle').textContent = subtitle || 'התחבר לחשבון SmartMount שלך';
+  if (subtitle) setAuthMode('signup');
+  document.getElementById('authModal').classList.add('open');
+}
+function closeAuth() { document.getElementById('authModal').classList.remove('open'); }
+function setAuthMode(mode) {
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+  document.getElementById('tabSignup').classList.toggle('active', mode === 'signup');
+  document.getElementById('nameField').style.display = mode === 'signup' ? 'block' : 'none';
+  document.getElementById('authSubmit').textContent = mode === 'signup' ? 'צור חשבון חינם' : 'התחבר';
+}
+function submitAuth() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pass  = document.getElementById('authPass').value;
+  const name  = document.getElementById('authName').value.trim();
+  const err   = document.getElementById('authError');
+  if (!email.includes('@') || pass.length < 4 || (authMode === 'signup' && !name)) {
+    err.textContent = authMode === 'signup' ? 'אנא מלא שם, אימייל תקין וסיסמה (4+ תווים)' : 'אנא הזן אימייל תקין וסיסמה (4+ תווים)';
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  const user = { name: name || email.split('@')[0], email, joinedAt: new Date().toISOString() };
+  localStorage.setItem('smartmount_user', JSON.stringify(user));
+  track(authMode === 'signup' ? 'signup' : 'login', { email });
+  closeAuth();
+  renderAuthState();
+  addEvent('👤', `ברוך הבא, ${user.name}! מחובר לחשבון`, '#58a6ff');
+}
+function logoutUser() {
+  localStorage.removeItem('smartmount_user');
+  track('logout');
+  renderAuthState();
+  document.getElementById('userMenu').classList.remove('open');
+}
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  document.getElementById('userMenu').classList.toggle('open');
+}
+document.addEventListener('click', () => document.getElementById('userMenu').classList.remove('open'));
+function renderAuthState() {
+  const user = getUser();
+  document.getElementById('loginBtn').style.display = user ? 'none' : 'inline-block';
+  document.getElementById('avatarWrap').style.display = user ? 'block' : 'none';
+  if (user) {
+    document.getElementById('userAvatar').textContent = (user.name || '?').charAt(0);
+    document.getElementById('userMenuName').textContent = user.name;
+  }
+}
+renderAuthState();
+document.getElementById('authModal').addEventListener('click', function(e) { if (e.target === this) closeAuth(); });
+
+// ── Onboarding ────────────────────────────────────────────────────
+const OB_STEPS = [
+  { icon: '📺', title: 'ברוכים הבאים ל-SmartMount', desc: 'ההרכבה החכמה שמזיזה את הטלוויזיה בשבילך: חיישני אור מזהים בוהק ושמש ישירה, והמנוע מכוון את זווית המסך אוטומטית — לצפייה מושלמת בכל שעה.' },
+  { icon: '🎯', title: 'איך משתמשים?', desc: 'לוח הבקרה מציג את קריאות החיישנים והזווית בזמן אמת. התחל בכיול (כפתור 🎯 למעלה) כדי להתאים את הסף לחדר שלך, בחר סוג פאנל, והגדר לוח זמנים להגנה אוטומטית.' },
+  { icon: '☁️', title: 'מה מקבלים ב-Cloud?', desc: 'היסטוריית נתונים 30 יום, התראות Push, סינכרון מרחוק עד 3 מכשירים וגישת API — רק ₪9.90 לחודש, עם 30 יום ניסיון חינם!' }
+];
+let obStep = 0;
+function renderOnboard() {
+  const s = OB_STEPS[obStep];
+  document.getElementById('obIcon').textContent = s.icon;
+  document.getElementById('obTitle').textContent = s.title;
+  document.getElementById('obDesc').textContent = s.desc;
+  document.getElementById('obDots').innerHTML = OB_STEPS.map((_, i) =>
+    `<div class="onboard-dot ${i === obStep ? 'active' : ''}"></div>`).join('');
+  document.getElementById('obNext').textContent = obStep === OB_STEPS.length - 1 ? 'בואו נתחיל! 🚀' : 'הבא';
+}
+function onboardNext() {
+  if (obStep < OB_STEPS.length - 1) { obStep++; renderOnboard(); }
+  else finishOnboarding();
+}
+function finishOnboarding() {
+  localStorage.setItem('smartmount_onboarded', '1');
+  document.getElementById('onboardOverlay').classList.remove('open');
+  track('onboarding_done', { step: obStep + 1 });
+}
+if (!localStorage.getItem('smartmount_onboarded')) {
+  renderOnboard();
+  document.getElementById('onboardOverlay').classList.add('open');
+}
+
+// ── Legal ─────────────────────────────────────────────────────────
+const LEGAL = {
+  terms: { title: '📜 תנאי שימוש', body: `
+    <p>ברוכים הבאים ל-SmartMount. השימוש בלוח הבקרה, בחומרה ובשירותי הענן מהווה הסכמה מלאה לתנאים אלה. SmartMount מספקת מערכת הרכבה ממונעת לטלוויזיה עם זיהוי בוהק אוטומטי.</p>
+    <p>התקנת ההרכבה על הקיר חייבת להתבצע בהתאם להוראות ההתקנה ולמשקל המרבי המאושר של הצג. התקנה לקויה עלולה לגרום לנזק לרכוש או לפציעה — מומלץ להיעזר במתקין מוסמך. האחריות על התקנה נכונה חלה על המשתמש.</p>
+    <p>שירות SmartMount Cloud ניתן במנוי חודשי מתחדש, עם תקופת ניסיון של 30 יום. ניתן לבטל בכל עת דרך ההגדרות, והביטול ייכנס לתוקף בסוף תקופת החיוב הנוכחית.</p>
+    <p>SmartMount אינה אחראית לנזקים עקיפים הנובעים מתקלה בחיישנים, אובדן קישוריות או שגיאת כיול. אחריות היצרן על החומרה מוגבלת ל-24 חודשים ממועד הרכישה, בכפוף לשימוש סביר.</p>
+    <p>אין לבצע הנדסה לאחור, שינוי קושחה לא מאושר או חיבור רכיבים צד-שלישי שאינם נתמכים. פעולות אלה יבטלו את האחריות.</p>
+    <p>על תנאים אלה יחולו דיני מדינת ישראל, וסמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים בתל אביב.</p>` },
+  privacy: { title: '🔒 מדיניות פרטיות', body: `
+    <p>פרטיותך חשובה לנו. מדיניות זו מסבירה איזה מידע SmartMount אוספת מלוח הבקרה ומהחיישנים, וכיצד הוא משמש.</p>
+    <p>בעת ההרשמה אנו אוספים שם, כתובת אימייל וסיסמה. המערכת שומרת נתוני חיישנים (רמות תאורה, זוויות), ערכי כיול, לוחות זמנים ואירועי שימוש — לצורך תפעול המערכת ושיפור האלגוריתם.</p>
+    <p>בגרסת הדגמה זו, כל הנתונים נשמרים מקומית בדפדפן שלך (localStorage) ואינם נשלחים לשרתים חיצוניים. מחיקת נתוני הדפדפן תמחק את המידע לצמיתות.</p>
+    <p>נתוני החיישנים הם נתוני תאורה בלבד — המערכת אינה כוללת מצלמה או מיקרופון ואינה אוספת תוכן צפייה מהטלוויזיה שלך.</p>
+    <p>איננו מוכרים או משתפים מידע אישי עם צדדים שלישיים למטרות שיווק. באפשרותך לבקש בכל עת עיון במידע השמור עליך, תיקונו או מחיקתו.</p>
+    <p>מדיניות זו כפופה לחוק הגנת הפרטיות, התשמ"א-1981, ולתקנות הגנת הפרטיות (אבטחת מידע), התשע"ז-2017.</p>` }
+};
+function openLegal(kind) {
+  document.getElementById('legalTitle').textContent = LEGAL[kind].title;
+  document.getElementById('legalBody').innerHTML = LEGAL[kind].body;
+  document.getElementById('legalModal').classList.add('open');
+}
+function closeLegal() { document.getElementById('legalModal').classList.remove('open'); }
+document.getElementById('legalModal').addEventListener('click', function(e) { if (e.target === this) closeLegal(); });
+
+// ── Feedback widget ───────────────────────────────────────────────
+let fbRating = 0;
+document.getElementById('fbStars').innerHTML = [1,2,3,4,5].map(n =>
+  `<span class="fb-star" data-n="${n}" onclick="setFbRating(${n})">⭐</span>`).join('');
+function setFbRating(n) {
+  fbRating = n;
+  document.querySelectorAll('.fb-star').forEach(s =>
+    s.classList.toggle('on', parseInt(s.dataset.n) <= n));
+}
+function toggleFeedback() {
+  document.getElementById('feedbackPanel').classList.toggle('open');
+}
+function sendFeedback() {
+  const text = document.getElementById('fbText').value.trim();
+  if (!fbRating && !text) return;
+  const all = JSON.parse(localStorage.getItem('smartmount_feedback') || '[]');
+  all.push({ rating: fbRating, text, ts: new Date().toISOString() });
+  localStorage.setItem('smartmount_feedback', JSON.stringify(all));
+  track('feedback', { rating: fbRating });
+  document.getElementById('feedbackPanel').classList.remove('open');
+  document.getElementById('fbText').value = '';
+  setFbRating(0);
+  const t = document.getElementById('fbToast');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2500);
+}
+</script>
+</body>
+</html>
