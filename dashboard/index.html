@@ -265,6 +265,9 @@
   </style>
 </head>
 <body>
+<div id="SIM-BANNER" style="background:#7c2d12;color:#ffedd5;font:700 0.82rem system-ui,sans-serif;padding:8px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.15)">
+  ⚠️ סימולציה — לוח הבקרה אינו מחובר לחומרה. הקריאות והמדדים הם נתוני דוגמה. "SmartMount Cloud" אינו שירות קיים ואי אפשר להירשם אליו או לשלם עליו.
+</div>
 
 <!-- Glare alert toast -->
 <div id="glareToast">⚠️ בוהק חזק זוהה — מכוון מחדש</div>
@@ -342,7 +345,7 @@
       <div style="background:linear-gradient(180deg,#0d1f3c,#0a1628);border:2px solid #1f6feb;border-radius:14px;padding:22px;text-align:center;position:relative">
         <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#1f6feb;color:#fff;font-size:0.72rem;font-weight:700;padding:3px 14px;border-radius:20px;white-space:nowrap">30 יום ניסיון חינם</div>
         <div style="font-size:0.75rem;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Cloud</div>
-        <div style="font-size:2.2rem;font-weight:800;color:#e8e8f0;margin-bottom:4px">₪9.90</div>
+        <div style="font-size:2.2rem;font-weight:800;color:#e8e8f0;margin-bottom:4px">₪9.90 (מחיר להמחשה — השירות אינו קיים)</div>
         <div style="font-size:0.78rem;color:#8b949e;margin-bottom:20px">לחודש</div>
         <ul style="list-style:none;text-align:right;font-size:0.82rem;color:#c9d1d9;line-height:2.1;margin-bottom:20px">
           <li>✓ הכל ב-Basic</li>
@@ -1215,7 +1218,7 @@ document.getElementById('authModal').addEventListener('click', function(e) { if 
 const OB_STEPS = [
   { icon: '📺', title: 'ברוכים הבאים ל-SmartMount', desc: 'ההרכבה החכמה שמזיזה את הטלוויזיה בשבילך: חיישני אור מזהים בוהק ושמש ישירה, והמנוע מכוון את זווית המסך אוטומטית — לצפייה מושלמת בכל שעה.' },
   { icon: '🎯', title: 'איך משתמשים?', desc: 'לוח הבקרה מציג את קריאות החיישנים והזווית בזמן אמת. התחל בכיול (כפתור 🎯 למעלה) כדי להתאים את הסף לחדר שלך, בחר סוג פאנל, והגדר לוח זמנים להגנה אוטומטית.' },
-  { icon: '☁️', title: 'מה מקבלים ב-Cloud?', desc: 'היסטוריית נתונים 30 יום, התראות Push, סינכרון מרחוק עד 3 מכשירים וגישת API — רק ₪9.90 לחודש, עם 30 יום ניסיון חינם!' }
+  { icon: '☁️', title: 'מה מקבלים ב-Cloud?', desc: 'היסטוריית נתונים 30 יום, התראות Push, סינכרון מרחוק עד 3 מכשירים וגישת API — רק ₪9.90 (מחיר להמחשה — השירות אינו קיים) לחודש, עם 30 יום ניסיון חינם!' }
 ];
 let obStep = 0;
 function renderOnboard() {

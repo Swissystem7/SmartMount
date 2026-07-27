@@ -1,15 +1,51 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="0; url=dashboard/">
-  <title>SmartMount — מעבר לדמו</title>
-  <script>
-    window.location.replace('dashboard/');
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartMount — תושבת טלוויזיה חכמה נגד בוהק</title>
+<meta name="description" content="SmartMount היא תושבת טלוויזיה שמזהה בוהק בשני חיישני אור ומטה את המסך אוטומטית. קושחת ESP32 ולוח בקרה — הדגמה בלבד.">
+<meta name="theme-color" content="#0f1420">
+<link rel="canonical" href="https://swissystem7.github.io/SmartMount/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SmartMount — תושבת טלוויזיה חכמה נגד בוהק">
+<meta property="og:description" content="מזהה בוהק בשני חיישני אור ומטה את המסך אוטומטית. קושחת ESP32 + לוח בקרה. הדגמה בלבד.">
+<meta property="og:url" content="https://swissystem7.github.io/SmartMount/">
+<meta property="og:locale" content="he_IL">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#08080f;color:#e8e8ff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.wrap{max-width:640px;width:100%}
+.badge{display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.5px;color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:6px;padding:3px 10px;margin-bottom:18px}
+h1{font-size:2rem;font-weight:900;line-height:1.25;margin-bottom:10px}
+h1 em{font-style:normal;background:linear-gradient(135deg,#38bdf8,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
+p.lead{color:#a9b4d0;line-height:1.7;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:24px}
+.card{background:#111120;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px}
+.card b{display:block;font-size:.9rem;margin-bottom:4px}
+.card span{font-size:.78rem;color:#7b86a8;line-height:1.5}
+.cta{display:flex;flex-wrap:wrap;gap:10px}
+a.btn{text-decoration:none;font-weight:700;font-size:.9rem;border-radius:10px;padding:11px 20px;display:inline-block}
+a.primary{background:linear-gradient(135deg,#38bdf8,#8b5cf6);color:#fff}
+a.ghost{border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
+.note{margin-top:22px;font-size:.76rem;color:#5a5a8a;line-height:1.6;border-top:1px solid rgba(255,255,255,.07);padding-top:14px}
+</style>
 </head>
 <body>
-  <p><a href="dashboard/">מעבר לדמו של SmartMount</a></p>
+<div class="wrap">
+  <span class="badge">הדגמת מוצר — אין חומרה מחוברת</span>
+  <h1>SmartMount — תושבת טלוויזיה <em>שמתגוננת מבוהק</em></h1>
+  <p class="lead">שני חיישני אור מודדים את עוצמת האור שפוגעת במסך מול זו שמאחוריו. כשהיחס מצביע על בוהק ישיר, מנוע צעד מטה את המסך — עד לגבול זווית הצפייה של סוג הפאנל.</p>
+  <div class="grid">
+    <div class="card"><b>קושחת ESP32</b><span>שני חיישני BH1750, מנוע צעד עם ממסרה 1:5, ו-API מעל HTTP</span></div>
+    <div class="card"><b>מגבלת פאנל</b><span>OLED 20°, QLED 40°, LED 30° — התושבת לא חורגת מהן</span></div>
+    <div class="card"><b>לוח בקרה</b><span>כיול, קריאות חיישנים, מצב אוטומטי או ידני</span></div>
+  </div>
+  <div class="cta">
+    <a class="btn primary" href="./dashboard/">פתיחת לוח הבקרה</a>
+    <a class="btn ghost" href="https://github.com/Swissystem7/SmartMount">קוד ותיעוד ב-GitHub</a>
+  </div>
+  <p class="note">מה שרואים כאן הוא הדגמה. לוח הבקרה אינו מחובר לחומרה — הוא מציג נתוני דוגמה. הקושחה בתיקיית <code>firmware/</code> נכתבה לחומרה אמיתית אך טרם נבדקה מולה, ואלגוריתם זיהוי הבוהק לא כויל מול מדידה. אין שירות ענן, אין חשבונות ואין סליקה.</p>
+</div>
 </body>
 </html>
