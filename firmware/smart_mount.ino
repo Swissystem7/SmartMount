@@ -36,7 +36,15 @@ bool  autoMode     = true;
 unsigned long lastRead = 0;
 
 // ── Algorithm ────────────────────────────────────────────────────────────
+// Mirrored by src/lib/control.js, which is covered by tests. Keep both in sync.
 float calcOptimalAngle(float luxTop, float luxBot) {
+  // A BH1750 reports a negative value when a read fails. Feeding that through
+  // as if it were a lux reading produces a huge glare ratio and slams the panel
+  // to its limit, so a failed read must mean "hold position".
+  if (isnan(luxTop) || isnan(luxBot) || luxTop < 0.0f || luxBot < 0.0f) {
+    return currentAngle;
+  }
+
   // If top lux >> bottom → direct sunlight hitting screen → tilt away
   float glareRatio = luxTop / max(luxBot, 1.0f);
   float panelLimit = PANEL_LIMITS[currentPanel];
