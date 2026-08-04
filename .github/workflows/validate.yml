@@ -1,0 +1,61 @@
+name: validate
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    name: control law tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run unit tests
+        run: node --test
+
+  syntax:
+    name: dashboard and modules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax-check the shared logic modules
+        run: |
+          for f in src/lib/*.js; do node --check "$f"; done
+          echo "OK: all modules parse cleanly"
+      - name: Syntax-check inline scripts in the dashboard
+        run: |
+          node -e "
+            const fs=require('fs');
+            const h=fs.readFileSync('dashboard/index.html','utf8');
+            const s=[...h.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)].map(m=>m[1]);
+            if(!s.length) throw new Error('no inline scripts found in dashboard');
+            s.forEach(x=>new Function(x));
+            console.log('OK: '+s.length+' inline scripts parse cleanly');
+          "
+
+  firmware:
+    name: firmware and reference stay in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The firmware constants must match the tested reference
+        run: |
+          node -e "
+            const fs=require('fs');
+            const ino=fs.readFileSync('firmware/smart_mount.ino','utf8');
+            const ref=require('./src/lib/control.js');
+            const limits=(ino.match(/PANEL_LIMITS\[\] = \{([^}]*)\}/)||[])[1];
+            if(!limits) throw new Error('could not read PANEL_LIMITS from the firmware');
+            const fromIno=limits.split(',').map(s=>parseFloat(s.trim()));
+            const fromRef=[ref.PANEL_LIMITS.OLED, ref.PANEL_LIMITS.QLED, ref.PANEL_LIMITS.LED];
+            if(JSON.stringify(fromIno)!==JSON.stringify(fromRef))
+              throw new Error('panel limits drifted: firmware '+fromIno+' vs reference '+fromRef);
+            if(!ino.includes('luxTop < 0.0f'))
+              throw new Error('the failed-sensor-read guard is missing from the firmware');
+            console.log('OK: firmware limits '+fromIno+' match the tested reference');
+          "
