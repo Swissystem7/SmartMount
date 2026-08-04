@@ -24,7 +24,9 @@ jobs:
         with:
           node-version: 20
       - name: Syntax-check the shared logic modules
-        run: for f in src/lib/*.js; do node --check "$f"; done && echo "OK: all modules parse cleanly"
+        run: |
+          for f in src/lib/*.js; do node --check "$f"; done
+          echo "OK: all modules parse cleanly"
       - name: Syntax-check inline scripts in the dashboard
         run: |
           node -e "
