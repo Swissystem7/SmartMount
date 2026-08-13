@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartMount — גאומטריית בוהק</title>
+<meta name="description" content="חוק ההחזרה בחדר: מתי הטיה מוציאה השתקפות מקו הראייה — ומתי היא רק מזיזה את הכתם.">
+<meta name="theme-color" content="#0f1420">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#08080f;color:#e8e8f0;min-height:100vh}
+a{color:#58a6ff}
+nav{background:#0d1117;border-bottom:1px solid #21262d;padding:12px 20px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+nav .brand{font-weight:800;color:#58a6ff;margin-left:auto}
+nav a{text-decoration:none;font-size:.85rem;color:#8b949e}
+nav a:hover,nav a.on{color:#e8e8f0}
+.banner{background:#7c2d12;color:#ffedd5;font:700 .8rem system-ui,sans-serif;padding:8px 16px;text-align:center}
+.wrap{max-width:1100px;margin:0 auto;padding:22px 16px 56px}
+h1{font-size:1.55rem;font-weight:800;margin-bottom:6px}
+.lead{color:#8b949e;font-size:.9rem;line-height:1.65;margin-bottom:18px;max-width:74ch}
+.grid{display:grid;grid-template-columns:1.35fr .85fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:#161b22;border:1px solid #21262d;border-radius:14px;padding:16px}
+.card h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin-bottom:12px}
+#scene{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d;touch-action:none}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.btn{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:8px;cursor:pointer;padding:8px 12px;font:600 .8rem inherit}
+.btn.on{background:#1f4068;border-color:#58a6ff;color:#58a6ff}
+label.sl{display:block;font-size:.78rem;color:#8b949e;margin:10px 0 6px}
+input[type=range]{width:100%;accent-color:#58a6ff}
+.verdict{border-radius:10px;padding:12px 14px;margin-top:8px;font-size:.88rem;line-height:1.55;border:1px solid #21262d}
+.verdict.hit{background:#3a1010;border-color:#f85149;color:#ffb4b0}
+.verdict.miss{background:#1a3a2a;border-color:#238636;color:#7ee787}
+.verdict.meh{background:#2d1f00;border-color:#9e6a03;color:#e3b341}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
+.kv b{display:block;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.kv span{font-size:.7rem;color:#8b949e}
+.fine{font-size:.78rem;color:#8b949e;line-height:1.6;margin-top:12px}
+</style>
+</head>
+<body>
+<nav>
+  <span class="brand">SmartMount</span>
+  <a href="../">בית</a>
+  <a href="../lab/">מעבדה הנדסית</a>
+  <a href="../spec/">מפרט בנייה</a>
+  <a class="on" href="./">גאומטריית בוהק</a>
+  <a href="../dashboard/">לוח בקרה</a>
+</nav>
+<div class="banner">סימולציית אופטיקה דו־ממדית — חוק ההחזרה, לא מדידת BH1750. זה מה שהאלגוריתם לא רואה.</div>
+<div class="wrap">
+  <h1>גאומטריית בוהק</h1>
+  <p class="lead">שני חיישני lux מודדים הארה כללית. בוהק על מסך הוא השתקפות ספקולרית: זווית הפגיעה שווה לזווית ההחזרה. גררו את האור ואת העין, והטו את המסך — ותראו מתי ההטיה באמת מוציאה את הכתם, ומתי היא רק מחליפה כתם בכתם.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>חתך חדר — מבט מהצד</h2>
+      <svg id="scene" viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg">
+        <rect width="800" height="420" fill="#0d1117"/>
+        <rect x="0" y="0" width="800" height="420" fill="none" stroke="#21262d"/>
+        <rect x="0" y="388" width="800" height="32" fill="#161b22"/>
+        <rect x="0" y="0" width="28" height="420" fill="#12151c"/>
+        <text x="400" y="18" fill="#6e7681" font-size="11" text-anchor="middle" font-family="sans-serif">תקרה</text>
+        <g id="extraRays"></g>
+        <line id="incident" x1="0" y1="0" x2="0" y2="0" stroke="#f0a500" stroke-width="2"/>
+        <line id="reflected" x1="0" y1="0" x2="0" y2="0" stroke="#f85149" stroke-width="2.2"/>
+        <line id="normal" x1="0" y1="0" x2="0" y2="0" stroke="#8b949e" stroke-width="1" stroke-dasharray="4 3"/>
+        <g id="screen"></g>
+        <g id="light" style="cursor:grab">
+          <circle r="16" fill="#fde68a"/>
+          <circle r="26" fill="#f59e0b" fill-opacity=".25"/>
+        </g>
+        <g id="eye" style="cursor:grab">
+          <circle r="14" fill="#1f4068" stroke="#58a6ff" stroke-width="2"/>
+          <circle cx="4" cy="-2" r="4" fill="#e8e8f0"/>
+        </g>
+        <text x="56" y="408" fill="#8b949e" font-size="11" font-family="sans-serif">קיר / ציר הטיה</text>
+      </svg>
+    </div>
+    <div class="card">
+      <h2>תנאי גאומטריה</h2>
+      <div class="row">
+        <button class="btn on" id="scOver">מנורה מעל</button>
+        <button class="btn" id="scFace">חלון ממול</button>
+        <button class="btn" id="scLow">בוהק מלמטה</button>
+      </div>
+      <label class="sl">הטיית מסך: <span id="tiltVal">0°</span> (ידני — לא חיישן)</label>
+      <input type="range" id="tilt" min="-20" max="40" value="0">
+      <div class="kv">
+        <div><b id="kInc">—</b><span>זווית פגיעה</span></div>
+        <div><b id="kRef">—</b><span>זווית החזרה</span></div>
+      </div>
+      <div class="verdict meh" id="verdict">מזיזים אור או עין…</div>
+      <p class="fine">
+        <code>calcOptimalAngle</code> בקושחה מחזיר רק זווית ≥ 0 לפי יחס שני חיישנים.
+        הוא לא יודע איפה העין ואיפה הכתם. תרחיש «בוהק מלמטה» נשאר מחוץ לחוק בכוונה —
+        זו מגבלה מתועדת, לא באג שלא שמנו לב אליו.
+      </p>
+    </div>
+  </div>
+</div>
+<script>
+const PIVOT = { x: 70, y: 250 };
+const HALF = 70;
+let tilt = 0;
+let light = { x: 260, y: 50 };
+let eye = { x: 560, y: 250 };
+let drag = null;
+let scene = 'over';
+
+function norm(x, y) {
+  const l = Math.hypot(x, y) || 1;
+  return { x: x / l, y: y / l };
+}
+function dot(a, b) { return a.x * b.x + a.y * b.y; }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+function screenGeom() {
+  const rad = tilt * Math.PI / 180;
+  // Screen sits on the wall; tilt rotates around pivot. Normal points into the room.
+  const along = { x: Math.sin(rad), y: -Math.cos(rad) };
+  const n = { x: Math.cos(rad), y: Math.sin(rad) };
+  const c = { x: PIVOT.x + along.x * 0, y: PIVOT.y };
+  const a = { x: PIVOT.x + along.x * -HALF, y: PIVOT.y + along.y * -HALF };
+  const b = { x: PIVOT.x + along.x * HALF, y: PIVOT.y + along.y * HALF };
+  return { a, b, c: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, n, along };
+}
+
+function reflect(incident, n) {
+  // incident: direction traveling toward the surface. R = I - 2 (I·N) N
+  const d = 2 * dot(incident, n);
+  return norm(incident.x - d * n.x, incident.y - d * n.y);
+}
+
+function distPointRay(px, py, ox, oy, dx, dy) {
+  const vx = px - ox, vy = py - oy;
+  const t = Math.max(0, vx * dx + vy * dy);
+  const qx = ox + dx * t, qy = oy + dy * t;
+  return Math.hypot(px - qx, py - qy);
+}
+
+function draw() {
+  const g = screenGeom();
+  const sg = document.getElementById('screen');
+  sg.innerHTML = '';
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', g.a.x); line.setAttribute('y1', g.a.y);
+  line.setAttribute('x2', g.b.x); line.setAttribute('y2', g.b.y);
+  line.setAttribute('stroke', '#58a6ff');
+  line.setAttribute('stroke-width', '8');
+  line.setAttribute('stroke-linecap', 'round');
+  sg.appendChild(line);
+  const tv = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  tv.setAttribute('x1', g.a.x); tv.setAttribute('y1', g.a.y);
+  tv.setAttribute('x2', g.b.x); tv.setAttribute('y2', g.b.y);
+  tv.setAttribute('stroke', '#0d1117');
+  tv.setAttribute('stroke-width', '4');
+  tv.setAttribute('stroke-linecap', 'round');
+  sg.appendChild(tv);
+
+  const I = norm(g.c.x - light.x, g.c.y - light.y);
+  const facing = dot(I, g.n);
+  const R = facing < 0 ? { x: 0, y: 0 } : reflect(I, g.n);
+
+  const nEnd = { x: g.c.x + g.n.x * 56, y: g.c.y + g.n.y * 56 };
+  document.getElementById('normal').setAttribute('x1', g.c.x);
+  document.getElementById('normal').setAttribute('y1', g.c.y);
+  document.getElementById('normal').setAttribute('x2', nEnd.x);
+  document.getElementById('normal').setAttribute('y2', nEnd.y);
+
+  document.getElementById('incident').setAttribute('x1', light.x);
+  document.getElementById('incident').setAttribute('y1', light.y);
+  document.getElementById('incident').setAttribute('x2', g.c.x);
+  document.getElementById('incident').setAttribute('y2', g.c.y);
+
+  const far = 900;
+  document.getElementById('reflected').setAttribute('x1', g.c.x);
+  document.getElementById('reflected').setAttribute('y1', g.c.y);
+  document.getElementById('reflected').setAttribute('x2', g.c.x + R.x * far);
+  document.getElementById('reflected').setAttribute('y2', g.c.y + R.y * far);
+
+  document.getElementById('light').setAttribute('transform', 'translate(' + light.x + ' ' + light.y + ')');
+  document.getElementById('eye').setAttribute('transform', 'translate(' + eye.x + ' ' + eye.y + ')');
+
+  const incDeg = facing < 0 ? NaN : Math.acos(clamp(-facing, -1, 1)) * 180 / Math.PI;
+  document.getElementById('kInc').textContent = Number.isFinite(incDeg) ? incDeg.toFixed(0) + '°' : 'מאחורי הפאנל';
+  document.getElementById('kRef').textContent = Number.isFinite(incDeg) ? incDeg.toFixed(0) + '°' : '—';
+
+  const v = document.getElementById('verdict');
+  const refl = document.getElementById('reflected');
+  if (facing < 0) {
+    v.className = 'verdict meh';
+    v.textContent = 'האור מאחורי הפאנל — אין השתקפות לכיוון החדר.';
+    refl.setAttribute('stroke', '#30363d');
+    return;
+  }
+  const extra = document.getElementById('extraRays');
+  extra.innerHTML = '';
+  const miss = distPointRay(eye.x, eye.y, g.c.x, g.c.y, R.x, R.y);
+  let hits = miss < 22;
+  let extraHits = 0;
+  if (scene === 'face') {
+    // Extended window: sample three heights. Tilt that kills one ray often admits another.
+    const samples = [light.y - 70, light.y, light.y + 70];
+    samples.forEach(sy => {
+      const src = { x: light.x, y: clamp(sy, 30, 360) };
+      const Ii = norm(g.c.x - src.x, g.c.y - src.y);
+      if (dot(Ii, g.n) < 0) return;
+      const Ri = reflect(Ii, g.n);
+      const d = distPointRay(eye.x, eye.y, g.c.x, g.c.y, Ri.x, Ri.y);
+      if (d < 22) extraHits++;
+      const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ln.setAttribute('x1', src.x); ln.setAttribute('y1', src.y);
+      ln.setAttribute('x2', g.c.x); ln.setAttribute('y2', g.c.y);
+      ln.setAttribute('stroke', '#f0a500'); ln.setAttribute('stroke-width', '1');
+      ln.setAttribute('opacity', '0.35');
+      extra.appendChild(ln);
+      const lr = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      lr.setAttribute('x1', g.c.x); lr.setAttribute('y1', g.c.y);
+      lr.setAttribute('x2', g.c.x + Ri.x * 900); lr.setAttribute('y2', g.c.y + Ri.y * 900);
+      lr.setAttribute('stroke', d < 22 ? '#f85149' : '#3fb950');
+      lr.setAttribute('stroke-width', '1.2'); lr.setAttribute('opacity', '0.45');
+      extra.appendChild(lr);
+    });
+    hits = hits || extraHits > 0;
+  }
+  refl.setAttribute('stroke', hits ? '#f85149' : '#3fb950');
+  if (scene === 'face' && extraHits > 0) {
+    v.className = 'verdict hit';
+    v.textContent = 'חלון הוא מקור מורחב: ' + extraHits + ' מתוך 3 דגימות עדיין פוגעות בעין. הטיה מחליפה כתם בכתם — לכן הציפוי על הפאנל ניצח את הזרוע.';
+  } else if (hits) {
+    v.className = 'verdict hit';
+    v.textContent = 'השתקפות פוגעת בעין — בוהק. מנורה צרה: הטיה של כמה מעלות יכולה להוציא את הכתם. החוק בקושחה לא רואה את הגאומטריה הזו.';
+  } else if (scene === 'low') {
+    v.className = 'verdict meh';
+    v.textContent = 'בוהק מלמטה. calcOptimalAngle מחזיר רק זווית ≥ 0 — החוק לעולם לא מטה נגד המקור הזה, גם אם הקרן פוגעת בעין אחרי הטיה ידנית.';
+  } else {
+    v.className = 'verdict miss';
+    v.textContent = 'הקרן המוחזרת מחטיאה את העין. הצפייה נקייה כאן בלי קשר ליחס שני חיישני lux.';
+  }
+}
+
+const svg = document.getElementById('scene');
+function svgPt(e) {
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+function near(p, o, r) { return Math.hypot(p.x - o.x, p.y - o.y) < r; }
+svg.addEventListener('pointerdown', e => {
+  const p = svgPt(e);
+  if (near(p, light, 28)) drag = 'light';
+  else if (near(p, eye, 24)) drag = 'eye';
+  if (drag) svg.setPointerCapture(e.pointerId);
+});
+svg.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const p = svgPt(e);
+  const o = drag === 'light' ? light : eye;
+  o.x = clamp(p.x, 40, 780);
+  o.y = clamp(p.y, 20, 380);
+  draw();
+});
+svg.addEventListener('pointerup', () => { drag = null; });
+
+document.getElementById('tilt').addEventListener('input', e => {
+  tilt = parseFloat(e.target.value);
+  document.getElementById('tiltVal').textContent = tilt + '°';
+  draw();
+});
+
+function applyScene(name) {
+  scene = name;
+  document.querySelectorAll('.row .btn').forEach(b => b.classList.remove('on'));
+  if (name === 'over') {
+    document.getElementById('scOver').classList.add('on');
+    light = { x: 280, y: 36 }; eye = { x: 560, y: 268 }; tilt = 0;
+  } else if (name === 'face') {
+    document.getElementById('scFace').classList.add('on');
+    light = { x: 760, y: 140 }; eye = { x: 520, y: 250 }; tilt = 0;
+  } else {
+    document.getElementById('scLow').classList.add('on');
+    light = { x: 240, y: 370 }; eye = { x: 560, y: 230 }; tilt = 0;
+  }
+  document.getElementById('tilt').value = tilt;
+  document.getElementById('tiltVal').textContent = tilt + '°';
+  draw();
+}
+document.getElementById('scOver').onclick = () => applyScene('over');
+document.getElementById('scFace').onclick = () => applyScene('face');
+document.getElementById('scLow').onclick = () => applyScene('low');
+
+draw();
+</script>
+</body>
+</html>
