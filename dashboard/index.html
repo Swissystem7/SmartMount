@@ -9,20 +9,14 @@
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#58a6ff">
   <title>SmartMount — לוח בקרה</title>
+  <link rel="stylesheet" href="../assets/site.css">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: #0a0a0f; color: #e8e8f0; min-height: 100vh; }
-
     header {
       background: linear-gradient(135deg, #0d1117, #161b22);
       padding: 20px 32px;
       border-bottom: 1px solid #21262d;
       display: flex; align-items: center; justify-content: space-between;
     }
-    .site-nav { background:#0d1117; border-bottom:1px solid #21262d; padding:10px 20px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; }
-    .site-nav a { text-decoration:none; font-size:0.85rem; color:#8b949e; }
-    .site-nav a:hover, .site-nav a.on { color:#e8e8f0; }
-    .site-nav .brand { font-weight:800; color:#58a6ff; margin-left:auto; }
     header h1 { font-size: 1.5rem; font-weight: 700; color: #58a6ff; }
     header span { color: #8b949e; font-size: 0.85rem; }
     .header-actions { display: flex; gap: 10px; align-items: center; }
@@ -587,15 +581,16 @@
 
 </div>
 
+<script src="../src/lib/control-params.js"></script>
 <script>
-// ── Demo simulation (no real ESP32 needed) ───────────────────────────
+// ── Demo simulation — constants from config/control-params.json (via generated JS) ──
 let autoMode  = true;
 let panel     = 2;
 let angle     = 0;
 let targetAngle = 0;
-const LIMITS  = [40, 30, 20]; // OLED widest viewing angle; VA/LED narrower
-const PANEL_NAMES = ['OLED','QLED','LED'];
-const GLARE_THRESHOLD = 3; // shared by movement law and UI glare indicator
+const LIMITS  = CONTROL_PARAMS.limitsArray;
+const PANEL_NAMES = CONTROL_PARAMS.panelNames;
+const GLARE_THRESHOLD = CONTROL_PARAMS.glareThreshold;
 let simTime   = 0;
 let lastDisplayedLuxTop = null;
 let lastDisplayedLuxBot = null;
@@ -636,8 +631,8 @@ function glareThreshold() {
 
 function calcAngle(luxTop, luxBot) {
   const threshold = glareThreshold();
-  const ratio = luxTop / Math.max(luxBot, 1);
-  if (ratio > threshold) return Math.min((ratio - threshold) * 5, LIMITS[panel]);
+  const ratio = luxTop / Math.max(luxBot, CONTROL_PARAMS.minLux);
+  if (ratio > threshold) return Math.min((ratio - threshold) * CONTROL_PARAMS.gainDegPerRatio, LIMITS[panel]);
   return 0;
 }
 

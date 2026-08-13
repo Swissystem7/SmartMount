@@ -1,0 +1,67 @@
+/* Shared chrome — landing, lab, spec, geometry, dashboard nav */
+:root {
+  --bg: #08080f;
+  --card: #161b22;
+  --line: #21262d;
+  --text: #e8e8f0;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --banner-bg: #7c2d12;
+  --banner-fg: #ffedd5;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+a { color: var(--accent); }
+.site-nav {
+  background: #0d1117;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+}
+.site-nav .brand { font-weight: 800; color: var(--accent); margin-left: auto; }
+.site-nav a { text-decoration: none; font-size: 0.85rem; color: var(--muted); }
+.site-nav a:hover, .site-nav a.on { color: var(--text); }
+.banner {
+  background: var(--banner-bg);
+  color: var(--banner-fg);
+  font: 700 0.8rem system-ui, sans-serif;
+  padding: 8px 16px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 22px 16px 56px; }
+.wrap h1 { font-size: 1.55rem; font-weight: 800; margin-bottom: 6px; }
+.lead { color: var(--muted); font-size: 0.9rem; line-height: 1.65; margin-bottom: 18px; max-width: 74ch; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+}
+.card h2 {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.btn {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font: 600 0.8rem inherit;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.on { background: #1f4068; border-color: var(--accent); color: var(--accent); }
+.btn.danger.on { background: #3a1010; border-color: #f85149; color: #f85149; }

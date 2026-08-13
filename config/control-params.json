@@ -1,0 +1,16 @@
+{
+  "comment": "OLED ~178° viewing angle; VA/LED wash out off-axis so they get a tighter tilt cap.",
+  "panels": [
+    { "id": "OLED", "limitDeg": 40 },
+    { "id": "QLED", "limitDeg": 30 },
+    { "id": "LED", "limitDeg": 20 }
+  ],
+  "glareThreshold": 3.0,
+  "gainDegPerRatio": 5.0,
+  "minLux": 1.0,
+  "deadbandDeg": 1.0,
+  "stepper": {
+    "stepsPerRev": 200,
+    "gearRatio": 5
+  }
+}

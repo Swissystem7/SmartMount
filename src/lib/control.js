@@ -18,11 +18,14 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   else Object.assign(root, api);
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  const PANEL_LIMITS = Object.freeze({ OLED: 40, QLED: 30, LED: 20 });
-  const GLARE_THRESHOLD = 3.0;   // below this, ambient light is not glare
-  const GAIN_DEG_PER_RATIO = 5.0;
-  const DEADBAND_DEG = 1.0;      // ignore corrections smaller than this
-  const MIN_LUX = 1.0;           // never divide by a dark sensor
+  const P = (typeof module === 'object' && module.exports)
+    ? require('./control-params')
+    : globalThis.CONTROL_PARAMS;
+  const PANEL_LIMITS = P.limits;
+  const GLARE_THRESHOLD = P.glareThreshold;
+  const GAIN_DEG_PER_RATIO = P.gainDegPerRatio;
+  const DEADBAND_DEG = P.deadbandDeg;
+  const MIN_LUX = P.minLux;
 
   function glareRatio(luxTop, luxBot) {
     if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot)) return null;

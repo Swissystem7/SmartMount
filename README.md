@@ -40,6 +40,16 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 2. **השוק פתר בוהק בציפוי הפאנל, לא בזרוע.** [Samsung Glare Free OLED](https://www.samsung.com/us/tvs/oled-tv/highlights/) ודירוגי [RTINGS לחדר בהיר](https://www.rtings.com/tv/reviews/best/bright-room).
 3. **מה היה פותח את זה מחדש:** ראיון עם 10 בעלי [MantelMount](https://www.mantelmount.com/products/mm815-motorized-drop-down-swivel-tv-mount) או MotionMount — «האם היית משלם עוד $150–$300 על הטיה אוטומטית לפי חיישן אור?» אם פחות משניים אומרים כן בלי היסוס — לגנוז סופית.
 
+## סנכרון קבועים
+
+מקור האמת: [`config/control-params.json`](config/control-params.json). אחרי עריכה:
+
+```
+node scripts/sync-control-params.js
+```
+
+הסקריפט ממלא בלוק מסומן ב־`firmware/smart_mount.ino` ומייצר את `src/lib/control-params.js`. הדשבורד והמעבדה טוענים את אותו קובץ JS (בלי bundler). הבדיקות נכשלות אם ה־JSON והקוד שנוצר מתפצלים.
+
 ## כנות
 
 - הדמו מציג נתוני סימולציה. הבאנר בדשבורד אומר את זה במפורש.

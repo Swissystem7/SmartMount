@@ -17,15 +17,24 @@ const char* WIFI_SSID     = "YOUR_WIFI";
 const char* WIFI_PASS     = "YOUR_PASSWORD";
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 10000;
 
+// >>> BEGIN GENERATED control-params
+// Generated from config/control-params.json by scripts/sync-control-params.js — do not edit.
 // OLED ~178° viewing angle; VA/LED wash out off-axis so they get a tighter tilt cap.
-const float PANEL_LIMITS[] = { 40.0, 30.0, 20.0 };  // OLED, QLED, LED/VA
+const float PANEL_LIMITS[] = { 40.0, 30.0, 20.0 };  // OLED, QLED, LED
 const int   PANEL_COUNT    = 3;
+const float GLARE_THRESHOLD = 3.0f;
+const float GAIN_DEG_PER_RATIO = 5.0f;
+const float MIN_LUX = 1.0f;
+const float DEADBAND_DEG = 1.0f;
+const float STEPS_PER_REV = 200.0f;
+const float GEAR_RATIO = 5.0f;
+const float STEPS_PER_DEGREE = (STEPS_PER_REV * GEAR_RATIO) / 360.0f;
+// <<< END GENERATED control-params
 enum PanelType { OLED = 0, QLED = 1, LED = 2 };
 PanelType currentPanel = LED;
 
-// Stepper: STEP=18, DIR=19, 200 steps/rev, 1:5 gear ratio
+// Stepper: STEP=18, DIR=19
 AccelStepper stepper(AccelStepper::DRIVER, 18, 19);
-const float STEPS_PER_DEGREE = (200.0 * 5.0) / 360.0;  // 2.78 steps/°
 
 // Sensors: top sensor (facing up/out) + bottom sensor (facing screen)
 BH1750 sensorTop(0x23);   // ADDR=GND
@@ -92,13 +101,13 @@ float calcOptimalAngle(float luxTop, float luxBot) {
   }
 
   // If top lux >> bottom → direct sunlight hitting screen → tilt away
-  float glareRatio = luxTop / max(luxBot, 1.0f);
+  float glareRatio = luxTop / max(luxBot, MIN_LUX);
   float limit      = panelLimit();
 
   float angle = 0.0;
-  if (glareRatio > 3.0) {
+  if (glareRatio > GLARE_THRESHOLD) {
     // Map glare intensity to tilt (max = panel limit)
-    angle = min((glareRatio - 3.0) * 5.0, (double)limit);
+    angle = min((glareRatio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, (double)limit);
   }
   return angle;
 }
@@ -211,7 +220,7 @@ void loop() {
     float luxTop = sensorTop.readLightLevel();
     float luxBot = sensorBot.readLightLevel();
     float next   = calcOptimalAngle(luxTop, luxBot);
-    if (abs(next - currentAngle) > 1.0) {
+    if (abs(next - currentAngle) > DEADBAND_DEG) {
       moveToAngle(next);
     } else {
       targetAngle = next;

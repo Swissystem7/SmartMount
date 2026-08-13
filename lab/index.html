@@ -6,18 +6,8 @@
 <title>SmartMount — מצב הדגמה הנדסי</title>
 <meta name="description" content="סימולציית חדר: מקור אור ניתן לגרירה, לולאת בקרה זהה לקושחת ESP32, כשל חיישן ומגבלת פאנל.">
 <meta name="theme-color" content="#0f1420">
+<link rel="stylesheet" href="../assets/site.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#08080f;color:#e8e8f0;min-height:100vh}
-a{color:#58a6ff}
-nav{background:#0d1117;border-bottom:1px solid #21262d;padding:12px 20px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
-nav .brand{font-weight:800;color:#58a6ff;margin-left:auto}
-nav a{text-decoration:none;font-size:.85rem;color:#8b949e}
-nav a:hover,nav a.on{color:#e8e8f0}
-.banner{background:#7c2d12;color:#ffedd5;font:700 .8rem system-ui,sans-serif;padding:8px 16px;text-align:center;border-bottom:1px solid rgba(255,255,255,.12)}
-.wrap{max-width:1120px;margin:0 auto;padding:22px 16px 48px}
-h1{font-size:1.55rem;font-weight:800;margin-bottom:6px}
-.lead{color:#8b949e;font-size:.9rem;line-height:1.65;margin-bottom:18px;max-width:70ch}
 .grid{display:grid;grid-template-columns:1.4fr .9fr;gap:16px}
 @media(max-width:860px){.grid{grid-template-columns:1fr}}
 .card{background:#161b22;border:1px solid #21262d;border-radius:14px;padding:16px}
@@ -46,7 +36,7 @@ h1{font-size:1.55rem;font-weight:800;margin-bottom:6px}
 </style>
 </head>
 <body>
-<nav>
+<nav class="site-nav">
   <span class="brand">SmartMount</span>
   <a href="../">בית</a>
   <a class="on" href="./">מעבדה הנדסית</a>
@@ -108,9 +98,9 @@ h1{font-size:1.55rem;font-weight:800;margin-bottom:6px}
     <div class="card">
       <h2>לולאת קושחה</h2>
       <div class="row">
-        <button class="btn on" data-panel="0" id="p0">OLED 40°</button>
-        <button class="btn" data-panel="1" id="p1">QLED 30°</button>
-        <button class="btn" data-panel="2" id="p2">LED/VA 20°</button>
+        <button class="btn on" data-panel="0" id="p0">OLED</button>
+        <button class="btn" data-panel="1" id="p1">QLED</button>
+        <button class="btn" data-panel="2" id="p2">LED</button>
       </div>
       <div class="row">
         <button class="btn danger" id="failTop">כשל חיישן עליון</button>
@@ -127,31 +117,26 @@ h1{font-size:1.55rem;font-weight:800;margin-bottom:6px}
       </div>
       <div class="const">
         קבועים מ־<code>firmware/smart_mount.ino</code>:<br>
-        <code>PANEL_LIMITS {40,30,20}</code> שורה 21 ·
-        <code>STEPS_PER_DEGREE</code> שורה 28 ·
-        <code>lux&lt;0 → return currentAngle</code> שורות 87–92 ·
-        <code>max(luxBot, 1)</code> שורה 95 ·
-        <code>glareRatio &gt; 3.0</code> שורה 99 ·
-        <code>(ratio-3)*5</code> שורה 101 ·
-        <code>stepper.moveTo</code> שורות 106–113 ·
-        <code>|Δ| &gt; 1.0</code> deadband שורה 214
+        מקור: <code>config/control-params.json</code> (מיובא כ־<code>CONTROL_PARAMS</code>) ·
+        <code>lux&lt;0 → return currentAngle</code> ·
+        <code>stepper.moveTo</code> מוחלט ·
+        קבועים: סף / הגבר / deadband / גבולות פאנל
       </div>
       <div class="log" id="log"></div>
     </div>
   </div>
 </div>
 
+<script src="../src/lib/control-params.js"></script>
 <script>
-// ── Port of firmware/smart_mount.ino — constants must stay identical ──
-// PANEL_LIMITS[] = { 40.0, 30.0, 20.0 };          // ino:21
-const PANEL_LIMITS = [40.0, 30.0, 20.0];
-const PANEL_NAMES  = ['OLED', 'QLED', 'LED/VA'];
-// STEPS_PER_DEGREE = (200.0 * 5.0) / 360.0;       // ino:28
-const STEPS_PER_DEGREE = (200.0 * 5.0) / 360.0;
-const GLARE_THRESHOLD  = 3.0;   // ino:99
-const GAIN_DEG         = 5.0;   // ino:101
-const MIN_LUX          = 1.0;   // ino:95
-const DEADBAND_DEG     = 1.0;   // ino:214
+// Firmware decision port — scalars come from config/control-params.json
+const PANEL_LIMITS = CONTROL_PARAMS.limitsArray;
+const PANEL_NAMES  = CONTROL_PARAMS.panelNames;
+const STEPS_PER_DEGREE = CONTROL_PARAMS.stepsPerDegree;
+const GLARE_THRESHOLD  = CONTROL_PARAMS.glareThreshold;
+const GAIN_DEG         = CONTROL_PARAMS.gainDegPerRatio;
+const MIN_LUX          = CONTROL_PARAMS.minLux;
+const DEADBAND_DEG     = CONTROL_PARAMS.deadbandDeg;
 
 let panel = 0;
 let currentAngle = 0;   // synced from stepper position — ino:53-55
@@ -350,7 +335,11 @@ document.getElementById('showNaive').addEventListener('click', function () {
   showNaive = !showNaive; this.classList.toggle('on', showNaive);
 });
 
-addLog('לולאה עלתה — hold על קריאה שלילית, moveTo מוחלט, deadband 1°');
+CONTROL_PARAMS.panelNames.forEach((name, i) => {
+  const b = document.getElementById('p' + i);
+  if (b) b.textContent = name + ' ' + CONTROL_PARAMS.limitsArray[i] + '°';
+});
+addLog('לולאה עלתה — קבועים מ־config/control-params.json, hold על כשל, moveTo מוחלט');
 setInterval(tick, 80);
 tick();
 </script>
