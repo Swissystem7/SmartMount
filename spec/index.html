@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SmartMount — מפרט בנייה</title>
-<meta name="description" content="BOM כנה, תרשים חיווט, והשאלות ההנדסיות שטרם נפתרו — הומינג, מפעיל נעילה עצמית, גאומטריית בוהק.">
+<meta name="description" content="BOM כנה, מחשבון מומנט מול NEMA17, תרשים חיווט, והשאלות שטרם נפתרו.">
 <meta name="theme-color" content="#0f1420">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
@@ -13,9 +13,9 @@ h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;
 .card{margin-bottom:16px}
 table{width:100%;border-collapse:collapse;font-size:.84rem}
 th,td{text-align:right;padding:8px 10px;border-bottom:1px solid #21262d;vertical-align:top}
-th{color:#8b949e;font-weight:600;font-size:.75rem}
+th{color:var(--muted);font-weight:600;font-size:.75rem}
 td.num{font-variant-numeric:tabular-nums;white-space:nowrap;color:#c9d1d9}
-.note{font-size:.78rem;color:#8b949e;line-height:1.6;margin-top:10px}
+.note{font-size:.78rem;color:var(--muted);line-height:1.6;margin-top:10px}
 .tag{display:inline-block;font-size:.68rem;font-weight:700;border-radius:5px;padding:1px 7px}
 .tag.ok{background:#1a3a2a;color:#3fb950}
 .tag.miss{background:#3a1010;color:#f85149}
@@ -23,22 +23,39 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap;color:#c9d1d9}
 #wiring{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d}
 .q{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:14px 16px;margin-bottom:10px}
 .q h3{font-size:.95rem;margin-bottom:6px}
-.q p{font-size:.84rem;color:#8b949e;line-height:1.65}
+.q p{font-size:.84rem;color:var(--muted);line-height:1.65}
 .total{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #30363d;font-size:.9rem}
 .total b{color:#f59e0b}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
+input[type=range],input[type=number]{accent-color:#58a6ff}
+input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:#e8e8f0;border-radius:8px;padding:8px 10px;font:600 .9rem inherit}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.fields{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
+.kv b{display:block;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.kv span{font-size:.7rem;color:var(--muted)}
+.verdict{border-radius:10px;padding:12px 14px;margin-top:12px;font-size:.88rem;line-height:1.55;border:1px solid #21262d}
+.verdict.bad{background:#3a1010;border-color:#f85149;color:#ffb4b0}
+.verdict.meh{background:#2d1f00;border-color:#9e6a03;color:#e3b341}
+.verdict.ok{background:#1a3a2a;border-color:#238636;color:#7ee787}
+.check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.85rem;color:var(--muted)}
 </style>
 </head>
 <body>
-<nav class="site-nav">
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
   <span class="brand">SmartMount</span>
   <a href="../">בית</a>
   <a href="../lab/">מעבדה הנדסית</a>
-  <a class="on" href="./">מפרט בנייה</a>
+  <a class="on" href="./" aria-current="page">מפרט בנייה</a>
   <a href="../geometry/">גאומטריית בוהק</a>
+  <a href="../protocol/">חוזה API</a>
   <a href="../dashboard/">לוח בקרה</a>
 </nav>
 <div class="banner">מפרט קונספט — לא ערכת בנייה. המחירים הם טווחי מדף נפוצים (אוגוסט 2026), לא הצעת רכש.</div>
-<div class="wrap">
+<main id="main" class="wrap">
   <h1>מפרט בנייה</h1>
   <p class="lead">מסמך ההאקתון הישן (עכשיו בארכיון) העריך ₪35–50 ל־ESP32 + חיישן + מנוע. זה BOM של לוח לחם, לא של תושבת שנושאת 20–40 ק״ג. כאן הרשימה האמיתית — כולל מה שחסר.</p>
 
@@ -208,6 +225,124 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap;color:#c9d1d9}
       פירוט אינטראקטיבי: <a href="../geometry/">גאומטריית בוהק</a>.
     </p>
   </div>
-</div>
+
+  <h2>מחשבון מומנט — למה NEMA17 + 1:5 אינו תושבת</h2>
+  <div class="card">
+    <p class="note" style="margin-top:0">
+      מודל סטטי כנה: <code>τ = m · g · d · cos(θ)</code>.
+      <code>d</code> הוא מרחק מרכז הכובד מהציר (לא אלכסון הזרוע).
+      מומנט ההחזקה של מנוע צעד קיים רק כשהנהג מוזן. בלי תולעת / בלם, ניתוק חשמל = נפילה.
+      זה לא FEA ולא מק״ט — זה הסדר-גודל שההאקתון דילג עליו.
+    </p>
+    <div class="row" role="group" aria-label="פריסט גודל מסך" id="presetRow"></div>
+    <div class="fields">
+      <div>
+        <label class="sl" for="massKg">מסת מסך (ק״ג): <span id="massLbl">18</span></label>
+        <input type="range" id="massKg" min="4" max="45" step="1" value="18">
+      </div>
+      <div>
+        <label class="sl" for="cogCm">מרחק CoG מהציר (ס״מ): <span id="cogLbl">8</span></label>
+        <input type="range" id="cogCm" min="3" max="18" step="0.5" value="8">
+      </div>
+      <div>
+        <label class="sl" for="tiltDeg">הטיה מאונך (°): <span id="tiltLbl">0</span></label>
+        <input type="range" id="tiltDeg" min="0" max="40" step="1" value="0">
+      </div>
+      <div>
+        <label class="sl" for="gearRatio">יחס תמסורת (הקושחה = 5)</label>
+        <input type="number" id="gearRatio" min="1" max="80" step="1" value="5">
+      </div>
+      <div>
+        <label class="sl" for="motorNm">מומנט החזקה מנוע (N·m)</label>
+        <input type="number" id="motorNm" min="0.1" max="3" step="0.05" value="0.45">
+      </div>
+      <div>
+        <label class="sl" for="eff">נצילות תמסורת</label>
+        <input type="number" id="eff" min="0.2" max="1" step="0.05" value="0.85">
+      </div>
+    </div>
+    <label class="check">
+      <input type="checkbox" id="selfLock">
+      נעילה עצמית (תולעת / בלם) — מחזיקה בלי זרם
+    </label>
+    <div class="kv">
+      <div><b id="tReq">—</b><span>מומנט כבידה נדרש</span></div>
+      <div><b id="tHave">—</b><span>מומנט זמין (מוזן)</span></div>
+      <div><b id="tSf">—</b><span>מקדם בטיחות מוזן</span></div>
+      <div><b id="tOff">—</b><span>בלי חשמל</span></div>
+    </div>
+    <div class="verdict meh" id="tVerdict" role="status" aria-live="polite">מחשבים…</div>
+    <p class="note">
+      55″ טיפוסי ≈ 18 ק״ג ו־8 ס״מ לפני הציר → כ־14 N·m.
+      NEMA17 0.45 N·m × 5 × 0.85 ≈ 1.9 N·m. מקדם בטיחות ≈ 0.13.
+      Vogel's / MantelMount עולות מאות דולרים כי הן פותרות את המספר הזה, לא כי יש להן BH1750.
+    </p>
+  </div>
+</main>
+<script src="../src/lib/torque.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const row = $('presetRow');
+SM_TORQUE.PRESETS.forEach((p) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'btn' + (p.id === '55' ? ' on' : '');
+  b.textContent = p.label + ' · ' + p.massKg + ' ק״ג';
+  b.addEventListener('click', () => {
+    row.querySelectorAll('.btn').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    $('massKg').value = p.massKg;
+    $('cogCm').value = p.cogCm;
+    recalc();
+  });
+  row.appendChild(b);
+});
+
+function recalc() {
+  const massKg = Number($('massKg').value);
+  const cogCm = Number($('cogCm').value);
+  const tilt = Number($('tiltDeg').value);
+  $('massLbl').textContent = massKg;
+  $('cogLbl').textContent = cogCm;
+  $('tiltLbl').textContent = tilt;
+  const r = SM_TORQUE.sizeMount({
+    massKg,
+    cogOffsetM: cogCm / 100,
+    tiltFromVerticalDeg: tilt,
+    motorHoldingNm: Number($('motorNm').value),
+    gearRatio: Number($('gearRatio').value),
+    efficiency: Number($('eff').value),
+    selfLocking: $('selfLock').checked,
+  });
+  $('tReq').textContent = r.requiredNm.toFixed(1) + ' N·m';
+  $('tHave').textContent = r.availableNm.toFixed(2) + ' N·m';
+  $('tSf').textContent = Number.isFinite(r.safetyFactor) ? r.safetyFactor.toFixed(2) + '×' : '—';
+  const off = {
+    'drop-on-power-loss': 'נופל',
+    'cannot-hold': 'לא מחזיק',
+    'marginal': 'גבולי',
+    'holds': 'מחזיק',
+  };
+  $('tOff').textContent = off[r.unpowered];
+  const v = $('tVerdict');
+  if (r.unpowered === 'drop-on-power-loss') {
+    v.className = 'verdict bad';
+    v.textContent = 'בלי נעילה עצמית המסך נופל כשהחשמל נחתך — גם אם המנוע מספיק כשהוא מוזן. זה פסק הדין המכני, לא באג בקושחה.';
+  } else if (r.powered === 'cannot-hold') {
+    v.className = 'verdict bad';
+    v.textContent = 'התמסורת הנוכחית לא מייצרת את מומנט הכבידה. NEMA17 + יחס הקושחה (1:5) לא נושא מסך סלון.';
+  } else if (r.powered === 'marginal') {
+    v.className = 'verdict meh';
+    v.textContent = 'מקדם בטיחות מתחת ל־2. זה עדיין לא מוצר: אין הומינג, אין בלם כפול, אין הסמכה.';
+  } else {
+    v.className = 'verdict ok';
+    v.textContent = 'על הנייר, במצב מוזן + נעילה עצמית, המומנט מספיק. עדיין חסרים הומינג, פלדה, UL/TÜV ואחריות לנפילה.';
+  }
+}
+['massKg','cogCm','tiltDeg','gearRatio','motorNm','eff','selfLock'].forEach((id) => {
+  $(id).addEventListener('input', recalc);
+});
+recalc();
+</script>
 </body>
 </html>

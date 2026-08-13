@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SmartMount — גאומטריית בוהק</title>
-<meta name="description" content="חוק ההחזרה בחדר: מתי הטיה מוציאה השתקפות מקו הראייה — ומתי היא רק מזיזה את הכתם.">
+<meta name="description" content="חוק ההחזרה, ולמה יחס הארה (lux) אינו בהירות לצופה (cd/m²).">
 <meta name="theme-color" content="#0f1420">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
@@ -16,7 +16,7 @@
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .btn{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:8px;cursor:pointer;padding:8px 12px;font:600 .8rem inherit}
 .btn.on{background:#1f4068;border-color:#58a6ff;color:#58a6ff}
-label.sl{display:block;font-size:.78rem;color:#8b949e;margin:10px 0 6px}
+label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
 input[type=range]{width:100%;accent-color:#58a6ff}
 .verdict{border-radius:10px;padding:12px 14px;margin-top:8px;font-size:.88rem;line-height:1.55;border:1px solid #21262d}
 .verdict.hit{background:#3a1010;border-color:#f85149;color:#ffb4b0}
@@ -25,21 +25,25 @@ input[type=range]{width:100%;accent-color:#58a6ff}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
 .kv b{display:block;font-size:1.05rem;font-variant-numeric:tabular-nums}
-.kv span{font-size:.7rem;color:#8b949e}
-.fine{font-size:.78rem;color:#8b949e;line-height:1.6;margin-top:12px}
+.kv span{font-size:.7rem;color:var(--muted)}
+.fine{font-size:.78rem;color:var(--muted);line-height:1.6;margin-top:12px}
+.opt-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:16px}
+@media(max-width:860px){.opt-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<nav class="site-nav">
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
   <span class="brand">SmartMount</span>
   <a href="../">בית</a>
   <a href="../lab/">מעבדה הנדסית</a>
   <a href="../spec/">מפרט בנייה</a>
-  <a class="on" href="./">גאומטריית בוהק</a>
+  <a class="on" href="./" aria-current="page">גאומטריית בוהק</a>
+  <a href="../protocol/">חוזה API</a>
   <a href="../dashboard/">לוח בקרה</a>
 </nav>
 <div class="banner">סימולציית אופטיקה דו־ממדית — חוק ההחזרה, לא מדידת BH1750. זה מה שהאלגוריתם לא רואה.</div>
-<div class="wrap">
+<main id="main" class="wrap">
   <h1>גאומטריית בוהק</h1>
   <p class="lead">שני חיישני lux מודדים הארה כללית. בוהק על מסך הוא השתקפות ספקולרית: זווית הפגיעה שווה לזווית ההחזרה. גררו את האור ואת העין, והטו את המסך — ותראו מתי ההטיה באמת מוציאה את הכתם, ומתי היא רק מחליפה כתם בכתם.</p>
 
@@ -75,7 +79,7 @@ input[type=range]{width:100%;accent-color:#58a6ff}
         <button class="btn" id="scFace">חלון ממול</button>
         <button class="btn" id="scLow">בוהק מלמטה</button>
       </div>
-      <label class="sl">הטיית מסך: <span id="tiltVal">0°</span> (ידני — לא חיישן)</label>
+      <label class="sl" for="tilt">הטיית מסך: <span id="tiltVal">0°</span> (ידני — לא חיישן)</label>
       <input type="range" id="tilt" min="-20" max="40" value="0">
       <div class="kv">
         <div><b id="kInc">—</b><span>זווית פגיעה</span></div>
@@ -89,7 +93,48 @@ input[type=range]{width:100%;accent-color:#58a6ff}
       </p>
     </div>
   </div>
-</div>
+
+  <div class="opt-grid">
+    <div class="card">
+      <h2>הארה ≠ בהירות לצופה</h2>
+      <p class="fine" style="margin-top:0">
+        BH1750 מודד <strong>הארה</strong> (lux) — שטף ליחידת שטח על השבב.
+        העין רואה <strong>בהירות</strong> (cd/m²) של כתם ספקולרי על הזכוכית.
+        יחידות שונות, תלות שונה במרחק: E ∝ 1/r², L של המקור לא.
+        מקור קטן ובוהק יכול להחטיא את שני החיישנים ועדיין לשים כתם של אלפי ניט בעין.
+      </p>
+      <div class="row">
+        <button type="button" class="btn on" id="optGlint">השתקפות שמש קטנה</button>
+        <button type="button" class="btn" id="optWindow">חלון גדול</button>
+        <button type="button" class="btn" id="optMatte">ציפוי מט</button>
+      </div>
+      <label class="sl" for="srcNits">בהירות מקור: <span id="srcNitsVal">20000</span> cd/m²</label>
+      <input type="range" id="srcNits" min="200" max="25000" step="100" value="20000">
+      <label class="sl" for="srcArea">שטח מקור: <span id="srcAreaVal">4</span> סמ״ר</label>
+      <input type="range" id="srcArea" min="1" max="20000" step="1" value="4">
+      <label class="sl" for="srcDist">מרחק לחיישן עליון: <span id="srcDistVal">2.0</span> מ׳</label>
+      <input type="range" id="srcDist" min="0.4" max="4" step="0.1" value="2">
+      <label class="sl" for="refl">החזר ספקולרי: <span id="reflVal">0.06</span></label>
+      <input type="range" id="refl" min="0.005" max="0.12" step="0.005" value="0.06">
+    </div>
+    <div class="card">
+      <h2>שני מדדים, שתי החלטות</h2>
+      <div class="kv">
+        <div><b id="oLuxT">—</b><span>lux עליון (חיישן)</span></div>
+        <div><b id="oLuxB">—</b><span>lux תחתון (חיישן)</span></div>
+        <div><b id="oRatio">—</b><span>יחס — סף הקושחה 3×</span></div>
+        <div><b id="oHigh">—</b><span>כתם לעין (cd/m²)</span></div>
+      </div>
+      <div class="verdict meh" id="optVerdict" role="status" aria-live="polite">—</div>
+      <p class="fine">
+        תוכן SDR טיפוסי ≈ 150 cd/m². כתם של 1,200 cd/m² על OLED מבריק הופך את התמונה למראה.
+        החוק בקושחה לא רואה את המספר הזה — הוא רואה רק שני lux.
+        לכן הציפוי על הפאנל (Samsung Glare Free ודומיו) ניצח את הזרוע: הוא מוריד את L, לא מנחש זווית.
+      </p>
+    </div>
+  </div>
+</main>
+<script src="../src/lib/optics.js"></script>
 <script>
 const PIVOT = { x: 70, y: 250 };
 const HALF = 70;
@@ -183,6 +228,7 @@ function draw() {
     v.className = 'verdict meh';
     v.textContent = 'האור מאחורי הפאנל — אין השתקפות לכיוון החדר.';
     refl.setAttribute('stroke', '#30363d');
+    paintOptics(false);
     return;
   }
   const extra = document.getElementById('extraRays');
@@ -229,6 +275,7 @@ function draw() {
     v.className = 'verdict miss';
     v.textContent = 'הקרן המוחזרת מחטיאה את העין. הצפייה נקייה כאן בלי קשר ליחס שני חיישני lux.';
   }
+  paintOptics(hits);
 }
 
 const svg = document.getElementById('scene');
@@ -264,9 +311,10 @@ document.getElementById('tilt').addEventListener('input', e => {
 
 function applyScene(name) {
   scene = name;
-  document.querySelectorAll('.row .btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('scOver').classList.toggle('on', name === 'over');
+  document.getElementById('scFace').classList.toggle('on', name === 'face');
+  document.getElementById('scLow').classList.toggle('on', name === 'low');
   if (name === 'over') {
-    document.getElementById('scOver').classList.add('on');
     light = { x: 280, y: 36 }; eye = { x: 560, y: 268 }; tilt = 0;
   } else if (name === 'face') {
     document.getElementById('scFace').classList.add('on');
@@ -282,6 +330,78 @@ function applyScene(name) {
 document.getElementById('scOver').onclick = () => applyScene('over');
 document.getElementById('scFace').onclick = () => applyScene('face');
 document.getElementById('scLow').onclick = () => applyScene('low');
+
+function paintOptics(rayHitsEye) {
+  const sourceNits = Number(document.getElementById('srcNits').value);
+  const areaCm2 = Number(document.getElementById('srcArea').value);
+  const dist = Number(document.getElementById('srcDist').value);
+  const reflectance = Number(document.getElementById('refl').value);
+  document.getElementById('srcNitsVal').textContent = String(sourceNits);
+  document.getElementById('srcAreaVal').textContent = String(areaCm2);
+  document.getElementById('srcDistVal').textContent = dist.toFixed(1);
+  document.getElementById('reflVal').textContent = reflectance.toFixed(3);
+  const s = SM_OPTICS.sampleScene({
+    sourceNits,
+    sourceAreaM2: areaCm2 / 10000,
+    distanceTopM: dist,
+    distanceBotM: dist + 0.2,
+    ambientTop: 40,
+    ambientBot: 80,
+    reflectance,
+    rayHitsEye: !!rayHitsEye,
+    botCoupling: 0.05,
+  });
+  document.getElementById('oLuxT').textContent = s.luxTop.toFixed(0) + ' lx';
+  document.getElementById('oLuxB').textContent = s.luxBot.toFixed(0) + ' lx';
+  document.getElementById('oRatio').textContent = s.ratio == null ? '—' : s.ratio.toFixed(2) + '×';
+  document.getElementById('oHigh').textContent = s.highlight.toFixed(0) + ' cd/m²';
+  const ov = document.getElementById('optVerdict');
+  const law = s.ratio != null && s.ratio > s.threshold;
+  if (s.kind === 'blind-but-quiet') {
+    ov.className = 'verdict hit';
+    ov.textContent = 'החוק שקט (יחס ' + s.ratio.toFixed(2) + '× < 3) והעין מסונוורת — כתם ' + s.highlight.toFixed(0) + ' cd/m² מול תוכן ~' + s.contentNits + '. זה הפער שהאלגוריתם לא יכול לסגור.';
+  } else if (s.kind === 'tilts-for-nothing') {
+    ov.className = 'verdict meh';
+    ov.textContent = 'החיישנים דורשים הטיה (יחס ' + s.ratio.toFixed(1) + '×) אבל אין כתם בעין. הזרוע זזה בלי סיבה אופטית לצופה.';
+  } else if (s.kind === 'agrees-glare') {
+    ov.className = 'verdict hit';
+    ov.textContent = 'הפעם שני המדדים מסכימים שיש בוהק. גם אז הטיה רק מזיזה את הכתם אם המקור מורחב.';
+  } else {
+    ov.className = 'verdict miss';
+    ov.textContent = law
+      ? 'יחס מעל הסף אבל הכתם לא פוגע בעין.'
+      : 'אין כתם בעין והיחס מתחת לסף. החוק והצופה מסכימים שהחדר נקי.';
+  }
+}
+
+function setOptPreset(name) {
+  document.getElementById('optGlint').classList.toggle('on', name === 'glint');
+  document.getElementById('optWindow').classList.toggle('on', name === 'window');
+  document.getElementById('optMatte').classList.toggle('on', name === 'matte');
+  if (name === 'glint') {
+    document.getElementById('srcNits').value = 20000;
+    document.getElementById('srcArea').value = 4;
+    document.getElementById('srcDist').value = 2;
+    document.getElementById('refl').value = 0.06;
+  } else if (name === 'window') {
+    document.getElementById('srcNits').value = 4000;
+    document.getElementById('srcArea').value = 12000;
+    document.getElementById('srcDist').value = 1.4;
+    document.getElementById('refl').value = 0.06;
+  } else {
+    document.getElementById('srcNits').value = 4000;
+    document.getElementById('srcArea').value = 12000;
+    document.getElementById('srcDist').value = 1.4;
+    document.getElementById('refl').value = 0.015;
+  }
+  draw();
+}
+document.getElementById('optGlint').onclick = () => setOptPreset('glint');
+document.getElementById('optWindow').onclick = () => setOptPreset('window');
+document.getElementById('optMatte').onclick = () => setOptPreset('matte');
+['srcNits', 'srcArea', 'srcDist', 'refl'].forEach((id) => {
+  document.getElementById(id).addEventListener('input', () => draw());
+});
 
 draw();
 </script>

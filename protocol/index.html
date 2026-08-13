@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartMount — חוזה HTTP / Serial</title>
+<meta name="description" content="החוזה המדויק של הקושחה: ארבעה נתיבי WebServer, ארגומנטים ב־query, ומה ש־Serial באמת מדפיס.">
+<meta name="theme-color" content="#0f1420">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{margin-bottom:0}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th,td{text-align:right;padding:8px 10px;border-bottom:1px solid #21262d;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.75rem}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:12px 14px;overflow:auto;font-size:.78rem;line-height:1.55;color:#c9d1d9;direction:ltr;text-align:left}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
+input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;color:#e8e8f0;border-radius:8px;padding:8px 10px;font:600 .85rem inherit}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
+.kv b{display:block;font-size:.95rem;font-variant-numeric:tabular-nums}
+.kv span{font-size:.7rem;color:var(--muted)}
+.ok{color:#3fb950}
+.bad{color:#f85149}
+.fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
+.q{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:12px 14px;margin-top:10px}
+.q h3{font-size:.9rem;margin-bottom:6px}
+.note-warn{background:#2d1f00;border:1px solid #9e6a03;color:#e3b341;border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;margin:12px 0}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
+  <span class="brand">SmartMount</span>
+  <a href="../">בית</a>
+  <a href="../lab/">מעבדה הנדסית</a>
+  <a href="../spec/">מפרט בנייה</a>
+  <a href="../geometry/">גאומטריית בוהק</a>
+  <a class="on" href="./" aria-current="page">חוזה API</a>
+  <a href="../dashboard/">לוח בקרה</a>
+</nav>
+<div class="banner">החוזה הזה נגזר מ־<code>firmware/smart_mount.ino</code> — לא מ־OpenAPI. אין לוח מחובר.</div>
+<main id="main" class="wrap">
+  <h1>חוזה HTTP / Serial</h1>
+  <p class="lead">
+    הקושחה מעלה <code>WebServer(80)</code> אחרי ניסיון WiFi של 10 שניות.
+    הארגומנטים הם query/form של Arduino (<code>server.arg</code>), לא גוף JSON.
+    אם הרשת נכשלת — המצב האוטומטי המקומי ממשיך. זה לא SDK ולא ענן.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>ארבעה נתיבים</h2>
+      <table>
+        <thead>
+          <tr><th>שיטה</th><th>נתיב</th><th>ארגומנט</th><th>כישלון</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">GET</td>
+            <td class="mono">/status</td>
+            <td>—</td>
+            <td>אין. מחזיר snapshot חי</td>
+          </tr>
+          <tr>
+            <td class="mono">POST</td>
+            <td class="mono">/set-angle</td>
+            <td class="mono">deg</td>
+            <td>חסר → <code>missing deg</code>; לא-מספר → <code>invalid deg</code></td>
+          </tr>
+          <tr>
+            <td class="mono">POST</td>
+            <td class="mono">/set-panel</td>
+            <td class="mono">type</td>
+            <td>חסר → <code>missing type</code>; מחוץ ל־0..2 → <code>invalid panel type</code></td>
+          </tr>
+          <tr>
+            <td class="mono">POST</td>
+            <td class="mono">/set-mode</td>
+            <td class="mono">auto</td>
+            <td>חייב המחרוזת <code>"0"</code> או <code>"1"</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note-warn">
+        <code>set-panel?type=foo</code> לא נכשל. <code>String::toInt()</code> של Arduino מחזיר 0, ו־0 הוא OLED.
+        זה חולשה בקושחה, לא «סובלנות». המשחק למטה מדגים אותה.
+      </div>
+      <p class="fine">
+        <code>set-angle</code> מכבה אוטו (<code>autoMode = false</code>) ואז קורא <code>moveToAngle</code>,
+        שמצמיד ל־<code>±PANEL_LIMITS[panel]</code>. תשובת 200 אומרת «הפקודה התקבלה», לא «המסך ב־99°».
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>שחקן חוזה</h2>
+      <div class="row" role="group" aria-label="נתיב">
+        <button type="button" class="btn on" data-route="status" id="rStatus">GET /status</button>
+        <button type="button" class="btn" data-route="angle" id="rAngle">POST /set-angle</button>
+        <button type="button" class="btn" data-route="panel" id="rPanel">POST /set-panel</button>
+        <button type="button" class="btn" data-route="mode" id="rMode">POST /set-mode</button>
+      </div>
+      <div id="argBox">
+        <label class="sl" for="argVal">ערך ארגומנט</label>
+        <input type="text" id="argVal" value="" autocomplete="off" placeholder="אין ארגומנט ל־/status">
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn on" id="sendBtn">שלח (סימולציה)</button>
+        <button type="button" class="btn" id="exBad">דוגמת 400</button>
+        <button type="button" class="btn" id="exQuirk">type=foo</button>
+      </div>
+      <div class="kv">
+        <div><b class="mono" id="reqLine">GET /status</b><span>בקשה (query string, כמו הלוח)</span></div>
+        <div><b id="resCode">—</b><span>קוד תשובה</span></div>
+      </div>
+      <pre id="resBody" aria-live="polite">{}</pre>
+      <p class="fine" id="effectNote">אין לוח. <code>src/lib/protocol.js</code> מריץ את אותם כללי ולידציה.</p>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:16px">
+    <div class="card">
+      <h2>גוף /status</h2>
+<pre>{
+  "angle":   4.5,
+  "target":  8.0,
+  "auto":    true,
+  "panel":   2,
+  "lux_top": 412.0,
+  "lux_bot": 77.3
+}</pre>
+      <p class="fine">
+        <code>panel</code> הוא enum: 0 OLED, 1 QLED, 2 LED.
+        <code>lux_*</code> הם הקריאה החיה מ־BH1750 — כולל ערך שלילי כשהחיישן נכשל.
+        אין שדה WiFi, אין הומינג, אין מומנט.
+      </p>
+    </div>
+    <div class="card">
+      <h2>Serial 115200</h2>
+      <p class="fine">הקושחה מדפיסה <em>שורה אחת</em> ב־<code>setup()</code>. לא לוג בקרה, לא קריאות lux.</p>
+<pre>Serial.begin(115200);
+
+// אחרי WiFi.begin + לולאת 10 שניות:
+IP: 192.168.1.42
+// או:
+WiFi timeout — continuing in local auto mode</pre>
+      <div class="q">
+        <h3>מה קורה בלי רשת</h3>
+        <p class="fine" style="margin:0">
+          <code>server.begin()</code> עדיין נקרא. בלי קישור, הלקוח לא מגיע לנתיבים.
+          <code>loop()</code> ממשיך: <code>stepper.run()</code> + <code>calcOptimalAngle</code> כל 2 שניות אם <code>autoMode</code>.
+          ניתוק WiFi אחרי החיבור לא מדפיס שוב — אין watchdog רשת בלופ.
+        </p>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="../src/lib/protocol.js"></script>
+<script>
+const state = {
+  angle: 0, target: 0, auto: true, panel: 2,
+  lux_top: 180, lux_bot: 70,
+};
+let route = 'status';
+
+const ARG = {
+  status: { method: 'GET', path: '/status', key: null, sample: '' },
+  angle:  { method: 'POST', path: '/set-angle', key: 'deg', sample: '12.5' },
+  panel:  { method: 'POST', path: '/set-panel', key: 'type', sample: '2' },
+  mode:   { method: 'POST', path: '/set-mode', key: 'auto', sample: '1' },
+};
+
+function argsOf() {
+  const spec = ARG[route];
+  if (!spec.key) return {};
+  return { [spec.key]: document.getElementById('argVal').value };
+}
+
+function paintRequest() {
+  const spec = ARG[route];
+  document.getElementById('reqLine').textContent = SM_PROTOCOL.requestLine(spec.method, spec.path, argsOf());
+  document.getElementById('argVal').disabled = !spec.key;
+  document.getElementById('argVal').placeholder = spec.key ? spec.key : 'אין ארגומנט ל־/status';
+}
+
+function show(res, extra) {
+  const el = document.getElementById('resCode');
+  el.textContent = res.status;
+  el.className = res.status === 200 ? 'ok' : 'bad';
+  document.getElementById('resBody').textContent = JSON.stringify(res.body, null, 2);
+  document.getElementById('effectNote').textContent = extra || 'תשובה לפי חוקי firmware/smart_mount.ino';
+}
+
+function send() {
+  const spec = ARG[route];
+  const args = argsOf();
+  const res = SM_PROTOCOL.dispatch(spec.method, spec.path, args, state);
+  let note = '';
+  if (res.effect) {
+    if (res.effect.autoMode !== undefined) {
+      state.auto = res.effect.autoMode;
+      note = 'autoMode = ' + state.auto + ' (ino:148 / 179)';
+    }
+    if (res.effect.panel !== undefined) {
+      state.panel = res.effect.panel;
+      note = 'currentPanel = ' + state.panel + (args.type === 'foo' ? ' — toInt("foo")=0 OLED' : '');
+    }
+    if (res.effect.requestedDeg !== undefined) {
+      state.auto = false;
+      state.target = res.effect.requestedDeg;
+      note = 'התקבל deg=' + res.effect.requestedDeg + '. moveToAngle יצמיד לגבול הפאנל; 200 ≠ זווית סופית.';
+    }
+  }
+  show(res, note);
+}
+
+document.querySelectorAll('[data-route]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    route = btn.dataset.route;
+    document.querySelectorAll('[data-route]').forEach((b) => b.classList.toggle('on', b === btn));
+    const spec = ARG[route];
+    document.getElementById('argVal').value = spec.sample;
+    paintRequest();
+  });
+});
+document.getElementById('argVal').addEventListener('input', paintRequest);
+document.getElementById('sendBtn').addEventListener('click', send);
+document.getElementById('exBad').addEventListener('click', () => {
+  route = 'angle';
+  document.querySelectorAll('[data-route]').forEach((b) => b.classList.toggle('on', b.dataset.route === 'angle'));
+  document.getElementById('argVal').value = '12deg';
+  paintRequest();
+  send();
+});
+document.getElementById('exQuirk').addEventListener('click', () => {
+  route = 'panel';
+  document.querySelectorAll('[data-route]').forEach((b) => b.classList.toggle('on', b.dataset.route === 'panel'));
+  document.getElementById('argVal').value = 'foo';
+  paintRequest();
+  send();
+});
+paintRequest();
+</script>
+</body>
+</html>

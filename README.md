@@ -11,16 +11,17 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 | עמוד | מה יש בו |
 |---|---|
 | [בית](https://swissystem7.github.io/SmartMount/) | נחיתה כנה |
-| [מעבדה הנדסית](https://swissystem7.github.io/SmartMount/lab/) | חדר וירטואלי שמריץ את חוק `smart_mount.ino` |
-| [מפרט בנייה](https://swissystem7.github.io/SmartMount/spec/) | BOM כנה, חיווט SVG, שאלות שטרם נפתרו |
-| [גאומטריית בוהק](https://swissystem7.github.io/SmartMount/geometry/) | חוק ההחזרה: מתי הטיה עוזרת ומתי לא |
+| [מעבדה הנדסית](https://swissystem7.github.io/SmartMount/lab/) | חדר וירטואלי + קונסולת תקלות (חיישן / WiFi / גבול פאנל) על חוק `smart_mount.ino` |
+| [מפרט בנייה](https://swissystem7.github.io/SmartMount/spec/) | BOM כנה, מחשבון מומנט מול NEMA17, חיווט SVG |
+| [גאומטריית בוהק](https://swissystem7.github.io/SmartMount/geometry/) | חוק ההחזרה + למה יחס lux אינו בהירות לצופה |
+| [חוזה API](https://swissystem7.github.io/SmartMount/protocol/) | ארבעה נתיבי HTTP + Serial 115200 — בדיוק מה שבקושחה |
 | [לוח בקרה](https://swissystem7.github.io/SmartMount/dashboard/) | סימולציית UI (נתוני דוגמה) |
 
 קוד: [Swissystem7/SmartMount](https://github.com/Swissystem7/SmartMount).
 
 ## מה באמת עובד
 
-בדיקות יחידה לחוק ההטיה רצות על המחשב (`src/lib/control.js` + `test/control.test.js`). בקושחה ובדשבורד תוקנו באגים שהיו מסוכנים או מטעים:
+בדיקות יחידה רצות על המחשב בלי תלויות (`node --test`): חוק ההטיה, חוזה ה־HTTP, מומנט המנוע, והפער בין lux לבהירות. בקושחה ובדשבורד תוקנו באגים שהיו מסוכנים או מטעים:
 
 - **קריאת חיישן כושלת** (BH1750 מחזיר ערך שלילי) מחזיקה זווית — לא מטה למקסימום.
 - **מנוע:** `stepper.moveTo` ממיקום מוחלט; `currentAngle` לא מתעדכן לפני שהמנוע מגיע.

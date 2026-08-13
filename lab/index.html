@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SmartMount — מצב הדגמה הנדסי</title>
-<meta name="description" content="סימולציית חדר: מקור אור ניתן לגרירה, לולאת בקרה זהה לקושחת ESP32, כשל חיישן ומגבלת פאנל.">
+<meta name="description" content="סימולציית חדר עם קונסולת הזרקת תקלות: כשל חיישן, ניתוק WiFi, פקודה מעל גבול הפאנל — מול חוק הקושחה.">
 <meta name="theme-color" content="#0f1420">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
@@ -14,45 +14,54 @@
 .card h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin-bottom:12px}
 #room{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d;touch-action:none;cursor:crosshair}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-.btn{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:8px;padding:8px 12px;cursor:pointer;font:600 .8rem inherit}
-.btn:hover{border-color:#58a6ff;color:#58a6ff}
-.btn.on{background:#1f4068;border-color:#58a6ff;color:#58a6ff}
-.btn.danger.on{background:#3a1010;border-color:#f85149;color:#f85149}
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .m{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px}
 .m b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
-.m span{font-size:.7rem;color:#8b949e}
+.m span{font-size:.7rem;color:var(--muted)}
 .m.hold b{color:#f59e0b}
 .m.clamp b{color:#a371f7}
 .m.ok b{color:#3fb950}
 .m.fail b{color:#f85149}
-.const{font-size:.75rem;color:#8b949e;line-height:1.7;margin-top:8px}
+.const{font-size:.75rem;color:var(--muted);line-height:1.7;margin-top:8px}
 .const code{color:#79c0ff;font-size:.72rem}
 .log{max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:5px;margin-top:10px}
 .log div{background:#0d1117;border:1px solid #21262d;border-radius:7px;padding:6px 9px;font-size:.75rem;color:#c9d1d9}
-.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:.75rem;color:#8b949e}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:.75rem;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:5px;vertical-align:middle}
-.hint{font-size:.78rem;color:#8b949e;margin-top:8px;line-height:1.5}
+.hint{font-size:.78rem;color:var(--muted);margin-top:8px;line-height:1.5}
+.faults{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.fault{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:12px}
+.fault h3{font-size:.88rem;margin-bottom:6px}
+.fault p{font-size:.75rem;color:var(--muted);line-height:1.55;margin-bottom:10px}
+.http{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:700px){.http{grid-template-columns:1fr}}
+pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px 12px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#c9d1d9;direction:ltr;text-align:left;overflow:auto;min-height:4.5em;margin:0}
+.badge{display:inline-block;font-size:.68rem;font-weight:700;border-radius:5px;padding:2px 7px;margin-right:6px}
+.badge.on{background:#1a3a2a;color:#3fb950}
+.badge.off{background:#3a1010;color:#f85149}
 </style>
 </head>
 <body>
-<nav class="site-nav">
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
   <span class="brand">SmartMount</span>
   <a href="../">בית</a>
-  <a class="on" href="./">מעבדה הנדסית</a>
+  <a class="on" href="./" aria-current="page">מעבדה הנדסית</a>
   <a href="../spec/">מפרט בנייה</a>
   <a href="../geometry/">גאומטריית בוהק</a>
+  <a href="../protocol/">חוזה API</a>
   <a href="../dashboard/">לוח בקרה</a>
 </nav>
 <div class="banner">סימולציה — הלולאה כאן היא פורט JS של <code>firmware/smart_mount.ino</code>. אין חומרה מחוברת.</div>
-<div class="wrap">
+<main id="main" class="wrap">
   <h1>מצב הדגמה הנדסי</h1>
-  <p class="lead">גררו את מקור האור בחדר. הלולאה מריצה את חוק ההחלטה של הקושחה — אותם ספים, deadband, הידוק לגבול פאנל, ו־hold על כשל חיישן — לא סימולציה מנותקת.</p>
+  <p class="lead">גררו את מקור האור. הלולאה מריצה את חוק ההחלטה של הקושחה. מתחת — קונסולת תקלות: הורגים חיישן, מנתקים WiFi, או שולחים זווית מעל הגבול, ורואים מה הקושחה עושה במקום להתרסק.</p>
 
   <div class="grid">
     <div class="card">
       <h2>חדר וירטואלי</h2>
-      <svg id="room" viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg">
+      <svg id="room" viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="roomTitle" aria-describedby="roomHint">
+        <title id="roomTitle">חדר עם מסך, שני חיישנים ומקור אור ניתן לגרירה</title>
         <defs>
           <linearGradient id="wallG" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#12151c"/>
@@ -92,20 +101,15 @@
         <span><i style="background:#58a6ff"></i>חיישן תחתון (0x5C)</span>
         <span><i style="background:#f85149"></i>צל נאיבי (כשל → מקסימום)</span>
       </div>
-      <p class="hint">גררו את השמש. כפתור «כשל BH1750» מדמה קריאה שלילית — החוק הבטוח מחזיק זווית; הנאיבי מתייחס לחושך ומטה למקסימום.</p>
+      <p class="hint" id="roomHint">גררו את השמש. כשל BH1750 מדמה קריאה שלילית — החוק הבטוח מחזיק זווית; הנאיבי מתייחס לחושך ומטה למקסימום.</p>
     </div>
 
     <div class="card">
       <h2>לולאת קושחה</h2>
-      <div class="row">
-        <button class="btn on" data-panel="0" id="p0">OLED</button>
-        <button class="btn" data-panel="1" id="p1">QLED</button>
-        <button class="btn" data-panel="2" id="p2">LED</button>
-      </div>
-      <div class="row">
-        <button class="btn danger" id="failTop">כשל חיישן עליון</button>
-        <button class="btn danger" id="failBot">כשל חיישן תחתון</button>
-        <button class="btn" id="showNaive">הצג חוק נאיבי</button>
+      <div class="row" role="group" aria-label="סוג פאנל">
+        <button type="button" class="btn on" data-panel="0" id="p0" aria-pressed="true">OLED</button>
+        <button type="button" class="btn" data-panel="1" id="p1" aria-pressed="false">QLED</button>
+        <button type="button" class="btn" data-panel="2" id="p2" aria-pressed="false">LED</button>
       </div>
       <div class="metrics">
         <div class="m" id="mTop"><b>—</b><span>lux עליון</span></div>
@@ -115,21 +119,70 @@
         <div class="m" id="mCur"><b>—</b><span>currentAngle (מהסטופר)</span></div>
         <div class="m" id="mTgt"><b>—</b><span>target / צעדים</span></div>
       </div>
+      <p>
+        <span class="badge on" id="badgeAuto">auto ON</span>
+        <span class="badge on" id="badgeWifi">WiFi UP</span>
+        <span class="badge on" id="badgeI2c">I²C OK</span>
+      </p>
       <div class="const">
-        קבועים מ־<code>firmware/smart_mount.ino</code>:<br>
-        מקור: <code>config/control-params.json</code> (מיובא כ־<code>CONTROL_PARAMS</code>) ·
+        קבועים מ־<code>config/control-params.json</code> ·
         <code>lux&lt;0 → return currentAngle</code> ·
         <code>stepper.moveTo</code> מוחלט ·
-        קבועים: סף / הגבר / deadband / גבולות פאנל
+        WiFi timeout 10s — אוטו מקומי ממשיך
       </div>
-      <div class="log" id="log"></div>
+      <div class="log" id="log" role="log" aria-live="polite" aria-relevant="additions"></div>
     </div>
   </div>
-</div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>קונסולת הזרקת תקלות</h2>
+    <p class="hint" style="margin-top:0;margin-bottom:12px">
+      שלוש התקלות שהקושחה טוענת שהיא שורדת. כל כפתור עובר דרך אותם כללים כמו ב־<code>.ino</code>
+      (או דרך <a href="../protocol/">חוזה ה־HTTP</a> כשזה פקודה מרחוק).
+    </p>
+    <div class="faults">
+      <div class="fault">
+        <h3>1. הרוג חיישן</h3>
+        <p>BH1750 מחזיר ערך שלילי. חוק נאיבי רואה «חושך» ומכה למקסימום. החוק האמיתי מחזיק.</p>
+        <div class="row" style="margin:0">
+          <button type="button" class="btn danger" id="failTop" aria-pressed="false">כשל עליון</button>
+          <button type="button" class="btn danger" id="failBot" aria-pressed="false">כשל תחתון</button>
+          <button type="button" class="btn danger" id="failI2c" aria-pressed="false">כשל אוטובוס I²C</button>
+        </div>
+      </div>
+      <div class="fault">
+        <h3>2. נתק WiFi</h3>
+        <p>אחרי timeout הקושחה מדפיסה שורה אחת וממשיכה אוטו מקומי. HTTP מרחוק הופך לבלתי-הגעה — המנוע לא «נתקע».</p>
+        <div class="row" style="margin:0">
+          <button type="button" class="btn danger" id="cutWifi" aria-pressed="false">נתק WiFi</button>
+          <button type="button" class="btn" id="showNaive" aria-pressed="false">הצג חוק נאיבי</button>
+        </div>
+      </div>
+      <div class="fault">
+        <h3>3. פקודה מעל הגבול</h3>
+        <p><code>POST /set-angle?deg=99</code> מחזיר 200, מכבה אוטו, ו־<code>moveToAngle</code> מצמיד לגבול הפאנל. 200 ≠ 99°.</p>
+        <div class="row" style="margin:0">
+          <button type="button" class="btn" id="cmdOver">שלח deg=99</button>
+          <button type="button" class="btn" id="cmdAuto">החזר אוטו</button>
+        </div>
+      </div>
+    </div>
+    <div class="http" style="margin-top:14px">
+      <div>
+        <h2>Serial 115200 — מה שהקושחה באמת מדפיסה</h2>
+        <pre class="mono" id="serialLog" aria-live="polite">IP: 192.168.4.1</pre>
+      </div>
+      <div>
+        <h2>HTTP אחרון (סימולציית WebServer)</h2>
+        <pre class="mono" id="httpLog">אין בקשה עדיין</pre>
+      </div>
+    </div>
+  </div>
+</main>
 
 <script src="../src/lib/control-params.js"></script>
+<script src="../src/lib/protocol.js"></script>
 <script>
-// Firmware decision port — scalars come from config/control-params.json
 const PANEL_LIMITS = CONTROL_PARAMS.limitsArray;
 const PANEL_NAMES  = CONTROL_PARAMS.panelNames;
 const STEPS_PER_DEGREE = CONTROL_PARAMS.stepsPerDegree;
@@ -139,40 +192,39 @@ const MIN_LUX          = CONTROL_PARAMS.minLux;
 const DEADBAND_DEG     = CONTROL_PARAMS.deadbandDeg;
 
 let panel = 0;
-let currentAngle = 0;   // synced from stepper position — ino:53-55
+let currentAngle = 0;
 let targetAngle  = 0;
 let currentSteps = 0;
 let targetSteps  = 0;
 let failTop = false;
 let failBot = false;
 let showNaive = false;
+let wifiUp = true;
+let autoMode = true;
+let lastLux = { top: 0, bot: 0 };
 let light = { x: 695, y: 90 };
 
-// calcOptimalAngle — ino:86-104
 function calcOptimalAngle(luxTop, luxBot, heldAngle, panelIdx) {
-  // ino:87-92 — BH1750 negative = hold, never slam to max
   if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot) || luxTop < 0 || luxBot < 0) {
     return { angle: heldAngle, hold: true, ratio: null, clamped: false };
   }
-  const ratio = luxTop / Math.max(luxBot, MIN_LUX); // ino:95
-  const limit = PANEL_LIMITS[panelIdx];              // ino:96
+  const ratio = luxTop / Math.max(luxBot, MIN_LUX);
+  const limit = PANEL_LIMITS[panelIdx];
   let angle = 0.0;
-  if (ratio > GLARE_THRESHOLD) {                     // ino:99
-    angle = Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG, limit); // ino:101
+  if (ratio > GLARE_THRESHOLD) {
+    angle = Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG, limit);
   }
   return { angle, hold: false, ratio, clamped: angle >= limit && ratio > GLARE_THRESHOLD };
 }
 
-// moveToAngle — ino:106-113 (absolute moveTo, no premature currentAngle)
 function commandMoveTo(deg, panelIdx) {
   const limit = PANEL_LIMITS[panelIdx];
-  const clamped = Math.max(-limit, Math.min(limit, deg)); // ino:108
+  const clamped = Math.max(-limit, Math.min(limit, deg));
   targetAngle = clamped;
-  targetSteps = Math.round(clamped * STEPS_PER_DEGREE);   // ino:112-113
+  targetSteps = Math.round(clamped * STEPS_PER_DEGREE);
   return clamped;
 }
 
-// What the pre-fix relative-move + treat-negative-as-dark law would do
 function naiveAngle(luxTop, luxBot, panelIdx) {
   const ratio = luxTop / Math.max(luxBot, MIN_LUX);
   const limit = PANEL_LIMITS[panelIdx];
@@ -184,8 +236,7 @@ function sensorLux(sx, sy, nx, ny) {
   const dx = light.x - sx, dy = light.y - sy;
   const dist = Math.max(Math.hypot(dx, dy), 24);
   const ndot = Math.max(0, (dx * nx + dy * ny) / dist);
-  const ambient = 40;
-  return ambient + ndot * 220000 / (dist * dist);
+  return 40 + ndot * 220000 / (dist * dist);
 }
 
 function addLog(msg) {
@@ -197,13 +248,66 @@ function addLog(msg) {
   const ss = String(t.getSeconds()).padStart(2,'0');
   row.textContent = hh + ':' + mm + ':' + ss + ' — ' + msg;
   el.prepend(row);
-  while (el.children.length > 12) el.lastChild.remove();
+  while (el.children.length > 14) el.lastChild.remove();
+}
+
+function setSerial(text) {
+  document.getElementById('serialLog').textContent = text;
+}
+
+function setHttp(text) {
+  document.getElementById('httpLog').textContent = text;
 }
 
 function setMetric(id, val, cls) {
   const el = document.getElementById(id);
   el.className = 'm' + (cls ? ' ' + cls : '');
   el.querySelector('b').textContent = val;
+}
+
+function paintBadges() {
+  const a = document.getElementById('badgeAuto');
+  a.textContent = autoMode ? 'auto ON' : 'auto OFF (ידני)';
+  a.className = 'badge ' + (autoMode ? 'on' : 'off');
+  const w = document.getElementById('badgeWifi');
+  w.textContent = wifiUp ? 'WiFi UP' : 'WiFi DOWN';
+  w.className = 'badge ' + (wifiUp ? 'on' : 'off');
+  const i = document.getElementById('badgeI2c');
+  const dead = failTop && failBot;
+  i.textContent = dead ? 'I²C FAIL' : 'I²C OK';
+  i.className = 'badge ' + (dead ? 'off' : 'on');
+}
+
+function httpCall(method, path, args) {
+  const line = SM_PROTOCOL.requestLine(method, path, args);
+  if (!wifiUp) {
+    setHttp(line + '\n— unreachable (WiFi down)\nהלולאה המקומית לא נעצרת.');
+    addLog('HTTP נחסם — WiFi מנותק. auto המקומי ' + (autoMode ? 'ממשיך' : 'כבוי'));
+    return null;
+  }
+  const res = SM_PROTOCOL.dispatch(method, path, args, {
+    angle: currentAngle, target: targetAngle, auto: autoMode,
+    panel: panel, lux_top: lastLux.top, lux_bot: lastLux.bot,
+  });
+  setHttp(line + '\nHTTP ' + res.status + '\n' + JSON.stringify(res.body));
+  if (res.effect) {
+    if (res.effect.autoMode !== undefined) autoMode = res.effect.autoMode;
+    if (res.effect.panel !== undefined) {
+      panel = res.effect.panel;
+      document.querySelectorAll('[data-panel]').forEach((b) => {
+        const on = parseInt(b.dataset.panel, 10) === panel;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      commandMoveTo(currentAngle, panel);
+    }
+    if (res.effect.requestedDeg !== undefined) {
+      const clamped = commandMoveTo(res.effect.requestedDeg, panel);
+      addLog('HTTP 200 — התבקש ' + res.effect.requestedDeg + '°, הוצמד ל־' + clamped + '° (' + PANEL_NAMES[panel] + ')');
+    }
+  }
+  paintBadges();
+  return res;
 }
 
 function tick() {
@@ -217,7 +321,6 @@ function tick() {
   }
   const wTop = world(topLocal);
   const wBot = world(botLocal);
-  // Top faces up/out of the screen plane; bot faces the panel (inward).
   const nTop = { x: Math.sin(rad) * 0.35 + 0.55, y: -0.85 };
   const nBot = { x: -Math.sin(rad), y: Math.cos(rad) };
 
@@ -225,18 +328,20 @@ function tick() {
   let luxBot = sensorLux(wBot.x, wBot.y, nBot.x, nBot.y) * 0.18 + 35;
   if (failTop) luxTop = -1;
   if (failBot) luxBot = -1;
+  lastLux = { top: luxTop, bot: luxBot };
 
   const decision = calcOptimalAngle(luxTop, luxBot, currentAngle, panel);
   const next = decision.angle;
   let moved = false;
-  if (Math.abs(next - currentAngle) > DEADBAND_DEG) { // ino:214
-    commandMoveTo(next, panel);
-    moved = true;
-  } else if (!decision.hold) {
-    targetAngle = next; // ino:217
+  if (autoMode) {
+    if (Math.abs(next - currentAngle) > DEADBAND_DEG) {
+      commandMoveTo(next, panel);
+      moved = true;
+    } else if (!decision.hold) {
+      targetAngle = next;
+    }
   }
 
-  // stepper.run() — currentAngle follows position, not the command (ino:53-55, 206-207)
   if (currentSteps !== targetSteps) {
     const dir = Math.sign(targetSteps - currentSteps);
     currentSteps += dir * Math.min(4, Math.abs(targetSteps - currentSteps));
@@ -267,22 +372,22 @@ function tick() {
     setMetric('mTop', failTop ? 'FAIL (−1)' : luxTop.toFixed(0) + ' lx', failTop ? 'fail' : '');
     setMetric('mBot', failBot ? 'FAIL (−1)' : luxBot.toFixed(0) + ' lx', failBot ? 'fail' : '');
     setMetric('mRatio', '—', 'hold');
-    setMetric('mDec', 'HOLD', 'hold');
+    setMetric('mDec', autoMode ? 'HOLD' : 'HOLD / ידני', 'hold');
   } else {
     setMetric('mTop', luxTop.toFixed(0) + ' lx');
     setMetric('mBot', luxBot.toFixed(0) + ' lx');
     setMetric('mRatio', decision.ratio.toFixed(2) + '×', decision.ratio > GLARE_THRESHOLD ? 'fail' : 'ok');
-    setMetric('mDec', decision.clamped ? 'CLAMP ' + PANEL_LIMITS[panel] + '°' : (moved ? 'MOVE' : 'שקט'),
-      decision.clamped ? 'clamp' : (moved ? '' : 'ok'));
+    const label = !autoMode ? 'ידני' : (decision.clamped ? 'CLAMP ' + PANEL_LIMITS[panel] + '°' : (moved ? 'MOVE' : 'שקט'));
+    setMetric('mDec', label, decision.clamped ? 'clamp' : (moved || !autoMode ? '' : 'ok'));
   }
   setMetric('mCur', currentAngle.toFixed(1) + '°');
   setMetric('mTgt', targetAngle.toFixed(1) + '° / ' + targetSteps + ' st');
 
-  if (decision.hold && tick._wasHold !== true) {
-    addLog('כשל חיישן — מחזיק ' + currentAngle.toFixed(1) + '° (ino:87–92). נאיבי היה מגיע ל־' + naive.toFixed(1) + '°');
-  } else if (!decision.hold && decision.clamped && tick._wasClamp !== true) {
+  if (autoMode && decision.hold && tick._wasHold !== true) {
+    addLog('כשל חיישן — מחזיק ' + currentAngle.toFixed(1) + '° (ino:99–101). נאיבי היה מגיע ל־' + naive.toFixed(1) + '°');
+  } else if (autoMode && !decision.hold && decision.clamped && tick._wasClamp !== true) {
     addLog('יחס ' + decision.ratio.toFixed(1) + '× — נצמד לגבול ' + PANEL_NAMES[panel] + ' ' + PANEL_LIMITS[panel] + '°');
-  } else if (moved && !decision.hold) {
+  } else if (autoMode && moved && !decision.hold) {
     addLog('יחס ' + decision.ratio.toFixed(2) + '× → יעד ' + next.toFixed(1) + '°  moveTo(' + targetSteps + ')');
   }
   tick._wasHold = decision.hold;
@@ -318,28 +423,62 @@ svg.addEventListener('pointerup', () => { dragging = false; });
 
 document.querySelectorAll('[data-panel]').forEach(btn => {
   btn.addEventListener('click', () => {
-    panel = parseInt(btn.dataset.panel, 10);
-    document.querySelectorAll('[data-panel]').forEach(b => b.classList.toggle('on', b === btn));
-    const limit = PANEL_LIMITS[panel];
-    if (Math.abs(currentAngle) > limit) commandMoveTo(currentAngle, panel);
-    addLog('פאנל ' + PANEL_NAMES[panel] + ' — גבול ±' + limit + '° (ino:21, 144–157)');
+    httpCall('POST', '/set-panel', { type: btn.dataset.panel });
+    addLog('פאנל ' + PANEL_NAMES[panel] + ' — גבול ±' + PANEL_LIMITS[panel] + '°');
   });
 });
+
+function toggleBtn(el, on) {
+  el.classList.toggle('on', on);
+  el.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+
 document.getElementById('failTop').addEventListener('click', function () {
-  failTop = !failTop; this.classList.toggle('on', failTop);
+  failTop = !failTop;
+  toggleBtn(this, failTop);
+  paintBadges();
 });
 document.getElementById('failBot').addEventListener('click', function () {
-  failBot = !failBot; this.classList.toggle('on', failBot);
+  failBot = !failBot;
+  toggleBtn(this, failBot);
+  paintBadges();
+});
+document.getElementById('failI2c').addEventListener('click', function () {
+  const on = !(failTop && failBot);
+  failTop = on;
+  failBot = on;
+  toggleBtn(this, on);
+  toggleBtn(document.getElementById('failTop'), failTop);
+  toggleBtn(document.getElementById('failBot'), failBot);
+  paintBadges();
+  addLog(on ? 'אוטובוס I²C מת — שני החיישנים −1, HOLD' : 'אוטובוס I²C חזר');
+});
+document.getElementById('cutWifi').addEventListener('click', function () {
+  wifiUp = !wifiUp;
+  toggleBtn(this, !wifiUp);
+  paintBadges();
+  setSerial(SM_PROTOCOL.serialOnBoot(wifiUp, '192.168.4.1'));
+  addLog(wifiUp ? 'WiFi חזר — HTTP זמין שוב' : 'WiFi timeout — אוטו מקומי ממשיך (ino:203–204)');
 });
 document.getElementById('showNaive').addEventListener('click', function () {
-  showNaive = !showNaive; this.classList.toggle('on', showNaive);
+  showNaive = !showNaive;
+  toggleBtn(this, showNaive);
+});
+document.getElementById('cmdOver').addEventListener('click', function () {
+  httpCall('POST', '/set-angle', { deg: '99' });
+});
+document.getElementById('cmdAuto').addEventListener('click', function () {
+  httpCall('POST', '/set-mode', { auto: '1' });
+  addLog('set-mode auto=1 — הלולאה חוזרת לחוק הבוהק');
 });
 
 CONTROL_PARAMS.panelNames.forEach((name, i) => {
   const b = document.getElementById('p' + i);
   if (b) b.textContent = name + ' ' + CONTROL_PARAMS.limitsArray[i] + '°';
 });
-addLog('לולאה עלתה — קבועים מ־config/control-params.json, hold על כשל, moveTo מוחלט');
+setSerial(SM_PROTOCOL.serialOnBoot(true, '192.168.4.1'));
+addLog('לולאה עלתה — hold על כשל, moveTo מוחלט, HTTP דרך protocol.js');
+paintBadges();
 setInterval(tick, 80);
 tick();
 </script>
