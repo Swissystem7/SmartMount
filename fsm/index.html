@@ -35,6 +35,16 @@ svg.diagram{width:100%;height:auto;display:block;background:#0d1117;border-radiu
 .st.fault{background:#3a1010;color:#f85149}
 .st.ok{background:#1a3a2a;color:#3fb950}
 .st.meh{background:#2d1f00;color:#e3b341}
+.matrix-wrap{overflow:auto;margin-top:12px;border:1px solid #21262d;border-radius:10px}
+table.matrix{border-collapse:collapse;font:600 10px ui-monospace,Menlo,Consolas,monospace;min-width:980px}
+table.matrix th,table.matrix td{border:1px solid #21262d;padding:4px 5px;text-align:center;white-space:nowrap}
+table.matrix th{background:#0d1117;color:#8b949e;font-weight:700}
+table.matrix th.rowh{text-align:right;position:sticky;right:0;background:#0d1117;z-index:1}
+table.matrix td.stay{color:#8b949e}
+table.matrix td.change{background:#1f4068;color:#79c0ff}
+table.matrix td.fault{background:#3a1010;color:#f85149}
+table.matrix td.reject{box-shadow:inset 0 0 0 1px #e3b341}
+table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
 </style>
 </head>
 <body>
@@ -48,6 +58,9 @@ svg.diagram{width:100%;height:auto;display:block;background:#0d1117;border-radiu
   <a href="../protocol/">חוזה API</a>
   <a class="on" href="./" aria-current="page">מכונת מצבים</a>
   <a href="../runtime/">תזמון והספק</a>
+  <a href="../power/">תקציב הספק</a>
+  <a href="../hil/">תוכנית HIL</a>
+  <a href="../alts/">חלופות</a>
   <a href="../dashboard/">לוח בקרה</a>
 </nav>
 <div class="banner">שתי מכונות על המחשב. אף אחת לא רצה על ESP32. הימנית היא קריאת ה־<code>.ino</code>; השמאלית היא תכנון.</div>
@@ -135,6 +148,11 @@ svg.diagram{width:100%;height:auto;display:block;background:#0d1117;border-radiu
         <text class="label" id="sfFAULT_LIMITL" x="65" y="238">FAULT_LIMIT</text>
         <rect id="sfDEAD" class="node" x="150" y="216" width="88" height="36" rx="8"/>
         <text class="label" id="sfDEADL" x="194" y="238">DEAD</text>
+        <path class="edge" d="M98 34 H120"/>
+        <path class="edge" d="M220 34 H246"/>
+        <path class="edge" d="M290 52 V80"/>
+        <path class="edge" d="M110 98 H130"/>
+        <path class="edge" d="M240 98 H270"/>
       </svg>
       <p><span class="st" id="sfState">BOOT</span></p>
       <div class="kv">
@@ -165,6 +183,7 @@ svg.diagram{width:100%;height:auto;display:block;background:#0d1117;border-radiu
         <button type="button" class="btn" data-ev="DEG99">POST deg=99</button>
         <button type="button" class="btn" data-ev="AUTO">set-mode auto=1</button>
         <button type="button" class="btn" data-ev="MANUAL">set-mode auto=0</button>
+        <button type="button" class="btn" data-ev="PANEL0">set-panel OLED</button>
       </div>
     </div>
     <div class="group">
@@ -189,14 +208,32 @@ svg.diagram{width:100%;height:auto;display:block;background:#0d1117;border-radiu
     </div>
     <div class="log" id="log" role="log" aria-live="polite" aria-relevant="additions"></div>
     <p class="fine">
-      הקוד: <code>src/lib/fsm.js</code>. הבדיקות נועלות ש־<code>.ino</code> עדיין בלי enum של מצבים,
-      בלי הומינג ובלי WDT — ושתי המכונות חולקות על SAMPLE אחרי אתחול לא־מאופס.
+      הקוד: <code>src/lib/fsm.js</code> + <code>src/lib/fsm-table.js</code>.
+      כל תא בטבלה הוא <code>step()</code> אמיתי על דייר קנוני של המצב.
+      11 × 15 = 165 תאים במכונה המוצעת, 2 × 15 בקושחה — כולם נעולים ב־<code>npm test</code>.
     </p>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>טבלת מעברים מלאה — מה ש־walk() מחזיר</h2>
+    <p class="fine" style="margin-top:0">
+      תא כחול משנה מצב. אדום נכנס ל־FAULT/DEAD. מסגרת צהובה היא reject.
+      לחיצה על תא בשורה של המצב הנוכחי שולחת את האירוע לשתי המכונות.
+    </p>
+    <div class="row" role="group" aria-label="איזו מכונה בטבלה">
+      <button type="button" class="btn" id="mxFw">קושחה (30 תאים)</button>
+      <button type="button" class="btn on" id="mxSf">מוצע (165 תאים)</button>
+    </div>
+    <p class="fine" id="mxCounts">—</p>
+    <div class="matrix-wrap">
+      <table class="matrix" id="matrix"></table>
+    </div>
   </div>
 </main>
 <script src="../src/lib/control-params.js"></script>
 <script src="../src/lib/control.js"></script>
 <script src="../src/lib/fsm.js"></script>
+<script src="../src/lib/fsm-table.js"></script>
 <script>
 let fw = SM_FSM.fresh('firmware', { mechanicalAngle: 0 });
 let sf = SM_FSM.fresh('safe', { hasEndstop: false, mechanicalAngle: 0 });
@@ -248,6 +285,7 @@ function render() {
   document.getElementById('sfTgt').textContent = sf.targetAngle.toFixed(1) + '°';
   document.getElementById('sfFlags').textContent = flags(sf);
   document.getElementById('sfWhy').textContent = sf.reason;
+  paintMatrix();
 }
 
 function addLog(line) {
@@ -284,6 +322,7 @@ const EV = {
   DEG99: [{ type: 'SET_ANGLE', deg: 99 }, 'SET_ANGLE 99 (יוצמד)'],
   AUTO: [{ type: 'SET_MODE', auto: true }, 'SET_MODE auto'],
   MANUAL: [{ type: 'SET_MODE', auto: false }, 'SET_MODE ידני'],
+  PANEL0: [{ type: 'SET_PANEL', panel: 0 }, 'SET_PANEL OLED'],
   ARRIVE: [{ type: 'ARRIVE' }, 'ARRIVE'],
   TICK: [{ type: 'TICK', dtMs: 1000 }, 'TICK 1000ms'],
   HOME_START: [{ type: 'HOME_START' }, 'HOME_START'],
@@ -348,6 +387,59 @@ document.getElementById('scStall').addEventListener('click', () => {
 
 ['hasEndstop', 'selfLock'].forEach((id) => {
   document.getElementById(id).addEventListener('change', syncOpts);
+});
+
+let mxKind = 'safe';
+function short(name) {
+  return name.replace('FAULT_', 'F_').replace('IDLE_', 'I_');
+}
+function paintMatrix() {
+  const rows = SM_FSM_TABLE.walk(mxKind);
+  const states = SM_FSM_TABLE.statesOf(mxKind);
+  const here = mxKind === 'safe' ? sf.state : fw.state;
+  const counts = SM_FSM_TABLE.counts(mxKind);
+  document.getElementById('mxCounts').textContent =
+    counts.cells + ' תאים · ' + counts.changes + ' משנים מצב · ' +
+    counts.stays + ' נשארים · ' + counts.rejects + ' דחיות';
+  const table = document.getElementById('matrix');
+  let html = '<thead><tr><th class="rowh">מצב</th>';
+  SM_FSM.EVENTS.forEach((ev) => { html += '<th>' + ev.replace('_', ' ') + '</th>'; });
+  html += '</tr></thead><tbody>';
+  states.forEach((st) => {
+    html += '<tr><th class="rowh">' + st + '</th>';
+    SM_FSM.EVENTS.forEach((ev) => {
+      const cell = rows.find((r) => r.from === st && r.event === ev);
+      const cls = [];
+      if (cell.to !== cell.from) cls.push(cell.to.indexOf('FAULT') === 0 || cell.to === 'DEAD' ? 'fault' : 'change');
+      else cls.push('stay');
+      if (cell.reject) cls.push('reject');
+      if (st === here) cls.push('here');
+      html += '<td class="' + cls.join(' ') + '" data-from="' + st + '" data-ev="' + ev + '">' +
+        short(cell.to) + (cell.reject ? '*' : '') + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+  table.querySelectorAll('td[data-ev]').forEach((td) => {
+    td.style.cursor = 'pointer';
+    td.addEventListener('click', () => {
+      const ev = SM_FSM_TABLE.defaultEvent(td.dataset.ev);
+      send(ev, td.dataset.from + ' × ' + td.dataset.ev);
+    });
+  });
+}
+document.getElementById('mxFw').addEventListener('click', () => {
+  mxKind = 'firmware';
+  document.getElementById('mxFw').classList.add('on');
+  document.getElementById('mxSf').classList.remove('on');
+  paintMatrix();
+});
+document.getElementById('mxSf').addEventListener('click', () => {
+  mxKind = 'safe';
+  document.getElementById('mxSf').classList.add('on');
+  document.getElementById('mxFw').classList.remove('on');
+  paintMatrix();
 });
 
 resetBoth(0);
