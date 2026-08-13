@@ -50,6 +50,8 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
   <a href="../spec/">מפרט בנייה</a>
   <a href="../geometry/">גאומטריית בוהק</a>
   <a href="../protocol/">חוזה API</a>
+  <a href="../fsm/">מכונת מצבים</a>
+  <a href="../runtime/">תזמון והספק</a>
   <a href="../dashboard/">לוח בקרה</a>
 </nav>
 <div class="banner">סימולציה — הלולאה כאן היא פורט JS של <code>firmware/smart_mount.ino</code>. אין חומרה מחוברת.</div>
@@ -166,6 +168,18 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
           <button type="button" class="btn" id="cmdAuto">החזר אוטו</button>
         </div>
       </div>
+      <div class="fault">
+        <h3>4. אתחול באמצע מהלך</h3>
+        <p>
+          <code>setCurrentPosition(0)</code> משקר. הקושחה מאמינה 0°; הזרוע נשארת במקום.
+          <code>moveTo(15)</code> דוחף 15° <em>נוספים</em>. פירוט:
+          <a href="../fsm/">מכונת מצבים</a>.
+        </p>
+        <div class="row" style="margin:0">
+          <button type="button" class="btn danger" id="bootLie" aria-pressed="false">אתחל כאילו 0°</button>
+          <button type="button" class="btn" id="cmd15">שלח deg=15</button>
+        </div>
+      </div>
     </div>
     <div class="http" style="margin-top:14px">
       <div>
@@ -203,6 +217,7 @@ let wifiUp = true;
 let autoMode = true;
 let lastLux = { top: 0, bot: 0 };
 let light = { x: 695, y: 90 };
+let lieOffset = 0;
 
 function calcOptimalAngle(luxTop, luxBot, heldAngle, panelIdx) {
   if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot) || luxTop < 0 || luxBot < 0) {
@@ -312,7 +327,8 @@ function httpCall(method, path, args) {
 
 function tick() {
   const pivotX = 400, pivotY = 340;
-  const rad = currentAngle * Math.PI / 180;
+  const visualNow = currentAngle + lieOffset;
+  const rad = visualNow * Math.PI / 180;
   const topLocal = { x: 0, y: -96 };
   const botLocal = { x: 0, y: -48 };
   function world(p) {
@@ -349,11 +365,12 @@ function tick() {
   }
 
   const naive = naiveAngle(luxTop, luxBot, panel);
+  const visual = currentAngle + lieOffset;
 
   document.getElementById('tv').setAttribute('transform',
-    'translate(400 340) rotate(' + currentAngle + ')');
+    'translate(400 340) rotate(' + visual + ')');
   const ghost = document.getElementById('naiveGhost');
-  ghost.setAttribute('transform', 'translate(400 340) rotate(' + naive + ')');
+  ghost.setAttribute('transform', 'translate(400 340) rotate(' + (naive + lieOffset) + ')');
   ghost.setAttribute('opacity', showNaive ? '0.9' : '0');
 
   document.getElementById('sun').setAttribute('transform', 'translate(' + light.x + ' ' + light.y + ')');
@@ -380,7 +397,7 @@ function tick() {
     const label = !autoMode ? 'ידני' : (decision.clamped ? 'CLAMP ' + PANEL_LIMITS[panel] + '°' : (moved ? 'MOVE' : 'שקט'));
     setMetric('mDec', label, decision.clamped ? 'clamp' : (moved || !autoMode ? '' : 'ok'));
   }
-  setMetric('mCur', currentAngle.toFixed(1) + '°');
+  setMetric('mCur', currentAngle.toFixed(1) + '°' + (lieOffset ? ' / מכני ' + visual.toFixed(1) + '°' : ''));
   setMetric('mTgt', targetAngle.toFixed(1) + '° / ' + targetSteps + ' st');
 
   if (autoMode && decision.hold && tick._wasHold !== true) {
@@ -470,6 +487,19 @@ document.getElementById('cmdOver').addEventListener('click', function () {
 document.getElementById('cmdAuto').addEventListener('click', function () {
   httpCall('POST', '/set-mode', { auto: '1' });
   addLog('set-mode auto=1 — הלולאה חוזרת לחוק הבוהק');
+});
+document.getElementById('bootLie').addEventListener('click', function () {
+  const visualNow = currentAngle + lieOffset;
+  lieOffset = visualNow;
+  currentAngle = 0;
+  currentSteps = 0;
+  targetAngle = 0;
+  targetSteps = 0;
+  toggleBtn(this, lieOffset !== 0);
+  addLog('setup() שיקר: believed=0°, הזרוע נשארה ב־' + visualNow.toFixed(1) + '°. moveTo עכשיו יוסיף מעל זה.');
+});
+document.getElementById('cmd15').addEventListener('click', function () {
+  httpCall('POST', '/set-angle', { deg: '15' });
 });
 
 CONTROL_PARAMS.panelNames.forEach((name, i) => {
