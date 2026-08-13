@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartMount — תקציב הספק</title>
+<meta name="description" content="זרם idle / תנועה / WiFi וחישוב סוללה מול NEMA17. לא מדידה מהלוח.">
+<meta name="theme-color" content="#0f1420">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{margin-bottom:16px}
+.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+@media(max-width:720px){.modes{grid-template-columns:1fr 1fr}}
+.mode{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:10px}
+.mode b{display:block;font-size:.95rem;font-variant-numeric:tabular-nums}
+.mode span{font-size:.7rem;color:var(--muted)}
+.mode.on{border-color:#58a6ff}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
+.kv b{display:block;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.kv span{font-size:.7rem;color:var(--muted)}
+.verdict{border-radius:10px;padding:12px 14px;margin-top:12px;font-size:.88rem;line-height:1.55;border:1px solid #21262d}
+.verdict.bad{background:#3a1010;border-color:#f85149;color:#ffb4b0}
+.verdict.meh{background:#2d1f00;border-color:#9e6a03;color:#e3b341}
+.verdict.ok{background:#1a3a2a;border-color:#238636;color:#7ee787}
+.fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
+label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
+.check{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.85rem;color:var(--muted)}
+#rails,#hours{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th,td{text-align:right;padding:7px 8px;border-bottom:1px solid #21262d}
+th{color:var(--muted);font-weight:600;font-size:.72rem}
+td.num{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
+  <span class="brand">SmartMount</span>
+  <a href="../">בית</a>
+  <a href="../lab/">מעבדה הנדסית</a>
+  <a href="../spec/">מפרט בנייה</a>
+  <a href="../geometry/">גאומטריית בוהק</a>
+  <a href="../protocol/">חוזה API</a>
+  <a href="../fsm/">מכונת מצבים</a>
+  <a href="../runtime/">תזמון והספק</a>
+  <a class="on" href="./" aria-current="page">תקציב הספק</a>
+  <a href="../hil/">תוכנית HIL</a>
+  <a href="../alts/">חלופות</a>
+  <a href="../dashboard/">לוח בקרה</a>
+</nav>
+<div class="banner">מספרי דפי-נתונים טיפוסיים. הלוח לא נמדד במד-זרם. USB 5 V אינו פס המנוע.</div>
+<main id="main" class="wrap">
+  <h1>תקציב הספק — זרם וסוללה</h1>
+  <p class="lead">
+    החזקת שני סלילי 17HS4401-class היא <code>2 × I²R = 6.75 W</code> לפני הפסדי מנהל.
+    ESP32 עם WiFi הוא ~180 mA @ 3.3 V — עיגול. הקושחה לא מכבה סלילים ולא נרדמת.
+    למטה ארבעה מצבי זרם, ואז גודל סוללה מול אותם מספרים.
+  </p>
+
+  <div class="card">
+    <h2>ארבעה מצבים — לא מדידה</h2>
+    <div class="modes" id="modes" role="list"></div>
+    <svg id="rails" viewBox="0 0 640 220" role="img" aria-labelledby="railsTitle" dir="ltr">
+      <title id="railsTitle">זרם ממוצע על 3.3 V מול 12 V</title>
+    </svg>
+    <div class="kv">
+      <div><b id="kLogic">—</b><span>לוגיקה 3.3 V</span></div>
+      <div><b id="kMotor">—</b><span>מנוע 12 V (ממוצע P/V)</span></div>
+      <div><b id="kPeak">—</b><span>שיא פאזה (דירוג)</span></div>
+      <div><b id="kUsb">—</b><span>USB 5 V / 500 mA</span></div>
+    </div>
+    <p class="fine">
+      הממוצע על 12 V הוא <code>P / 12</code> אחרי chopper אידיאלי — לא 1.5 A × 2.
+      הספק חייב לשרוד את שיא הפאזה לכמה מאות ms. פירוט תנועה: <a href="../runtime/">תזמון</a>.
+    </p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>יום עבודה → וואט-שעה</h2>
+      <label class="sl" for="moves">הטיות ביום: <span id="movesLbl">24</span></label>
+      <input type="range" id="moves" min="0" max="200" step="1" value="24">
+      <label class="check"><input type="checkbox" id="worm"> נעילה עצמית / כיבוי סלילים ב-idle</label>
+      <label class="check"><input type="checkbox" id="wifiOn" checked> WiFi דלוק תמיד (כמו הקושחה)</label>
+      <div class="kv">
+        <div><b id="pHold">—</b><span>החזקה</span></div>
+        <div><b id="pDay">—</b><span>אנרגיה ל־24 שעות</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>חבילת סוללה — טיפוסית</h2>
+      <div class="row" id="packs" role="group" aria-label="חבילת סוללה"></div>
+      <label class="sl" for="hours">שעות רצויות: <span id="hoursLbl">24</span></label>
+      <input type="range" id="hoursWanted" min="2" max="72" step="1" value="24">
+      <svg id="hours" viewBox="0 0 640 120" role="img" aria-label="שעות על החבילה" dir="ltr"></svg>
+      <div class="kv">
+        <div><b id="bHours">—</b><span>שעות על החבילה (DoD 80%, ממיר 85%)</span></div>
+        <div><b id="bNeed">—</b><span>Wh דרושים ליעד</span></div>
+        <div><b id="bC">—</b><span>C-rate בשיא</span></div>
+        <div><b id="bRail">—</b><span>פס 12 V</span></div>
+      </div>
+      <div class="verdict meh" id="bVerdict" role="status">—</div>
+      <p class="fine" id="packNote">—</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>מה המספרים אומרים, ומה לא</h2>
+    <table>
+      <thead><tr><th>טענה</th><th>מקור</th><th>נמדד?</th></tr></thead>
+      <tbody>
+        <tr><td>החזקה ≈ 6.75 W</td><td><code>2 × 1.5² × 1.5 Ω</code></td><td>לא — דף נתונים</td></tr>
+        <tr><td>ESP32 + WiFi ≈ 180 mA</td><td>סדר גודל Espressif</td><td>לא</td></tr>
+        <tr><td>USB לא מחזיק סלילים</td><td>2.5 W &lt; 6.75 W</td><td>חשבון, לא שולחן</td></tr>
+        <tr><td>תולעת הופכת UPS לאפשרי</td><td><code>sizeBattery</code></td><td>מודל</td></tr>
+        <tr><td>כיבוי סלילים בלי תולעת</td><td><a href="../spec/">מומנט</a></td><td>נפילה — אל תחסכו כך</td></tr>
+      </tbody>
+    </table>
+    <p class="fine">HIL-09 ב<a href="../hil/">תוכנית הבדיקה</a> הוא המד-זרם האמיתי. הוא לא רץ.</p>
+  </div>
+</main>
+<script src="../src/lib/timing.js"></script>
+<script src="../src/lib/power.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let packId = '3s2200';
+let modeId = 'idle-hold';
+
+const MODE_HE = {
+  'idle-hold': 'החזקה + WiFi',
+  'idle-worm': 'תולעת + WiFi',
+  moving: 'בתנועה + WiFi',
+  'wifi-sleep-hold': 'החזקה, WiFi ישן',
+};
+
+function paintRails(draw) {
+  const maxMa = Math.max(draw.motor12vAvgMa, draw.logic3v3Ma, 200);
+  const H = (ma) => Math.max(8, (ma / maxMa) * 150);
+  const mH = H(draw.motor12vAvgMa);
+  const lH = H(draw.logic3v3Ma);
+  $('rails').innerHTML =
+    '<rect width="640" height="220" fill="#0d1117"/>' +
+    '<rect x="90" y="' + (180 - mH) + '" width="110" height="' + mH + '" rx="6" fill="#f85149"/>' +
+    '<rect x="280" y="' + (180 - lH) + '" width="110" height="' + lH + '" rx="6" fill="#58a6ff"/>' +
+    '<text x="145" y="204" fill="#8b949e" font-size="12" text-anchor="middle" font-family="sans-serif">12 V מנוע</text>' +
+    '<text x="335" y="204" fill="#8b949e" font-size="12" text-anchor="middle" font-family="sans-serif">3.3 V לוגיקה</text>' +
+    '<text x="145" y="' + (174 - mH) + '" fill="#ffb4b0" font-size="13" text-anchor="middle" font-family="sans-serif">' +
+      draw.motor12vAvgMa.toFixed(0) + ' mA</text>' +
+    '<text x="335" y="' + (174 - lH) + '" fill="#79c0ff" font-size="13" text-anchor="middle" font-family="sans-serif">' +
+      draw.logic3v3Ma.toFixed(1) + ' mA</text>' +
+    '<text x="520" y="40" fill="#c9d1d9" font-size="13" text-anchor="middle" font-family="sans-serif">' +
+      draw.totalW.toFixed(2) + ' W</text>';
+}
+
+function renderModes() {
+  const modes = SM_POWER.drawModes();
+  const box = $('modes');
+  box.textContent = '';
+  Object.keys(modes).forEach((id) => {
+    const d = modes[id];
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'mode' + (id === modeId ? ' on' : '');
+    el.setAttribute('role', 'listitem');
+    el.innerHTML = '<b>' + d.totalW.toFixed(2) + ' W</b><span>' + MODE_HE[id] + '</span>';
+    el.addEventListener('click', () => { modeId = id; all(); });
+    box.appendChild(el);
+  });
+  const draw = modes[modeId];
+  paintRails(draw);
+  $('kLogic').textContent = draw.logic3v3Ma.toFixed(1) + ' mA · ' + draw.logicW.toFixed(2) + ' W';
+  $('kMotor').textContent = draw.motor12vAvgMa.toFixed(0) + ' mA · ' + draw.motorW.toFixed(2) + ' W';
+  $('kPeak').textContent = draw.motorPhasePeakMa.toFixed(0) + ' mA';
+  $('kUsb').textContent = draw.usbCanFeed ? 'מספיק למצב הזה' : 'לא מספיק';
+}
+
+function paintHours(r) {
+  const maxH = Math.max(r.hoursWanted, r.hoursOnPack, 1);
+  const w = Math.min(560, (r.hoursOnPack / maxH) * 560);
+  const t = (r.hoursWanted / maxH) * 560;
+  $('hours').innerHTML =
+    '<rect width="640" height="120" fill="#0d1117"/>' +
+    '<rect x="40" y="44" width="560" height="22" rx="6" fill="#21262d"/>' +
+    '<rect x="40" y="44" width="' + w + '" height="22" rx="6" fill="' +
+      (r.hoursOnPack >= r.hoursWanted ? '#238636' : '#f85149') + '"/>' +
+    '<line x1="' + (40 + t) + '" y1="36" x2="' + (40 + t) + '" y2="74" stroke="#e3b341"/>' +
+    '<text x="40" y="100" fill="#8b949e" font-size="12" font-family="sans-serif">0</text>' +
+    '<text x="600" y="100" fill="#8b949e" font-size="12" text-anchor="end" font-family="sans-serif">' +
+      maxH.toFixed(0) + ' h</text>';
+}
+
+function battery() {
+  const moves = Number($('moves').value);
+  $('movesLbl').textContent = moves;
+  $('hoursLbl').textContent = $('hoursWanted').value;
+  const move = SM_TIMING.moveProfile({ fromDeg: 0, toDeg: 20 });
+  const day = SM_POWER.sizeBudget({
+    movesPerDay: moves,
+    moveDurationSec: Math.max(move.tTotalSec, 0.2),
+    selfLocking: $('worm').checked,
+    wifiOn: $('wifiOn').checked,
+  });
+  $('pHold').textContent = day.holdW.toFixed(2) + ' W';
+  $('pDay').textContent = day.totalWh.toFixed(1) + ' Wh';
+
+  const r = SM_POWER.sizeBattery({
+    packId,
+    movesPerDay: moves,
+    moveDurationSec: Math.max(move.tTotalSec, 0.2),
+    selfLocking: $('worm').checked,
+    wifiOn: $('wifiOn').checked,
+    hoursWanted: Number($('hoursWanted').value),
+  });
+  paintHours(r);
+  $('bHours').textContent = r.hoursOnPack.toFixed(1) + ' h';
+  $('bNeed').textContent = r.requiredWh.toFixed(1) + ' Wh';
+  $('bC').textContent = r.cRate.toFixed(2) + ' C';
+  $('bRail').textContent = r.canFeedMotorRail ? 'יכול להזין VMOT' : 'לא 12 V';
+  $('packNote').textContent = r.pack.note;
+  const text = {
+    'pack-cannot-motor-rail': 'החבילה לא מזינה 12 V, וסלילים דלוקים מרוקנים אותה בכל מקרה. זה לא פס המנוע.',
+    'pack-cannot-move-pulse': 'Idle זול בזכות תולעת — אבל דופק התנועה עדיין 12 V. פאוורבנק USB לא מספיק.',
+    'hold-kills-pack': 'גם 3S מתרוקן תוך שעות אם הסלילים דולקים 24/7. ההחזקה היא המוצר, לא החיישן.',
+    'worm-makes-ups-viable': 'עם נעילה עצמית החבילה מחזיקה מעל חצי יום. זו הסיבה המסחרית לבלם.',
+    'hours-ok': 'במספרים האלה היעד מתכנס. זה עדיין לא פריקה במעבדה.',
+  };
+  const v = $('bVerdict');
+  v.className = 'verdict ' + (r.kind.indexOf('cannot') >= 0 || r.kind === 'hold-kills-pack' ? 'bad' : r.kind.indexOf('worm') >= 0 ? 'ok' : 'meh');
+  v.textContent = text[r.kind] || r.kind;
+}
+
+function packs() {
+  const box = $('packs');
+  box.textContent = '';
+  SM_POWER.PACKS.forEach((p) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn' + (p.id === packId ? ' on' : '');
+    b.textContent = p.label;
+    b.addEventListener('click', () => { packId = p.id; all(); });
+    box.appendChild(b);
+  });
+}
+
+function all() {
+  packs();
+  renderModes();
+  battery();
+}
+
+['moves', 'worm', 'wifiOn', 'hoursWanted'].forEach((id) => {
+  $(id).addEventListener('input', all);
+});
+all();
+</script>
+</body>
+</html>
