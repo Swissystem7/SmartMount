@@ -282,7 +282,7 @@
   </div>
   <div class="header-actions">
     <button class="calib-btn" onclick="openCalib()">🎯 כיול</button>
-    <button id="loginBtn" class="calib-btn" style="border-color:#1f6feb;color:#58a6ff" onclick="openAuth()">התחבר</button>
+    <button id="loginBtn" class="calib-btn" style="border-color:#1f6feb;color:#58a6ff" onclick="openAuth()">התחבר (הדגמה)</button>
     <div id="avatarWrap" style="position:relative;display:none">
       <div id="userAvatar" onclick="toggleUserMenu(event)" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1f6feb,#388bfd);display:flex;align-items:center;justify-content:center;font-size:0.95rem;font-weight:700;cursor:pointer;color:#fff">👤</div>
       <div id="userMenu" class="user-menu">
@@ -461,10 +461,10 @@
     </div>
   </div>
 
-  <!-- History Panel (Cloud locked) -->
+  <!-- History Panel (unlocked by demo Cloud trial) -->
   <div class="card full-width" style="position:relative;overflow:hidden">
     <h2>🕐 היסטוריה — 30 יום אחרונים</h2>
-    <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 60px,#161b22ee 100%);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:28px;z-index:2">
+    <div id="historyLock" style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 60px,#161b22ee 100%);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:28px;z-index:2">
       <div style="text-align:center">
         <div style="font-size:2.5rem;margin-bottom:8px">🔒</div>
         <div style="font-size:1rem;font-weight:700;color:#e8e8f0;margin-bottom:4px">Cloud בלבד 🔒</div>
@@ -472,7 +472,7 @@
         <button onclick="openCloudModal()" style="background:linear-gradient(135deg,#1f6feb,#388bfd);border:none;color:#fff;padding:9px 22px;border-radius:20px;font-size:0.85rem;font-weight:700;cursor:pointer">הפעל Cloud ☁️</button>
       </div>
     </div>
-    <div style="opacity:0.15;pointer-events:none">
+    <div id="historyContent" style="opacity:0.15;pointer-events:none">
       <div style="display:flex;gap:8px;margin-bottom:12px">
         <div style="flex:1;background:#0d1117;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.3rem;font-weight:700;color:#58a6ff">847</div><div style="font-size:0.72rem;color:#8b949e">הגנות חודשיות</div></div>
         <div style="flex:1;background:#0d1117;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.3rem;font-weight:700;color:#f0a500">23</div><div style="font-size:0.72rem;color:#8b949e">אירועי בוהק</div></div>
@@ -1063,12 +1063,33 @@ function closeCloudModal() {
 document.getElementById('cloudModal').addEventListener('click', function(e) {
   if (e.target === this) closeCloudModal();
 });
-function startTrial() {
-  if (!getUser()) { closeCloudModal(); openAuth('צור חשבון חינם כדי להמשיך'); return; }
-  track('upgrade_click', { plan: 'cloud_trial' });
-  closeCloudModal();
-  addEvent('☁️', 'ניסיון Cloud 30 יום הופעל! סינכרון ענן פעיל', '#58a6ff');
+function unlockHistory() {
+  localStorage.setItem('sm_cloud_trial', '1');
+  const lock = document.getElementById('historyLock');
+  const content = document.getElementById('historyContent');
+  if (lock) lock.style.display = 'none';
+  if (content) {
+    content.style.opacity = '1';
+    content.style.pointerEvents = 'auto';
+  }
 }
+
+let pendingTrial = false;
+function startTrial() {
+  if (!getUser()) {
+    pendingTrial = true;
+    closeCloudModal();
+    openAuth('הדגמה: צור חשבון מקומי כדי להמשיך');
+    return;
+  }
+  pendingTrial = false;
+  track('upgrade_click', { plan: 'cloud_trial' });
+  unlockHistory();
+  closeCloudModal();
+  addEvent('☁️', 'ניסיון Cloud בהדגמה — היסטוריה נפתחה', '#58a6ff');
+}
+
+if (localStorage.getItem('sm_cloud_trial') === '1') unlockHistory();
 </script>
 
 <!-- ══ Product Layer: Auth / Onboarding / Legal / Feedback / Analytics ══ -->
@@ -1124,7 +1145,8 @@ function startTrial() {
   <div class="sm-modal">
     <button class="close-x" onclick="closeAuth()">✕</button>
     <div style="text-align:center;font-size:1.3rem;font-weight:800;margin-bottom:6px;color:#58a6ff">📺 SmartMount</div>
-    <div id="authSubtitle">התחבר לחשבון SmartMount שלך</div>
+    <div style="text-align:center;font-size:0.75rem;font-weight:700;color:#f59e0b;letter-spacing:.4px;margin-bottom:8px">הדגמה — אין חשבון אמיתי</div>
+    <div id="authSubtitle">התחברות להדגמה בלבד. הפרטים נשמרים רק בדפדפן זה.</div>
     <div class="auth-tabs">
       <button class="auth-tab active" id="tabLogin" onclick="setAuthMode('login')">התחברות</button>
       <button class="auth-tab" id="tabSignup" onclick="setAuthMode('signup')">הרשמה</button>
@@ -1202,7 +1224,7 @@ function getUser() {
   try { return JSON.parse(localStorage.getItem('smartmount_user')); } catch (e) { return null; }
 }
 function openAuth(subtitle) {
-  document.getElementById('authSubtitle').textContent = subtitle || 'התחבר לחשבון SmartMount שלך';
+  document.getElementById('authSubtitle').textContent = subtitle || 'התחברות להדגמה בלבד. הפרטים נשמרים רק בדפדפן זה.';
   if (subtitle) setAuthMode('signup');
   document.getElementById('authModal').classList.add('open');
 }
@@ -1230,7 +1252,8 @@ function submitAuth() {
   track(authMode === 'signup' ? 'signup' : 'login', { email });
   closeAuth();
   renderAuthState();
-  addEvent('👤', `ברוך הבא, ${user.name}! מחובר לחשבון`, '#58a6ff');
+  addEvent('👤', `ברוך הבא, ${user.name}! מחובר להדגמה מקומית`, '#58a6ff');
+  if (typeof pendingTrial !== 'undefined' && pendingTrial) startTrial();
 }
 function logoutUser() {
   localStorage.removeItem('smartmount_user');
@@ -1259,7 +1282,7 @@ document.getElementById('authModal').addEventListener('click', function(e) { if 
 const OB_STEPS = [
   { icon: '📺', title: 'ברוכים הבאים ל-SmartMount', desc: 'ההרכבה החכמה שמזיזה את הטלוויזיה בשבילך: חיישני אור מזהים בוהק ושמש ישירה, והמנוע מכוון את זווית המסך אוטומטית — לצפייה מושלמת בכל שעה.' },
   { icon: '🎯', title: 'איך משתמשים?', desc: 'לוח הבקרה מציג את קריאות החיישנים והזווית בזמן אמת. התחל בכיול (כפתור 🎯 למעלה) כדי להתאים את הסף לחדר שלך, בחר סוג פאנל, והגדר לוח זמנים להגנה אוטומטית.' },
-  { icon: '☁️', title: 'מה מקבלים ב-Cloud?', desc: 'היסטוריית נתונים 30 יום, התראות Push, סינכרון מרחוק עד 3 מכשירים וגישת API — רק ₪9.90 (מחיר להמחשה — השירות אינו קיים) לחודש, עם 30 יום ניסיון חינם!' }
+  { icon: '☁️', title: 'הדגמת Cloud', desc: 'אין שירות ענן אמיתי ואין מנוי. כפתור הניסיון בהדגמה רק פותח את מקטע ההיסטוריה המקומי בדפדפן — בלי חיוב ובלי חשבון.' }
 ];
 let obStep = 0;
 function renderOnboard() {
@@ -1287,20 +1310,13 @@ if (!localStorage.getItem('smartmount_onboarded')) {
 
 // ── Legal ─────────────────────────────────────────────────────────
 const LEGAL = {
-  terms: { title: '📜 תנאי שימוש', body: `
-    <p>ברוכים הבאים ל-SmartMount. השימוש בלוח הבקרה, בחומרה ובשירותי הענן מהווה הסכמה מלאה לתנאים אלה. SmartMount מספקת מערכת הרכבה ממונעת לטלוויזיה עם זיהוי בוהק אוטומטי.</p>
-    <p>התקנת ההרכבה על הקיר חייבת להתבצע בהתאם להוראות ההתקנה ולמשקל המרבי המאושר של הצג. התקנה לקויה עלולה לגרום לנזק לרכוש או לפציעה — מומלץ להיעזר במתקין מוסמך. האחריות על התקנה נכונה חלה על המשתמש.</p>
-    <p>שירות SmartMount Cloud ניתן במנוי חודשי מתחדש, עם תקופת ניסיון של 30 יום. ניתן לבטל בכל עת דרך ההגדרות, והביטול ייכנס לתוקף בסוף תקופת החיוב הנוכחית.</p>
-    <p>SmartMount אינה אחראית לנזקים עקיפים הנובעים מתקלה בחיישנים, אובדן קישוריות או שגיאת כיול. אחריות היצרן על החומרה מוגבלת ל-24 חודשים ממועד הרכישה, בכפוף לשימוש סביר.</p>
-    <p>אין לבצע הנדסה לאחור, שינוי קושחה לא מאושר או חיבור רכיבים צד-שלישי שאינם נתמכים. פעולות אלה יבטלו את האחריות.</p>
-    <p>על תנאים אלה יחולו דיני מדינת ישראל, וסמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים בתל אביב.</p>` },
-  privacy: { title: '🔒 מדיניות פרטיות', body: `
-    <p>פרטיותך חשובה לנו. מדיניות זו מסבירה איזה מידע SmartMount אוספת מלוח הבקרה ומהחיישנים, וכיצד הוא משמש.</p>
-    <p>בעת ההרשמה אנו אוספים שם, כתובת אימייל וסיסמה. המערכת שומרת נתוני חיישנים (רמות תאורה, זוויות), ערכי כיול, לוחות זמנים ואירועי שימוש — לצורך תפעול המערכת ושיפור האלגוריתם.</p>
-    <p>בגרסת הדגמה זו, כל הנתונים נשמרים מקומית בדפדפן שלך (localStorage) ואינם נשלחים לשרתים חיצוניים. מחיקת נתוני הדפדפן תמחק את המידע לצמיתות.</p>
-    <p>נתוני החיישנים הם נתוני תאורה בלבד — המערכת אינה כוללת מצלמה או מיקרופון ואינה אוספת תוכן צפייה מהטלוויזיה שלך.</p>
-    <p>איננו מוכרים או משתפים מידע אישי עם צדדים שלישיים למטרות שיווק. באפשרותך לבקש בכל עת עיון במידע השמור עליך, תיקונו או מחיקתו.</p>
-    <p>מדיניות זו כפופה לחוק הגנת הפרטיות, התשמ"א-1981, ולתקנות הגנת הפרטיות (אבטחת מידע), התשע"ז-2017.</p>` }
+  terms: { title: '📜 תנאי שימוש (הדגמה)', body: `
+    <p>SmartMount היא הדגמת מוצר בלבד. אין חומרה מחוברת לדף זה, אין שירות ענן, אין מנוי בתשלום ואין אחריות יצרן.</p>
+    <p>לוח הבקרה מציג נתוני סימולציה בדפדפן. התחברות, הרשמה ו״ניסיון Cloud״ הן פעולות הדגמה מקומיות ואינן יוצרות חשבון, חוזה או חיוב.</p>
+    <p>אין כאן תנאי אחריות, תקופת ניסיון משפטית או מדיניות ביטול מנוי — כי אין מוצר נמכר ואין מנוי.</p>` },
+  privacy: { title: '🔒 מדיניות פרטיות (הדגמה)', body: `
+    <p>זו הדגמה מקומית. שם, אימייל וסיסמה שמוזנים כאן נשמרים רק ב-localStorage בדפדפן שלך ואינם נשלחים לשרת.</p>
+    <p>מחיקת נתוני האתר בדפדפן מוחקת את המידע. אין איסוף תוכן צפייה, ואין מצלמה או מיקרופון בהדגמה זו.</p>` }
 };
 function openLegal(kind) {
   document.getElementById('legalTitle').textContent = LEGAL[kind].title;
