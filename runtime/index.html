@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartMount — תזמון והספק</title>
+<meta name="description" content="פרופיל AccelStepper, למה דגימת 2 שניות שולטת על ההשהיה, ותקציב הספק: סלילי NEMA17 מול ESP32. לא מדידה מהלוח.">
+<meta name="theme-color" content="#0f1420">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{margin-bottom:16px}
+label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
+input[type=range],input[type=number]{accent-color:#58a6ff}
+input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:#e8e8f0;border-radius:8px;padding:8px 10px;font:600 .9rem inherit}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.fields{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
+.kv b{display:block;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.kv span{font-size:.7rem;color:var(--muted)}
+.verdict{border-radius:10px;padding:12px 14px;margin-top:12px;font-size:.88rem;line-height:1.55;border:1px solid #21262d}
+.verdict.bad{background:#3a1010;border-color:#f85149;color:#ffb4b0}
+.verdict.meh{background:#2d1f00;border-color:#9e6a03;color:#e3b341}
+.verdict.ok{background:#1a3a2a;border-color:#238636;color:#7ee787}
+.fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
+#plot,#bars{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d}
+.check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.85rem;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
+  <span class="brand">SmartMount</span>
+  <a href="../">בית</a>
+  <a href="../lab/">מעבדה הנדסית</a>
+  <a href="../spec/">מפרט בנייה</a>
+  <a href="../geometry/">גאומטריית בוהק</a>
+  <a href="../protocol/">חוזה API</a>
+  <a href="../fsm/">מכונת מצבים</a>
+  <a class="on" href="./" aria-current="page">תזמון והספק</a>
+  <a href="../dashboard/">לוח בקרה</a>
+</nav>
+<div class="banner">מודל רציף של AccelStepper + מספרים טיפוסיים מדפי נתונים. הלוח לא נמדד באוסצילוסקופ ולא במד-זרם.</div>
+<main id="main" class="wrap">
+  <h1>תזמון והספק</h1>
+  <p class="lead">
+    הקושחה קובעת <code>setMaxSpeed(500)</code> ו־<code>setAcceleration(200)</code>,
+    ודגימת חיישנים כל 2000 ms. מהלך 20° הוא משולש קצר שלא מגיע ל־500 צעד/שנייה —
+    הדגימה, לא המנוע, היא השהיית המפעל. באותו זמן <code>handleClient()</code> יכול להרעיב פולסים.
+    למטה: למה סלילי NEMA17 הם המוצר, וה־ESP32 הוא עיגול.
+  </p>
+
+  <h2 style="font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin:8px 0 12px">פרופיל תנועה</h2>
+  <div class="grid">
+    <div class="card">
+      <h2>מעטפת מהירות</h2>
+      <svg id="plot" viewBox="0 0 640 260" role="img" aria-labelledby="plotTitle" dir="ltr">
+        <title id="plotTitle">מהירות כנגד זמן — משולש או טרפז</title>
+        <rect width="640" height="260" fill="#0d1117"/>
+        <line x1="48" y1="220" x2="620" y2="220" stroke="#30363d"/>
+        <line x1="48" y1="20" x2="48" y2="220" stroke="#30363d"/>
+        <text x="334" y="248" fill="#8b949e" font-size="11" text-anchor="middle" font-family="sans-serif">זמן (s)</text>
+        <text x="16" y="120" fill="#8b949e" font-size="11" text-anchor="middle" font-family="sans-serif" transform="rotate(-90 16 120)">צעדים/שנייה</text>
+        <polyline id="vel" fill="none" stroke="#58a6ff" stroke-width="2.5" points="48,220"/>
+        <line id="vmaxLine" x1="48" y1="40" x2="620" y2="40" stroke="#f85149" stroke-dasharray="5 4" opacity=".7"/>
+        <text id="vmaxLbl" x="610" y="34" fill="#f85149" font-size="11" text-anchor="end" font-family="sans-serif">vmax 500</text>
+        <line id="sampleMark" x1="48" y1="20" x2="48" y2="220" stroke="#e3b341" stroke-dasharray="3 3" opacity=".85"/>
+        <text id="sampleLbl" x="56" y="34" fill="#e3b341" font-size="11" font-family="sans-serif">דגימה 2s</text>
+      </svg>
+      <p class="fine" id="profileNote">—</p>
+    </div>
+    <div class="card">
+      <h2>זווית ומספרים מהקושחה</h2>
+      <div class="row" role="group" aria-label="פריסט פאנל">
+        <button type="button" class="btn" data-deg="20">LED 20°</button>
+        <button type="button" class="btn" data-deg="30">QLED 30°</button>
+        <button type="button" class="btn on" data-deg="40">OLED 40°</button>
+      </div>
+      <label class="sl" for="fromDeg">מ־ (°): <span id="fromLbl">0</span></label>
+      <input type="range" id="fromDeg" min="0" max="40" step="1" value="0">
+      <label class="sl" for="toDeg">אל (°): <span id="toLbl">40</span></label>
+      <input type="range" id="toDeg" min="0" max="40" step="1" value="40">
+      <div class="kv">
+        <div><b id="kKind">—</b><span>סוג פרופיל</span></div>
+        <div><b id="kSteps">—</b><span>צעדים</span></div>
+        <div><b id="kPeak">—</b><span>שיא מהירות</span></div>
+        <div><b id="kMove">—</b><span>זמן מנוע</span></div>
+        <div><b id="kBest">—</b><span>בוהק→הגעה (הטוב)</span></div>
+        <div><b id="kWorst">—</b><span>בוהק→הגעה (גרוע)</span></div>
+      </div>
+      <div class="verdict meh" id="tVerdict" role="status">—</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>תקציב לולאה שיתופית</h2>
+      <p class="fine" style="margin-top:0">
+        <code>loop()</code> קורא <code>handleClient()</code> ואז <code>stepper.run()</code>.
+        AccelStepper חייב לרוץ לפני מועד הצעד הבא. אין <code>esp_task_wdt</code> בקושחה.
+        תקיעת I²C יכולה להרעיב גם פולסים וגם את ה־WDT של הליבה.
+      </p>
+      <div class="fields">
+        <div>
+          <label class="sl" for="httpMs">handleClient (ms): <span id="httpLbl">8</span></label>
+          <input type="range" id="httpMs" min="0" max="40" step="1" value="8">
+        </div>
+        <div>
+          <label class="sl" for="i2cMs">קריאת I²C (ms): <span id="i2cLbl">2</span></label>
+          <input type="range" id="i2cMs" min="0" max="30" step="1" value="2">
+        </div>
+      </div>
+      <div class="kv">
+        <div><b id="kInterval">—</b><span>מרווח צעד בשיא</span></div>
+        <div><b id="kSlack">—</b><span>slack</span></div>
+        <div><b id="kStarve">—</b><span>פולסים</span></div>
+        <div><b id="kWdt">—</b><span>WDT 5s (לא מחומש)</span></div>
+      </div>
+      <div class="verdict meh" id="lVerdict" role="status">—</div>
+    </div>
+    <div class="card">
+      <h2>חסימת WiFi ב-setup</h2>
+      <p class="fine" style="margin-top:0">
+        עד 10 שניות של <code>delay(200)</code> לפני <code>loop()</code>.
+        המנוע לא רץ. אחרי timeout האוטו המקומי ממשיך — זה בקושחה, ונבדק.
+      </p>
+      <label class="sl" for="wifiMs">חיבור אחרי (ms, 10000 = timeout): <span id="wifiLbl">10000</span></label>
+      <input type="range" id="wifiMs" min="0" max="10000" step="200" value="10000">
+      <div class="kv">
+        <div><b id="kBlock">—</b><span>setup חסום</span></div>
+        <div><b id="kPolls">—</b><span>איטרציות delay(200)</span></div>
+      </div>
+      <p class="fine" id="wifiNote">—</p>
+    </div>
+  </div>
+
+  <h2 style="font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin:8px 0 12px">תקציב הספק</h2>
+  <div class="grid">
+    <div class="card">
+      <h2>סלילים מול לוגיקה — לא מדידה</h2>
+      <svg id="bars" viewBox="0 0 640 200" role="img" aria-label="השוואת אנרגיה יומית" dir="ltr"></svg>
+      <p class="fine">
+        החזקת מנוע: <code>2 × I²R</code> ל־1.5 A ו־1.5 Ω — רצפה מדף-נתונים, בלי הפסדי מנהל.
+        ESP32 + WiFi ≈ 180 mA @ 3.3 V. USB 5 V / 500 mA = 2.5 W — מתחת להחזקה.
+      </p>
+    </div>
+    <div class="card">
+      <h2>יום עבודה</h2>
+      <label class="sl" for="moves">הטיות ביום: <span id="movesLbl">24</span></label>
+      <input type="range" id="moves" min="0" max="200" step="1" value="24">
+      <label class="check"><input type="checkbox" id="worm"> נעילה עצמית / כיבוי סלילים ב-idle</label>
+      <label class="check"><input type="checkbox" id="wifiOn" checked> WiFi דלוק תמיד (כמו הקושחה)</label>
+      <div class="kv">
+        <div><b id="pHold">—</b><span>החזקת סלילים</span></div>
+        <div><b id="pLogic">—</b><span>לוגיקה (ESP32+חיישנים)</span></div>
+        <div><b id="pDay">—</b><span>אנרגיה ל־24 שעות</span></div>
+        <div><b id="pUsb">—</b><span>USB 5V/500mA</span></div>
+      </div>
+      <div class="verdict bad" id="pVerdict" role="status">—</div>
+      <p class="fine">
+        כיבוי סלילים בלי תולעת חוסך ואטים ומשחרר את המסך — ראו
+        <a href="../spec/">מחשבון המומנט</a>. אנרגיה זולה ≠ בטיחות.
+      </p>
+    </div>
+  </div>
+</main>
+<script src="../src/lib/timing.js"></script>
+<script src="../src/lib/power.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+function paintPlot(p, lat) {
+  const x0 = 48, y0 = 220, x1 = 620, y1 = 20;
+  const tMax = Math.max(lat.worstSec, 2.2);
+  const vMax = Math.max(SM_TIMING.MAX_SPEED_SPS, p.vPeakSps, 1);
+  const X = (t) => x0 + (t / tMax) * (x1 - x0);
+  const Y = (v) => y0 - (v / vMax) * (y0 - y1);
+  let pts;
+  if (p.kind === 'none') {
+    pts = X(0) + ',' + Y(0) + ' ' + X(tMax) + ',' + Y(0);
+  } else if (p.kind === 'triangle') {
+    pts = [
+      [0, 0],
+      [p.tAccelSec, p.vPeakSps],
+      [p.tTotalSec, 0],
+      [tMax, 0],
+    ].map((xy) => X(xy[0]) + ',' + Y(xy[1])).join(' ');
+  } else {
+    const t1 = p.tAccelSec;
+    const t2 = p.tAccelSec + p.tCruiseSec;
+    pts = [
+      [0, 0], [t1, p.vPeakSps], [t2, p.vPeakSps], [p.tTotalSec, 0], [tMax, 0],
+    ].map((xy) => X(xy[0]) + ',' + Y(xy[1])).join(' ');
+  }
+  $('vel').setAttribute('points', pts);
+  $('vmaxLine').setAttribute('y1', Y(SM_TIMING.MAX_SPEED_SPS));
+  $('vmaxLine').setAttribute('y2', Y(SM_TIMING.MAX_SPEED_SPS));
+  const sx = X(2);
+  $('sampleMark').setAttribute('x1', sx);
+  $('sampleMark').setAttribute('x2', sx);
+  $('sampleLbl').setAttribute('x', Math.min(sx + 8, 560));
+}
+
+function timing() {
+  const fromDeg = Number($('fromDeg').value);
+  const toDeg = Number($('toDeg').value);
+  $('fromLbl').textContent = fromDeg;
+  $('toLbl').textContent = toDeg;
+  const p = SM_TIMING.moveProfile({ fromDeg, toDeg });
+  const lat = SM_TIMING.glareLatency({ moveSec: p.tTotalSec });
+  paintPlot(p, lat);
+  const kinds = { triangle: 'משולש', trapezoid: 'טרפז', none: 'אין תנועה' };
+  $('kKind').textContent = kinds[p.kind];
+  $('kSteps').textContent = p.distanceSteps.toFixed(1);
+  $('kPeak').textContent = p.vPeakSps.toFixed(0) + ' st/s';
+  $('kMove').textContent = (p.tTotalSec * 1000).toFixed(0) + ' ms';
+  $('kBest').textContent = lat.bestSec.toFixed(2) + ' s';
+  $('kWorst').textContent = lat.worstSec.toFixed(2) + ' s';
+  $('profileNote').textContent = p.hitsVmax
+    ? 'המהלך ארוך מספיק להגיע ל־500. בגבולות הפאנל של הקושחה זה לא קורה.'
+    : 'לא מגיעים ל־vmax. setMaxSpeed(500) לא רלוונטי להטיה של 20–40°.';
+  const v = $('tVerdict');
+  if (lat.sampleDominates) {
+    v.className = 'verdict meh';
+    v.textContent = 'דגימת 2 שניות ארוכה מזמן המנוע (' +
+      (p.tTotalSec * 1000).toFixed(0) + ' ms). המפעל מוגבל בקצב דגימה, לא במומנט המאיץ.';
+  } else {
+    v.className = 'verdict ok';
+    v.textContent = 'המנוע איטי מהדגימה — זה לא המקרה בגבולות הפאנל של SmartMount.';
+  }
+  loop(p);
+}
+
+function loop(p) {
+  const http = Number($('httpMs').value);
+  const i2c = Number($('i2cMs').value);
+  $('httpLbl').textContent = http;
+  $('i2cLbl').textContent = i2c;
+  const b = SM_TIMING.loopBudget({
+    handleClientMs: http,
+    i2cReadMs: i2c,
+    vPeakSps: Math.max(p.vPeakSps, 1),
+  });
+  $('kInterval').textContent = b.stepIntervalMs.toFixed(1) + ' ms';
+  $('kSlack').textContent = b.stepSlackMs.toFixed(1) + ' ms';
+  $('kStarve').textContent = b.stepStarved ? 'מורעבים' : 'מספיק slack';
+  $('kWdt').textContent = b.wdtTrip ? 'חורג מ־5s' : 'מתחת ל־5s';
+  const v = $('lVerdict');
+  if (b.wdtTrip) {
+    v.className = 'verdict bad';
+    v.textContent = 'לולאה ארוכה מ־WDT טיפוסי. הקושחה לא ממשמשת WDT — תקיעת Wire יכולה להשאיר את המנוע באמצע מהלך.';
+  } else if (b.stepStarved) {
+    v.className = 'verdict bad';
+    v.textContent = 'handleClient + I²C ארוכים ממרווח הצעד. פולסים מאחרים → צעדים אבודים → believed משקר.';
+  } else {
+    v.className = 'verdict ok';
+    v.textContent = 'במספרים האלה יש slack. זה לא נמדד על הלוח — HTTP אמיתי יכול להיות ארוך בהרבה.';
+  }
+}
+
+function wifi() {
+  const ms = Number($('wifiMs').value);
+  $('wifiLbl').textContent = ms;
+  const connectedAfterMs = ms >= 10000 ? null : ms;
+  const w = SM_TIMING.wifiBlock({ connectedAfterMs });
+  $('kBlock').textContent = (w.blockedMs / 1000).toFixed(1) + ' s';
+  $('kPolls').textContent = String(w.polls);
+  $('wifiNote').textContent = w.localAutoAfterTimeout
+    ? 'Timeout — המנוע לא זז ב-setup, ואחרי זה אוטו מקומי בלי HTTP.'
+    : 'התחבר אחרי ' + w.blockedMs + ' ms. עדיין delay חוסם, בלי stepper.run.';
+}
+
+function bars(r) {
+  const svg = $('bars');
+  const max = Math.max(r.totalWh, 1);
+  const logicH = Math.max(6, (r.logicWh / max) * 140);
+  const motorH = Math.max(6, (r.motorWh / max) * 140);
+  svg.innerHTML =
+    '<rect width="640" height="200" fill="#0d1117"/>' +
+    '<rect x="80" y="' + (170 - motorH) + '" width="90" height="' + motorH + '" rx="6" fill="#f85149"/>' +
+    '<rect x="220" y="' + (170 - logicH) + '" width="90" height="' + logicH + '" rx="6" fill="#58a6ff"/>' +
+    '<text x="125" y="188" fill="#8b949e" font-size="12" text-anchor="middle" font-family="sans-serif">מנוע</text>' +
+    '<text x="265" y="188" fill="#8b949e" font-size="12" text-anchor="middle" font-family="sans-serif">לוגיקה</text>' +
+    '<text x="125" y="' + (164 - motorH) + '" fill="#ffb4b0" font-size="12" text-anchor="middle" font-family="sans-serif">' + r.motorWh.toFixed(1) + ' Wh</text>' +
+    '<text x="265" y="' + (164 - logicH) + '" fill="#79c0ff" font-size="12" text-anchor="middle" font-family="sans-serif">' + r.logicWh.toFixed(1) + ' Wh</text>' +
+    '<text x="480" y="40" fill="#c9d1d9" font-size="13" text-anchor="middle" font-family="sans-serif">סה״כ ' + r.totalWh.toFixed(1) + ' Wh / יום</text>';
+}
+
+function power() {
+  const moves = Number($('moves').value);
+  $('movesLbl').textContent = moves;
+  const move = SM_TIMING.moveProfile({ fromDeg: 0, toDeg: Number($('toDeg').value) });
+  const r = SM_POWER.sizeBudget({
+    movesPerDay: moves,
+    moveDurationSec: Math.max(move.tTotalSec, 0.2),
+    selfLocking: $('worm').checked,
+    wifiOn: $('wifiOn').checked,
+  });
+  $('pHold').textContent = r.holdW.toFixed(2) + ' W';
+  $('pLogic').textContent = r.logicW.toFixed(2) + ' W';
+  $('pDay').textContent = r.totalWh.toFixed(1) + ' Wh';
+  $('pUsb').textContent = r.usbCanFeedMotor ? 'מספיק להחזקה' : 'לא מספיק להחזקה';
+  bars(r);
+  const v = $('pVerdict');
+  const text = {
+    'usb-cannot-hold': 'USB לא יכול להחזיק את הסלילים. 24 שעות עם סלילים דלוקים ≈ ' + r.totalWh.toFixed(0) + ' Wh — מחמם, לא «בקר חכם».',
+    'usb-cannot-move': 'נעילה עצמית מכבה סלילים ב-idle. ה־MCU נהיה הסעיף הגדול — ועדיין USB לא מזין את זרם התנועה.',
+    'hold-dominates': 'החזקת המנוע שולטת בתקציב. הקושחה לא מכבה סלילים.',
+    'mcu-is-rounding-error': 'עם תולעת, האנרגיה היומית היא בעיקר ה־ESP32.',
+    'worm-saves-energy': 'התולעת חוסכת את רוב הוואטים. זה הסיבה המסחרית לבלם, לא לחיישן lux.',
+  };
+  v.className = 'verdict ' + (r.verdict.indexOf('usb') === 0 || r.kind === 'hold-dominates' ? 'bad' : 'meh');
+  v.textContent = text[r.verdict] || text[r.kind];
+}
+
+function all() {
+  timing();
+  wifi();
+  power();
+}
+
+document.querySelectorAll('[data-deg]').forEach((b) => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-deg]').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    $('toDeg').value = b.dataset.deg;
+    all();
+  });
+});
+['fromDeg', 'toDeg', 'httpMs', 'i2cMs', 'wifiMs', 'moves', 'worm', 'wifiOn'].forEach((id) => {
+  $(id).addEventListener('input', all);
+});
+all();
+</script>
+</body>
+</html>
