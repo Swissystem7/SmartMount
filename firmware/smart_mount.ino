@@ -43,6 +43,9 @@ BH1750 sensorBot(0x5C);   // ADDR=VCC
 WebServer server(80);
 
 // ── State ────────────────────────────────────────────────────────────────
+// Implicit machine: autoMode + stepper distance-to-go. No UNHOMED, no
+// homing, no stall timeout, no explicit FAULT, no task WDT. setup() claims
+// angle 0 via setCurrentPosition(0). Host models: src/lib/fsm.js.
 float currentAngle = 0.0;
 float targetAngle  = 0.0;
 bool  autoMode     = true;
