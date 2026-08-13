@@ -174,14 +174,16 @@
       return s;
     }
     if (t === 'SET_PANEL') {
-      const type = event.type;
-      if (type < 0 || type > 2) {
+      // event.type is the discriminator. The firmware query arg is `type=0..2`;
+      // the host event carries that as `panel` so the two fields do not collide.
+      const panel = Number(event.panel);
+      if (!Number.isInteger(panel) || panel < 0 || panel > 2) {
         s.reject = 'invalid panel type';
         s.reason = 'type מחוץ ל-0..2 — 400, בלי שינוי מצב';
         return s;
       }
-      s.panel = type;
-      startMove(s, clamp(s.believedAngle, type), 'החלפת פאנל מצמידה לגבול החדש');
+      s.panel = panel;
+      startMove(s, clamp(s.believedAngle, panel), 'החלפת פאנל מצמידה לגבול החדש');
       return s;
     }
 
@@ -255,15 +257,15 @@
     }
 
     if (t === 'SET_PANEL') {
-      const type = event.type;
-      if (type < 0 || type > 2) {
+      const panel = Number(event.panel);
+      if (!Number.isInteger(panel) || panel < 0 || panel > 2) {
         s.reject = 'invalid panel type';
         s.reason = 'type מחוץ ל-0..2';
         return s;
       }
-      s.panel = type;
+      s.panel = panel;
       if (s.state === 'MOVING' || s.state === 'IDLE_AUTO' || s.state === 'IDLE_MANUAL') {
-        const limited = clamp(s.believedAngle, type);
+        const limited = clamp(s.believedAngle, panel);
         if (limited !== s.believedAngle) startMove(s, limited, 'גבול פאנל חדש');
         if (s.moving && (s.state === 'IDLE_AUTO' || s.state === 'IDLE_MANUAL')) {
           s.lastIdle = s.state;

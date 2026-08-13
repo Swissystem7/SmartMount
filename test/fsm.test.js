@@ -68,6 +68,16 @@ test('firmware set-angle turns auto off and clamps to the panel', () => {
   assert.equal(s.targetAngle, PANEL_LIMITS.LED);
 });
 
+test('SET_PANEL uses event.panel — event.type is the discriminator, not 0..2', () => {
+  let s = F.firmwareBoot(true);
+  s = F.step(s, { type: 'SET_PANEL', panel: 0 });
+  assert.equal(s.panel, 0);
+  assert.equal(s.reject, null);
+  s = F.step(s, { type: 'SET_PANEL' });
+  assert.equal(s.reject, 'invalid panel type');
+  assert.equal(s.panel, 0);
+});
+
 test('firmware boot mid-tilt: believed 0 + moveTo 15 drives mechanics past the lie', () => {
   let s = F.fresh('firmware', { mechanicalAngle: 12 });
   s = F.step(s, { type: 'BOOT_DONE', wifiOk: true });
