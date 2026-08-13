@@ -2,7 +2,7 @@
 /**
  * Single source of truth: config/control-params.json
  * Generates:
- *   - marked block in firmware/smart_mount.ino  (CI greps PANEL_LIMITS[] there)
+ *   - marked block in firmware/smart_mount.ino  (npm test greps the block)
  *   - src/lib/control-params.js                 (browser + Node, no bundler)
  *
  * Edit the JSON, then: node scripts/sync-control-params.js

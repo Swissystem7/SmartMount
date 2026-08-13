@@ -10,18 +10,18 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 
 | עמוד | מה יש בו |
 |---|---|
-| [בית](https://swissystem7.github.io/SmartMount/) | נחיתה כנה |
+| [בית](https://swissystem7.github.io/SmartMount/) | 30 שניות: מה זה, PARK, מה לא נבדק |
 | [מקרה הנדסי](https://swissystem7.github.io/SmartMount/case/) | תיק למגייסים: באגי בטיחות, FSM, פשרות. הקושחה לא רצה על לוח |
 | [מעבדה הנדסית](https://swissystem7.github.io/SmartMount/lab/) | חדר וירטואלי + קונסולת תקלות (חיישן / WiFi / גבול פאנל) על חוק `smart_mount.ino` |
 | [מפרט בנייה](https://swissystem7.github.io/SmartMount/spec/) | BOM כנה, מחשבון מומנט מול NEMA17, חיווט SVG |
 | [גאומטריית בוהק](https://swissystem7.github.io/SmartMount/geometry/) | חוק ההחזרה + למה יחס lux אינו בהירות לצופה |
 | [חוזה API](https://swissystem7.github.io/SmartMount/protocol/) | ארבעה נתיבי HTTP + Serial 115200 — בדיוק מה שבקושחה |
-| [מכונת מצבים](https://swissystem7.github.io/SmartMount/fsm/) | מה שה־`.ino` עושה (auto + moveTo) מול FSM בטוח מוצע — טבלת 165 תאים מ־`step()` |
+| [מכונת מצבים](https://swissystem7.github.io/SmartMount/fsm/) | מה שה־`.ino` עושה (auto + moveTo) מול FSM בטוח מוצע — 30 + 165 תאים מ־`step()` |
 | [תזמון והספק](https://swissystem7.github.io/SmartMount/runtime/) | פרופיל AccelStepper, גנט של `loop()`, הבזק שמש שמתפספס בין דגימות |
 | [תקציב הספק](https://swissystem7.github.io/SmartMount/power/) | זרם idle / תנועה / WiFi וחישוב סוללה — דפי נתונים, לא מד-זרם |
 | [תוכנית HIL](https://swissystem7.github.io/SmartMount/hil/) | שנים-עשר מקרים על השולחן. אפס רצו. HIL-10 אוסר טלוויזיה |
 | [חלופות](https://swissystem7.github.io/SmartMount/alts/) | צעד מול סרבו מול מפעיל קווי; יחס lux מול מוחלט; למה המסגרת |
-| [לוח בקרה](https://swissystem7.github.io/SmartMount/dashboard/) | סימולציית UI (נתוני דוגמה) |
+| [לוח בקרה](https://swissystem7.github.io/SmartMount/dashboard/) | סליידרי lux על `control.js` — בלי Cloud ובלי חשבון |
 
 קוד: [Swissystem7/SmartMount](https://github.com/Swissystem7/SmartMount).
 
@@ -33,11 +33,10 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 
 - **קריאת חיישן כושלת** (BH1750 מחזיר ערך שלילי) מחזיקה זווית — לא מטה למקסימום.
 - **מנוע:** `stepper.moveTo` ממיקום מוחלט; `currentAngle` לא מתעדכן לפני שהמנוע מגיע.
-- **API:** סוג פאנל רק 0..2; `set-angle` / `set-mode` דוחים ארגומנט חסר/לא תקין.
+- **API:** `set-angle` / `set-mode` דוחים ארגומנט חסר/לא תקין; סוג פאנל 0..2. `type=foo` עדיין הופך ל־OLED (`toInt`).
 - **WiFi:** timeout — המצב האוטומטי המקומי ממשיך גם בלי רשת.
-- **דשבורד:** סף בוהק אחד לתנועה ולחיווי; הסליידר נצמד לגבול הפאנל; כיול דוגם את הקריאה שמוצגת ודוחה `max ≤ baseline`; הלוג מדווח יעד אמיתי; ציר Y בגרף ה־lux תואם את הסקאלה.
+- **דשבורד:** סימולציית חוק בקרה בלבד (`control.js`). אין Cloud, אין התחברות, אין לוח זמנים — אלה לא קיימים בקושחה.
 - **גבולות צפייה:** OLED 40° (הרחב ביותר), QLED 30°, LED/VA 20°.
-- **כנות ב־UI:** «ניסיון Cloud» פותח היסטוריה מקומית; התחברות ותנאים מסומנים כהדגמה.
 
 מה **לא** עובד: אין ESP32 מחובר לדמו, אין מדידת בוהק אמיתית, ואין הרכבה מכנית שנשאה מסך. הומינג, מפעיל נעילה עצמית וגאומטריית הכתם — פתוחים (ראו [מפרט](https://swissystem7.github.io/SmartMount/spec/)). מכונת המצבים ה«בטוחה», מספרי התזמון/הספק/הסוללה ותוכנית ה-HIL הם מודלים ומסמכים על המחשב, לא קושחה שרצה ולא מדידת מעבדה.
 

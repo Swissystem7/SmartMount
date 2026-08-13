@@ -7,7 +7,7 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 
 | שכבה | קבצים | מה ננעל |
 |---|---|---|
-| חוק בקרה | `test/control.test.js`, `firmware-mirror.test.js` | יחס בוהק, דד-בנד, גבול פאנל, HOLD על כשל חיישן |
+| חוק בקרה | `test/control.test.js`, `firmware-mirror.test.js` | יחס בוהק, דד-בנד, גבול פאנל, HOLD על כשל חיישן. המראה **קורא את ה־`.ino`** ומשווה נוסחה ל־JS |
 | קבועים | `test/control-params.test.js` | JSON = JS שנוצר = בלוק ב־`.ino` |
 | חוזה HTTP | `test/protocol.test.js` | ארבעה נתיבים, `parseFloatArg`, `toInt("foo")=OLED` |
 | מומנט | `test/torque.test.js` | `τ=mgd cosθ`, נפילה בלי תולעת |
