@@ -49,7 +49,7 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap;color:#c9d1d9}
 <div class="banner">מפרט קונספט — לא ערכת בנייה. המחירים הם טווחי מדף נפוצים (אוגוסט 2026), לא הצעת רכש.</div>
 <div class="wrap">
   <h1>מפרט בנייה</h1>
-  <p class="lead">HACKATHON.md מעריך ₪35–50 ל־ESP32 + חיישן + מנוע. זה BOM של לוח לחם, לא של תושבת שנושאת 20–40 ק״ג. כאן הרשימה האמיתית — כולל מה שחסר.</p>
+  <p class="lead">מסמך ההאקתון הישן (עכשיו בארכיון) העריך ₪35–50 ל־ESP32 + חיישן + מנוע. זה BOM של לוח לחם, לא של תושבת שנושאת 20–40 ק״ג. כאן הרשימה האמיתית — כולל מה שחסר.</p>
 
   <h2>רשימת חומרים</h2>
   <div class="card">
@@ -187,7 +187,7 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap;color:#c9d1d9}
 
       <text x="450" y="500" fill="#6e7681" font-size="11" text-anchor="middle" font-family="sans-serif">אין באיור: מפסק קצה, בלם, מדידת זרם, הארקת מסך, נתיך</text>
     </svg>
-    <p class="note">פיני I²C הם ברירת המחדל של ESP32-Arduino (<code>SDA=21</code>, <code>SCL=22</code>) — הקושחה קוראת <code>Wire.begin()</code> בלי ארגומנטים. STEP/DIR מפורשים בשורות 27 ו־18–19.</p>
+    <p class="note">פיני I²C הם ברירת המחדל של ESP32-Arduino (<code>SDA=21</code>, <code>SCL=22</code>) — הקושחה קוראת <code>Wire.begin()</code> בלי ארגומנטים. STEP/DIR הם GPIO 18/19 בשורה 27 של <code>smart_mount.ino</code>.</p>
   </div>
 
   <h2>שאלות הנדסיות פתוחות</h2>

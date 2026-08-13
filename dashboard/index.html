@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SmartMount — הרכבת טלוויזיה חכמה נגד בוהק: זיהוי סנוור אוטומטי בחיישני אור, כיוון זווית בזמן אמת, לוח זמנים וסינכרון ענן.">
-  <meta property="og:title" content="SmartMount — לוח בקרה חכם נגד בוהק">
-  <meta property="og:description" content="ההרכבה שמזיזה את הטלוויזיה בשבילך — זיהוי בוהק אוטומטי, כיול חיישנים ושליטה מרחוק בענן.">
+  <meta name="description" content="SmartMount — לוח בקרה להדגמה: סימולציית חיישני אור והטיה. אין חומרה מחוברת ואין שירות ענן.">
+  <meta property="og:title" content="SmartMount — לוח בקרה (הדגמה)">
+  <meta property="og:description" content="סימולציה בדפדפן. אין חומרה, אין חשבון ואין מנוי ענן.">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#58a6ff">
   <title>SmartMount — לוח בקרה</title>
@@ -19,6 +19,10 @@
       border-bottom: 1px solid #21262d;
       display: flex; align-items: center; justify-content: space-between;
     }
+    .site-nav { background:#0d1117; border-bottom:1px solid #21262d; padding:10px 20px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; }
+    .site-nav a { text-decoration:none; font-size:0.85rem; color:#8b949e; }
+    .site-nav a:hover, .site-nav a.on { color:#e8e8f0; }
+    .site-nav .brand { font-weight:800; color:#58a6ff; margin-left:auto; }
     header h1 { font-size: 1.5rem; font-weight: 700; color: #58a6ff; }
     header span { color: #8b949e; font-size: 0.85rem; }
     .header-actions { display: flex; gap: 10px; align-items: center; }
@@ -265,6 +269,14 @@
   </style>
 </head>
 <body>
+<nav class="site-nav">
+  <span class="brand">SmartMount</span>
+  <a href="../">בית</a>
+  <a href="../lab/">מעבדה הנדסית</a>
+  <a href="../spec/">מפרט בנייה</a>
+  <a href="../geometry/">גאומטריית בוהק</a>
+  <a class="on" href="./">לוח בקרה</a>
+</nav>
 <div id="SIM-BANNER" style="background:#7c2d12;color:#ffedd5;font:700 0.82rem system-ui,sans-serif;padding:8px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.15)">
   ⚠️ סימולציה — לוח הבקרה אינו מחובר לחומרה. הקריאות והמדדים הם נתוני דוגמה. "SmartMount Cloud" אינו שירות קיים ואי אפשר להירשם אליו או לשלם עליו.
 </div>
@@ -312,7 +324,7 @@
 <div style="background:linear-gradient(135deg,#0d1f3c,#162032);border-bottom:1px solid #1f4068;padding:12px 32px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
   <div style="display:flex;align-items:center;gap:10px">
     <span style="font-size:1.1rem">⚡</span>
-    <span style="font-size:0.9rem;color:#c9d1d9"><strong style="color:#58a6ff">SmartMount Cloud</strong> — חבר לענן לסינכרון ולוח זמנים חכם</span>
+    <span style="font-size:0.9rem;color:#c9d1d9"><strong style="color:#58a6ff">SmartMount Cloud</strong> — הדגמה מקומית בלבד (אין ענן)</span>
   </div>
   <button onclick="openCloudModal()" style="background:linear-gradient(135deg,#1f6feb,#388bfd);border:none;color:#fff;padding:8px 18px;border-radius:20px;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap">הפעל ניסיון 30 יום ☁️</button>
 </div>

@@ -102,7 +102,7 @@ h1{font-size:1.55rem;font-weight:800;margin-bottom:6px}
         <span><i style="background:#58a6ff"></i>חיישן תחתון (0x5C)</span>
         <span><i style="background:#f85149"></i>צל נאיבי (כשל → מקסימום)</span>
       </div>
-      <p class="hint">גררו את השמש. כפתור «כשל BH1750» מדמה קריאה שלילית — החוק הבטוח מחזיק זווית; הנאיבי מתייחס לחושך ומטייל למקסימום.</p>
+      <p class="hint">גררו את השמש. כפתור «כשל BH1750» מדמה קריאה שלילית — החוק הבטוח מחזיק זווית; הנאיבי מתייחס לחושך ומטה למקסימום.</p>
     </div>
 
     <div class="card">
@@ -130,7 +130,7 @@ h1{font-size:1.55rem;font-weight:800;margin-bottom:6px}
         <code>PANEL_LIMITS {40,30,20}</code> שורה 21 ·
         <code>STEPS_PER_DEGREE</code> שורה 28 ·
         <code>lux&lt;0 → return currentAngle</code> שורות 87–92 ·
-        <code>min(luxBot, 1)</code> שורה 95 ·
+        <code>max(luxBot, 1)</code> שורה 95 ·
         <code>glareRatio &gt; 3.0</code> שורה 99 ·
         <code>(ratio-3)*5</code> שורה 101 ·
         <code>stepper.moveTo</code> שורות 106–113 ·
@@ -306,10 +306,11 @@ function tick() {
 
 const svg = document.getElementById('room');
 function svgPt(evt) {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return { x: light.x, y: light.y };
   const pt = svg.createSVGPoint();
   pt.x = evt.clientX; pt.y = evt.clientY;
-  const ctm = svg.getScreenCTM().inverse();
-  return pt.matrixTransform(ctm);
+  return pt.matrixTransform(ctm.inverse());
 }
 let dragging = false;
 svg.addEventListener('pointerdown', e => {

@@ -243,9 +243,11 @@ function draw() {
 
 const svg = document.getElementById('scene');
 function svgPt(e) {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return { x: light.x, y: light.y };
   const pt = svg.createSVGPoint();
   pt.x = e.clientX; pt.y = e.clientY;
-  return pt.matrixTransform(svg.getScreenCTM().inverse());
+  return pt.matrixTransform(ctm.inverse());
 }
 function near(p, o, r) { return Math.hypot(p.x - o.x, p.y - o.y) < r; }
 svg.addEventListener('pointerdown', e => {
