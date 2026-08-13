@@ -6,6 +6,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const pages = [
   'index.html',
+  'case/index.html',
   'lab/index.html',
   'spec/index.html',
   'geometry/index.html',
@@ -27,7 +28,7 @@ test('every page is Hebrew RTL with a skip-link and a honesty banner', () => {
     assert.match(html, /דלג לתוכן/, rel);
     assert.match(
       html,
-      /אין חומרה|לא רץ על|לא נמדד|סימולצ|מפרט קונספט|הדגמת מוצר|אינו מחובר|לא מדידה/,
+      /אין חומרה|לא רץ על|לא רצה על|לא נמדד|סימולצ|מפרט קונספט|הדגמת מוצר|אינו מחובר|לא מדידה|תיק עבודות/,
       rel + ' must stay honest about being a demo'
     );
   }
@@ -36,6 +37,7 @@ test('every page is Hebrew RTL with a skip-link and a honesty banner', () => {
 test('site nav names the engineering pages from every surface', () => {
   for (const rel of pages) {
     const html = fs.readFileSync(path.join(root, rel), 'utf8');
+    assert.match(html, /מקרה הנדסי/, rel);
     assert.match(html, /מכונת מצבים/, rel);
     assert.match(html, /תזמון והספק/, rel);
     assert.match(html, /תקציב הספק/, rel);
@@ -62,6 +64,11 @@ test('new pages load the host modules they claim to run', () => {
   const alts = fs.readFileSync(path.join(root, 'alts/index.html'), 'utf8');
   assert.match(alts, /src\/lib\/alts\.js/);
   assert.match(alts, /SM_ALTS/);
+  const cse = fs.readFileSync(path.join(root, 'case/index.html'), 'utf8');
+  assert.match(cse, /src\/lib\/case\.js/);
+  assert.match(cse, /SM_CASE/);
+  assert.match(cse, /לא רצה על לוח/);
+  assert.doesNotMatch(cse, /נבדק על חומרה אמיתית|הקושחה רצה על ESP32/);
 });
 
 test('there is still no GitHub Actions workflow in this repo', () => {

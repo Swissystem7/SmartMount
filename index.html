@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SmartMount — תושבת טלוויזיה חכמה נגד בוהק</title>
-<meta name="description" content="SmartMount היא תושבת טלוויזיה שמזהה בוהק בשני חיישני אור ומטה את המסך אוטומטית. קושחת ESP32 ולוח בקרה — הדגמה בלבד.">
+<meta name="description" content="SmartMount היא הדגמת קונספט לתיק עבודות: קושחת ESP32 שמזהה בוהק בשני חיישני אור. אין חומרה מחוברת, אין מוצר.">
 <meta name="theme-color" content="#0f1420">
 <link rel="canonical" href="https://swissystem7.github.io/SmartMount/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="SmartMount — תושבת טלוויזיה חכמה נגד בוהק">
-<meta property="og:description" content="מזהה בוהק בשני חיישני אור ומטה את המסך אוטומטית. קושחת ESP32 + לוח בקרה. הדגמה בלבד.">
+<meta property="og:description" content="הדגמת קונספט לתיק עבודות — קושחת ESP32 + דפים הנדסיים. אין חומרה מחוברת, אין מוצר.">
 <meta property="og:url" content="https://swissystem7.github.io/SmartMount/">
 <meta property="og:locale" content="he_IL">
 <link rel="stylesheet" href="./assets/site.css">
@@ -36,6 +36,7 @@ a.ghost{border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
 <nav class="site-nav" style="align-self:stretch" aria-label="ניווט ראשי">
   <span class="brand">SmartMount</span>
   <a class="on" href="./" aria-current="page">בית</a>
+  <a href="./case/">מקרה הנדסי</a>
   <a href="./lab/">מעבדה הנדסית</a>
   <a href="./spec/">מפרט בנייה</a>
   <a href="./geometry/">גאומטריית בוהק</a>
@@ -50,8 +51,9 @@ a.ghost{border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
 <main id="main" class="wrap">
   <span class="badge">הדגמת מוצר — אין חומרה מחוברת</span>
   <h1>SmartMount — תושבת טלוויזיה <em>שמתגוננת מבוהק</em></h1>
-  <p class="lead">שני חיישני אור מודדים את עוצמת האור שפוגעת במסך מול זו שמאחוריו. כשהיחס מצביע על בוהק ישיר, מנוע צעד מטה את המסך — עד לגבול זווית הצפייה של סוג הפאנל.</p>
+  <p class="lead">שני חיישני אור מודדים את עוצמת האור שפוגעת במסך מול זו שמאחוריו. כשהיחס מצביע על בוהק ישיר, מנוע צעד מטה את המסך — עד לגבול זווית הצפייה של סוג הפאנל. זה פריט תיק עבודות, לא מוצר: אין נתיב הכנסה.</p>
   <div class="grid">
+    <div class="card"><b>מקרה הנדסי</b><span>באגי בטיחות שתוקנו בסקירה, מכונת מצבים, ופשרות — למגייסים</span></div>
     <div class="card"><b>קושחת ESP32</b><span>שני חיישני BH1750, מנוע צעד עם ממסרה 1:5, ו-API מעל HTTP</span></div>
     <div class="card"><b>מגבלת פאנל</b><span id="panelLimitsText">OLED · QLED · LED — ראו config/control-params.json</span></div>
     <div class="card"><b>לוח בקרה</b><span>כיול, קריאות חיישנים, מצב אוטומטי או ידני</span></div>
@@ -66,7 +68,8 @@ a.ghost{border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
     <div class="card"><b>חלופות</b><span>צעד מול סרבו מול מפעיל קווי; יחס lux מול מוחלט; למה המסגרת</span></div>
   </div>
   <div class="cta">
-    <a class="btn primary" href="./lab/">מצב הדגמה הנדסי</a>
+    <a class="btn primary" href="./case/">מקרה הנדסי למגייסים</a>
+    <a class="btn ghost" href="./lab/">מעבדה</a>
     <a class="btn ghost" href="./spec/">מפרט בנייה</a>
     <a class="btn ghost" href="./geometry/">גאומטריית בוהק</a>
     <a class="btn ghost" href="./protocol/">חוזה API</a>

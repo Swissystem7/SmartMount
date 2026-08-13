@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartMount — מקרה הנדסי לתיק עבודות</title>
+<meta name="description" content="מקרה הנדסי למגייסים: באגי בטיחות שתוקנו בסקירה, מכונת מצבים, ופשרות. הקושחה לא רצה על לוח.">
+<meta name="theme-color" content="#0f1420">
+<link rel="canonical" href="https://swissystem7.github.io/SmartMount/case/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SmartMount — מקרה הנדסי לתיק עבודות">
+<meta property="og:description" content="באגי בטיחות, FSM, ופשרות. הקושחה לא רצה על לוח. אין מוצר.">
+<meta property="og:url" content="https://swissystem7.github.io/SmartMount/case/">
+<meta property="og:locale" content="he_IL">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.wrap{max-width:920px}
+.verdict{background:#1a3a2a;border:1px solid #238636;color:#7ee787;border-radius:12px;padding:14px 16px;margin:0 0 18px;font-size:.95rem;line-height:1.55}
+.verdict strong{display:block;font-size:1.05rem;margin-bottom:4px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.toc a{font-size:.78rem;font-weight:700;text-decoration:none;border:1px solid #30363d;border-radius:8px;padding:6px 10px;color:#c9d1d9}
+.toc a:hover{border-color:var(--accent);color:var(--accent)}
+h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin:28px 0 12px}
+.card{margin-bottom:12px}
+.card h3{font-size:.98rem;margin-bottom:8px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+@media(max-width:700px){.pair{grid-template-columns:1fr}}
+.was,.now{border-radius:10px;padding:10px 12px;font-size:.84rem;line-height:1.55}
+.was{background:#3a1010;border:1px solid #f85149;color:#ffb4b0}
+.now{background:#1a3a2a;border:1px solid #238636;color:#7ee787}
+.was b,.now b{display:block;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;opacity:.85}
+.meta{font-size:.75rem;color:var(--muted);margin-top:8px;line-height:1.5}
+.tag{display:inline-block;font-size:.68rem;font-weight:700;border-radius:5px;padding:2px 7px;margin-left:6px}
+.tag.safety{background:#3a1010;color:#f85149}
+.tag.contract{background:#1f4068;color:#79c0ff}
+.tag.availability{background:#2d1f00;color:#e3b341}
+.tag.honesty{background:#1a3a2a;color:#3fb950}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+.st{display:inline-block;font:700 .72rem ui-monospace,Menlo,Consolas,monospace;padding:2px 7px;border-radius:5px;background:#21262d;margin:2px}
+.st.fault{background:#3a1010;color:#f85149}
+.fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
+.note-warn{background:#2d1f00;border:1px solid #9e6a03;color:#e3b341;border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;margin:12px 0}
+ul.plain{margin:0;padding:0 18px 0 0}
+ul.plain li{margin:6px 0;font-size:.88rem;line-height:1.55;color:#c9d1d9}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+a.btn{text-decoration:none;font-weight:700;font-size:.88rem;border-radius:10px;padding:10px 16px;display:inline-block;border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
+a.primary{background:linear-gradient(135deg,#38bdf8,#8b5cf6);border:0;color:#fff}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th,td{text-align:right;padding:8px 10px;border-bottom:1px solid #21262d;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.75rem}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
+  <span class="brand">SmartMount</span>
+  <a href="../">בית</a>
+  <a class="on" href="./" aria-current="page">מקרה הנדסי</a>
+  <a href="../lab/">מעבדה הנדסית</a>
+  <a href="../spec/">מפרט בנייה</a>
+  <a href="../geometry/">גאומטריית בוהק</a>
+  <a href="../protocol/">חוזה API</a>
+  <a href="../fsm/">מכונת מצבים</a>
+  <a href="../runtime/">תזמון והספק</a>
+  <a href="../power/">תקציב הספק</a>
+  <a href="../hil/">תוכנית HIL</a>
+  <a href="../alts/">חלופות</a>
+  <a href="../dashboard/">לוח בקרה</a>
+</nav>
+<div class="banner">הקושחה לא רצה על לוח. זה מקרה לתיק עבודות, לא מוצר ולא ערכת בנייה.</div>
+<main id="main" class="wrap">
+  <h1>מקרה הנדסי — מה שבאמת נבנה כאן</h1>
+  <p class="lead">
+    דף למגייסת או למגייס firmware / embedded. לא מצגת מוצר.
+    SmartMount התחילה כרעיון לתושבת שמתגוננת מבוהק בשני חיישני אור.
+    מחקר השוק פסק PARK. מחקר המונטיזציה פסק שאין נתיב הכנסה.
+    מה שנשאר הוא סקירת בטיחות, מכונת מצבים, ופשרות — על המחשב.
+  </p>
+
+  <div class="verdict" id="verdictBox">
+    <strong>אין נתיב הכנסה. זה פריט תיק עבודות.</strong>
+    הקושחה נכתבה ללוח אמיתי וטרם רצה מולו.
+  </div>
+
+  <nav class="toc" aria-label="תוכן העמוד">
+    <a href="#bugs">באגי בטיחות</a>
+    <a href="#open">מה נשאר פתוח</a>
+    <a href="#fsm">מכונת מצבים</a>
+    <a href="#tradeoffs">פשרות</a>
+    <a href="#tests">מה הבדיקות מוכיחות</a>
+    <a href="#skills">מה מוצג / לא מוצג</a>
+  </nav>
+
+  <h2 id="bugs">באגים שנמצאו בסקירה — ותוקנו במקור</h2>
+  <p class="fine">אלה ממצאי קריאה של <code>smart_mount.ino</code>, לא באגים שנתפסו על אוסצילוסקופ. הסטטוס הוא «תוקן במקור», לא «אומת על חומרה».</p>
+  <div id="bugsList"></div>
+
+  <h2 id="open">מה עדיין פתוח — בכוונה גלויה</h2>
+  <div id="openList"></div>
+  <p class="note-warn">
+    HIL-10 אוסר לתלות טלוויזיה על המנגנון הזה. תוכנית שנים-עשר המקרים:
+    <a href="../hil/">עמוד HIL</a> — סטטוס <code>never-run</code>.
+  </p>
+
+  <h2 id="fsm">שתי מכונות — מה שה־.ino עושה מול מה שחסר</h2>
+  <div class="grid2" id="fsmBox">
+    <section class="card">
+      <h3>הקושחה ככתבה</h3>
+      <p id="fwStates"></p>
+      <p class="fine" id="fwNote"></p>
+    </section>
+    <section class="card">
+      <h3>מכונה בטוחה מוצעת</h3>
+      <p id="safeStates"></p>
+      <p class="fine" id="safeNote"></p>
+    </section>
+  </div>
+  <p class="fine">
+    165 תאים (2×15 + 11×15) ננעלו מ־<code>step()</code>. אף מכונה לא רצה על ESP32.
+    לחיצה אחת: <a href="../fsm/">סייר המצבים</a>.
+  </p>
+
+  <h2 id="tradeoffs">פשרות תכנון</h2>
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>שאלה</th><th>מה נבחר לדמו</th><th>למה</th><th>מה היה נכון למוצר</th></tr>
+      </thead>
+      <tbody id="tradeBody"></tbody>
+    </table>
+  </div>
+  <p class="fine">הפירוט המלא, כולל סרבו / lux מוחלט / מיקום חיישן: <a href="../alts/">חלופות שנדחו</a>.</p>
+
+  <h2 id="tests">מה הבדיקות מוכיחות — ומה אי אפשר לבדוק בלי לוח</h2>
+  <div class="grid2">
+    <section class="card">
+      <h3>ננעל על המחשב</h3>
+      <ul class="plain">
+        <li>חוק ההטיה, HOLD על כשל חיישן, גבול פאנל</li>
+        <li>ארבעה נתיבי HTTP + דחיית קלט</li>
+        <li>כל תא במכונת המצבים</li>
+        <li>מומנט בלי תולעת = נפילה (מודל, לא מבחן מעבדה)</li>
+        <li>HIL מוגדר כ־never-run — הבדיקה נכשלת אם מישהו משנה את זה בשקט</li>
+      </ul>
+    </section>
+    <section class="card">
+      <h3>לא נבדק, ולא טוענים שכן</h3>
+      <ul class="plain">
+        <li>האם BH1750 באמת מחזיר שלילי בכשל</li>
+        <li>פולסי STEP שאבדו כש־<code>handleClient</code> חוסם</li>
+        <li>כיול יחס lux מול כתם השתקפות</li>
+        <li>מומנט החזקה של מק״ט NEMA17 מסוים</li>
+        <li>חריקת תמסורת, הילוך חוזר, פספוס מפסק (אין מפסק)</li>
+      </ul>
+    </section>
+  </div>
+  <p class="fine">המסמך: <a href="../docs/TESTING.md">docs/TESTING.md</a>. הפקודה: <code>npm test</code> — בלי תלויות, בלי CI ב־<code>.github/workflows</code>.</p>
+
+  <h2 id="skills">מה התיק מציג, ומה הוא לא מציג</h2>
+  <div class="grid2">
+    <section class="card">
+      <h3>מוצג</h3>
+      <ul class="plain" id="shownList"></ul>
+    </section>
+    <section class="card">
+      <h3>לא מוצג — אל תקראו את זה בראיון</h3>
+      <ul class="plain" id="notShownList"></ul>
+    </section>
+  </div>
+
+  <div class="cta">
+    <a class="btn primary" href="../lab/">מעבדה — קונסולת תקלות</a>
+    <a class="btn" href="../fsm/">מכונת מצבים</a>
+    <a class="btn" href="https://github.com/Swissystem7/SmartMount/blob/master/firmware/smart_mount.ino">הקושחה ב-GitHub</a>
+    <a class="btn" href="../MONETIZATION.md">למה אין מוצר</a>
+  </div>
+  <p class="fine">
+    פסק דין שוק: <a href="../RESEARCH.md">RESEARCH.md</a> (PARK).
+    פסק דין הכנסה: <a href="../MONETIZATION.md">MONETIZATION.md</a> (תיק עבודות בלבד).
+    המקור של העמוד הזה: <code>src/lib/case.js</code>.
+  </p>
+</main>
+<script src="../src/lib/case.js"></script>
+<script>
+(function () {
+  const C = window.SM_CASE;
+  if (!C) return;
+
+  const v = document.getElementById('verdictBox');
+  v.innerHTML = '<strong>' + C.VERDICT.headline + '</strong>' + C.VERDICT.hardwareHe;
+
+  const sevHe = { safety: 'בטיחות', contract: 'חוזה', availability: 'זמינות', honesty: 'כנות' };
+
+  const bugs = document.getElementById('bugsList');
+  C.BUGS.forEach(function (b) {
+    const el = document.createElement('article');
+    el.className = 'card';
+    el.innerHTML =
+      '<h3>' + b.title +
+      ' <span class="tag ' + b.severity + '">' + (sevHe[b.severity] || b.severity) + '</span></h3>' +
+      '<div class="pair">' +
+      '<div class="was"><b>לפני</b>' + b.was + '</div>' +
+      '<div class="now"><b>אחרי (במקור)</b>' + b.now + '</div>' +
+      '</div>' +
+      '<p class="meta"><code>' + b.where + '</code> · ' + b.provenBy + '</p>';
+    bugs.appendChild(el);
+  });
+
+  const open = document.getElementById('openList');
+  C.OPEN.forEach(function (o) {
+    const el = document.createElement('article');
+    el.className = 'card';
+    el.innerHTML = '<h3>' + o.title + '</h3><p class="fine" style="margin:0">' + o.why + '</p>';
+    open.appendChild(el);
+  });
+
+  function stamps(ids, faultish) {
+    return ids.map(function (s) {
+      const bad = /FAULT|DEAD|UNHOMED/.test(s);
+      return '<span class="st' + (bad ? ' fault' : '') + '">' + s + '</span>';
+    }).join(' ');
+  }
+  document.getElementById('fwStates').innerHTML = stamps(C.FSM.firmwareStates);
+  document.getElementById('fwNote').textContent = C.FSM.firmwareNote;
+  document.getElementById('safeStates').innerHTML = stamps(C.FSM.safeStates);
+  document.getElementById('safeNote').textContent = C.FSM.safeNote;
+
+  const tb = document.getElementById('tradeBody');
+  C.TRADEOFFS.forEach(function (t) {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + t.id + '</td><td>' + t.chose + '</td><td>' + t.because + '</td><td>' + t.better + '</td>';
+    tb.appendChild(tr);
+  });
+
+  function fillUl(id, items) {
+    const ul = document.getElementById(id);
+    items.forEach(function (s) {
+      const li = document.createElement('li');
+      li.textContent = s;
+      ul.appendChild(li);
+    });
+  }
+  fillUl('shownList', C.SHOWN);
+  fillUl('notShownList', C.NOT_SHOWN);
+})();
+</script>
+</body>
+</html>

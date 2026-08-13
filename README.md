@@ -11,6 +11,7 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 | עמוד | מה יש בו |
 |---|---|
 | [בית](https://swissystem7.github.io/SmartMount/) | נחיתה כנה |
+| [מקרה הנדסי](https://swissystem7.github.io/SmartMount/case/) | תיק למגייסים: באגי בטיחות, FSM, פשרות. הקושחה לא רצה על לוח |
 | [מעבדה הנדסית](https://swissystem7.github.io/SmartMount/lab/) | חדר וירטואלי + קונסולת תקלות (חיישן / WiFi / גבול פאנל) על חוק `smart_mount.ino` |
 | [מפרט בנייה](https://swissystem7.github.io/SmartMount/spec/) | BOM כנה, מחשבון מומנט מול NEMA17, חיווט SVG |
 | [גאומטריית בוהק](https://swissystem7.github.io/SmartMount/geometry/) | חוק ההחזרה + למה יחס lux אינו בהירות לצופה |
@@ -42,7 +43,9 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 
 ## מה המחקר מצא
 
-פסק דין שוק: **PARK** — לא לבנות חומרה מסחרית סביב הסיפור הזה. הפירוט המלא: [RESEARCH.md](RESEARCH.md).
+פסק דין שוק: **PARK** — לא לבנות חומרה מסחרית סביב הסיפור הזה. הפירוט: [RESEARCH.md](RESEARCH.md).
+
+פסק דין הכנסה: **אין נתיב הכנסה.** לא רישוי, לא ערכת מייקרים, לא ספונסרשיפ. זה פריט תיק עבודות. הפירוט עם מחירים וקישורים: [MONETIZATION.md](MONETIZATION.md). הדף למגייסים: [מקרה הנדסי](https://swissystem7.github.io/SmartMount/case/).
 
 1. **אף תושבת ממונעת מסחרית לא עושה הטיה אוטומטית לפי חיישן אור.** [Vogel's MotionMount TVM 7675](https://manuals.vogels.com/en-us/tvm7675_pro.html) מסתובב בהדלקה ובמדריך כתוב במפורש שאין הטיה. הקרוב ביותר היה [Sanus LMT15](https://www.sanus.com/en_US/products/tv-mounts/lmt15/) (2009) והוא **הופסק**.
 2. **השוק פתר בוהק בציפוי הפאנל, לא בזרוע.** [Samsung Glare Free OLED](https://www.samsung.com/us/tvs/oled-tv/highlights/) ודירוגי [RTINGS לחדר בהיר](https://www.rtings.com/tv/reviews/best/bright-room).
