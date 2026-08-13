@@ -25,7 +25,7 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
 .verdict.meh{background:#2d1f00;border-color:#9e6a03;color:#e3b341}
 .verdict.ok{background:#1a3a2a;border-color:#238636;color:#7ee787}
 .fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
-#plot,#bars{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d}
+#plot,#bars,#gantt{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d}
 .check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.85rem;color:var(--muted)}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 </style>
@@ -41,6 +41,9 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
   <a href="../protocol/">חוזה API</a>
   <a href="../fsm/">מכונת מצבים</a>
   <a class="on" href="./" aria-current="page">תזמון והספק</a>
+  <a href="../power/">תקציב הספק</a>
+  <a href="../hil/">תוכנית HIL</a>
+  <a href="../alts/">חלופות</a>
   <a href="../dashboard/">לוח בקרה</a>
 </nav>
 <div class="banner">מודל רציף של AccelStepper + מספרים טיפוסיים מדפי נתונים. הלוח לא נמדד באוסצילוסקופ ולא במד-זרם.</div>
@@ -137,6 +140,37 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
     </div>
   </div>
 
+  <h2 style="font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin:8px 0 12px">לולאת בקרה</h2>
+  <div class="grid">
+    <div class="card">
+      <h2>גנט של loop() אחד</h2>
+      <p class="fine" style="margin-top:0">
+        <code>handleClient</code> כל איטרציה. I²C + החוק רק כל 2 שניות.
+        <code>calcOptimalAngle</code> הוא עשרות µs — העיגול ליד HTTP.
+      </p>
+      <label class="check"><input type="checkbox" id="thisSample" checked> הלולאה הזו דוגמת חיישנים</label>
+      <svg id="gantt" viewBox="0 0 640 160" role="img" aria-label="שלבי הלולאה" dir="ltr"></svg>
+      <div class="kv">
+        <div><b id="kBusy">—</b><span>עסוק בלולאה</span></div>
+        <div><b id="kIdle">—</b><span>עד הדגימה הבאה</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>שרשרת השהיה + הבזק שמתפספס</h2>
+      <label class="sl" for="phase">פאזת דגימה (1 = מגיע עכשיו): <span id="phaseLbl">0</span></label>
+      <input type="range" id="phase" min="0" max="100" step="1" value="0">
+      <label class="sl" for="flash">משך הבזק שמש (ms): <span id="flashLbl">400</span></label>
+      <input type="range" id="flash" min="50" max="4000" step="50" value="400">
+      <div class="kv">
+        <div><b id="kChain">—</b><span>בוהק → הגעה</span></div>
+        <div><b id="kMiss">—</b><span>P(פספוס הבזק)</span></div>
+        <div><b id="kNeck">—</b><span>צוואר בקבוק</span></div>
+        <div><b id="kWait">—</b><span>המתנה לדגימה</span></div>
+      </div>
+      <div class="verdict meh" id="cVerdict" role="status">—</div>
+    </div>
+  </div>
+
   <h2 style="font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin:8px 0 12px">תקציב הספק</h2>
   <div class="grid">
     <div class="card">
@@ -162,7 +196,8 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
       <div class="verdict bad" id="pVerdict" role="status">—</div>
       <p class="fine">
         כיבוי סלילים בלי תולעת חוסך ואטים ומשחרר את המסך — ראו
-        <a href="../spec/">מחשבון המומנט</a>. אנרגיה זולה ≠ בטיחות.
+        <a href="../spec/">מחשבון המומנט</a>. פירוט זרם וסוללה:
+        <a href="../power/">תקציב הספק</a>. אנרגיה זולה ≠ בטיחות.
       </p>
     </div>
   </div>
@@ -316,10 +351,65 @@ function power() {
   v.textContent = text[r.verdict] || text[r.kind];
 }
 
+function ganttAndChain() {
+  const http = Number($('httpMs').value);
+  const i2c = Number($('i2cMs').value);
+  const sampling = $('thisSample').checked;
+  const fromDeg = Number($('fromDeg').value);
+  const toDeg = Number($('toDeg').value);
+  const p = SM_TIMING.moveProfile({ fromDeg, toDeg });
+  const phases = SM_TIMING.loopPhases({
+    handleClientMs: http,
+    i2cReadMs: i2c,
+    thisLoopSamples: sampling,
+    vPeakSps: Math.max(p.vPeakSps, 1),
+  });
+  $('kBusy').textContent = phases.busyMs.toFixed(2) + ' ms';
+  $('kIdle').textContent = (phases.idleUntilSampleMs / 1000).toFixed(2) + ' s';
+  const colors = { handleClient: '#58a6ff', i2c: '#e3b341', law: '#3fb950', moveTo: '#a371f7', run: '#f85149' };
+  const total = Math.max(phases.busyMs, 0.2);
+  let x = 40;
+  let bars = '<rect width="640" height="160" fill="#0d1117"/>';
+  phases.phases.forEach((ph) => {
+    if (ph.ms <= 0) return;
+    const w = Math.max(8, (ph.ms / total) * 560);
+    bars += '<rect x="' + x + '" y="50" width="' + w + '" height="36" rx="5" fill="' + (colors[ph.id] || '#8b949e') + '"/>';
+    bars += '<text x="' + (x + w / 2) + '" y="110" fill="#8b949e" font-size="10" text-anchor="middle" font-family="sans-serif">' + ph.id + '</text>';
+    x += w + 4;
+  });
+  $('gantt').innerHTML = bars;
+
+  const phase = Number($('phase').value) / 100;
+  const flash = Number($('flash').value);
+  $('phaseLbl').textContent = phase.toFixed(2);
+  $('flashLbl').textContent = flash;
+  const chain = SM_TIMING.latencyChain({
+    fromDeg, toDeg, samplePhase01: phase, handleClientMs: http, i2cReadMs: i2c,
+  });
+  const miss = SM_TIMING.missProbability({ flashMs: flash });
+  $('kChain').textContent = (chain.totalMs / 1000).toFixed(2) + ' s';
+  $('kMiss').textContent = (miss.miss * 100).toFixed(0) + '%';
+  $('kNeck').textContent = chain.bottleneck === 'sample' ? 'דגימה' : chain.bottleneck === 'motor' ? 'מנוע' : 'חישוב';
+  $('kWait').textContent = (chain.waitSampleMs / 1000).toFixed(2) + ' s';
+  const v = $('cVerdict');
+  if (miss.miss >= 0.5) {
+    v.className = 'verdict bad';
+    v.textContent = 'הבזק של ' + flash + ' ms מתפספס ב־' +
+      (miss.miss * 100).toFixed(0) + '% מהפאזות. החוק לא רואה שמש שחוצה את החלון בין דגימות.';
+  } else if (chain.bottleneck === 'sample') {
+    v.className = 'verdict meh';
+    v.textContent = 'צוואר הבקבוק הוא פול 2 השניות, לא מעטפת AccelStepper.';
+  } else {
+    v.className = 'verdict ok';
+    v.textContent = 'בפאזה הזו המנוע או החישוב שולטים — לא המקרה הטיפוסי.';
+  }
+}
+
 function all() {
   timing();
   wifi();
   power();
+  ganttAndChain();
 }
 
 document.querySelectorAll('[data-deg]').forEach((b) => {
@@ -330,7 +420,7 @@ document.querySelectorAll('[data-deg]').forEach((b) => {
     all();
   });
 });
-['fromDeg', 'toDeg', 'httpMs', 'i2cMs', 'wifiMs', 'moves', 'worm', 'wifiOn'].forEach((id) => {
+['fromDeg', 'toDeg', 'httpMs', 'i2cMs', 'wifiMs', 'moves', 'worm', 'wifiOn', 'thisSample', 'phase', 'flash'].forEach((id) => {
   $(id).addEventListener('input', all);
 });
 all();
