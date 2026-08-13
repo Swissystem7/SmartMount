@@ -157,6 +157,104 @@
     };
   }
 
+  // One cooperative loop() as a Gantt the firmware actually runs:
+  // handleClient always, I²C + law only on the 2 s sample, stepper.run
+  // every pass. law/moveTo are tens of microseconds — rounding error
+  // next to a blocking HTTP handler.
+  function loopPhases(input) {
+    const src = input || {};
+    const http = Number(src.handleClientMs != null ? src.handleClientMs : 8);
+    const i2c = Number(src.i2cReadMs != null ? src.i2cReadMs : 2);
+    const lawMs = Number(src.lawMs != null ? src.lawMs : 0.05);
+    const moveToMs = Number(src.moveToMs != null ? src.moveToMs : 0.02);
+    const runMs = Number(src.runMs != null ? src.runMs : 0.02);
+    const samplePeriodMs = Number(src.samplePeriodMs != null ? src.samplePeriodMs : SAMPLE_PERIOD_MS);
+    const thisLoopSamples = src.thisLoopSamples !== false;
+    const vPeakSps = Number(src.vPeakSps != null ? src.vPeakSps : MAX_SPEED_SPS);
+    if (![http, i2c, lawMs, moveToMs, runMs, samplePeriodMs, vPeakSps].every(Number.isFinite)
+      || http < 0 || i2c < 0 || lawMs < 0 || moveToMs < 0 || runMs < 0
+      || samplePeriodMs <= 0 || vPeakSps <= 0) {
+      throw new Error('invalid loop-phase inputs');
+    }
+    const phases = [
+      { id: 'handleClient', label: 'handleClient()', ms: http, everyLoop: true },
+      { id: 'i2c', label: 'BH1750 ×2', ms: thisLoopSamples ? i2c : 0, everyLoop: false },
+      { id: 'law', label: 'calcOptimalAngle', ms: thisLoopSamples ? lawMs : 0, everyLoop: false },
+      { id: 'moveTo', label: 'moveToAngle', ms: thisLoopSamples ? moveToMs : 0, everyLoop: false },
+      { id: 'run', label: 'stepper.run()', ms: runMs, everyLoop: true },
+    ];
+    const busyMs = phases.reduce(function (a, p) { return a + p.ms; }, 0);
+    const stepIntervalMs = 1000 / vPeakSps;
+    return {
+      phases,
+      busyMs,
+      samplePeriodMs,
+      thisLoopSamples,
+      idleUntilSampleMs: Math.max(0, samplePeriodMs - busyMs),
+      stepIntervalMs,
+      stepSlackMs: stepIntervalMs - busyMs,
+      stepStarved: busyMs > stepIntervalMs,
+      firmwareWdtConfigured: false,
+    };
+  }
+
+  // Glare appears at a random phase of the 2 s poll, then I²C + law, then
+  // the AccelStepper envelope. Best case: sample is due. Worst: just missed.
+  function latencyChain(input) {
+    const src = input || {};
+    const fromDeg = Number(src.fromDeg != null ? src.fromDeg : 0);
+    const toDeg = Number(src.toDeg != null ? src.toDeg : 20);
+    const phase = Number(src.samplePhase01 != null ? src.samplePhase01 : 0);
+    const handleClientMs = Number(src.handleClientMs != null ? src.handleClientMs : 8);
+    const i2cReadMs = Number(src.i2cReadMs != null ? src.i2cReadMs : 2);
+    const samplePeriodMs = Number(src.samplePeriodMs != null ? src.samplePeriodMs : SAMPLE_PERIOD_MS);
+    if (![fromDeg, toDeg, phase, handleClientMs, i2cReadMs, samplePeriodMs].every(Number.isFinite)
+      || phase < 0 || phase > 1 || handleClientMs < 0 || i2cReadMs < 0 || samplePeriodMs < 0) {
+      throw new Error('invalid latency-chain inputs');
+    }
+    const move = moveProfile({ fromDeg, toDeg });
+    const waitSampleMs = (1 - phase) * samplePeriodMs;
+    const computeMs = handleClientMs + i2cReadMs;
+    const motorMs = move.tTotalSec * 1000;
+    const stages = [
+      { id: 'wait-sample', label: 'המתנה לדגימה', ms: waitSampleMs },
+      { id: 'sense-compute', label: 'I²C + חוק', ms: computeMs },
+      { id: 'motor', label: 'מעטפת מנוע', ms: motorMs },
+    ];
+    const totalMs = waitSampleMs + computeMs + motorMs;
+    let bottleneck = 'motor';
+    if (waitSampleMs >= motorMs && waitSampleMs >= computeMs) bottleneck = 'sample';
+    else if (computeMs >= motorMs && computeMs >= waitSampleMs) bottleneck = 'compute';
+    return {
+      stages,
+      totalMs,
+      waitSampleMs,
+      computeMs,
+      motorMs,
+      bottleneck,
+      move,
+      samplePeriodMs,
+    };
+  }
+
+  // Instantaneous sample in a uniform phase. A flash shorter than the
+  // period can miss the BH1750 entirely — the law never sees it.
+  function missProbability(input) {
+    const flashMs = Number(input && input.flashMs);
+    const periodMs = Number(input && input.periodMs != null ? input.periodMs : SAMPLE_PERIOD_MS);
+    if (![flashMs, periodMs].every(Number.isFinite) || flashMs < 0 || periodMs <= 0) {
+      throw new Error('invalid miss-probability inputs');
+    }
+    const miss = flashMs >= periodMs ? 0 : 1 - flashMs / periodMs;
+    return {
+      flashMs,
+      periodMs,
+      miss,
+      hit: 1 - miss,
+      alwaysSeen: flashMs >= periodMs,
+    };
+  }
+
   // Typical panel moves in this firmware never reach 500 step/s — the
   // distance is too short. The 2 s poll, not the motor, is the plant lag.
   function typicalPanelMove(limitDeg, opts) {
@@ -185,6 +283,9 @@
     glareLatency,
     loopBudget,
     wifiBlock,
+    loopPhases,
+    latencyChain,
+    missProbability,
     typicalPanelMove,
   };
 });

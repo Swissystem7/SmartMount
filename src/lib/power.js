@@ -121,6 +121,162 @@
     return Object.assign({}, r, { verdict: verdict(r) });
   }
 
+  // Instantaneous draw, still datasheet-class. Chopped 12 V average
+  // current is P/V — not the 1.5 A phase rating. Peak coil current is
+  // the thing a PSU / pack must survive for a few hundred ms.
+  function currentDraw(input) {
+    const wifiOn = input && input.wifiOn !== false;
+    const sensorsOn = !input || input.sensorsOn !== false;
+    const sensorCount = Number(input && input.sensorCount != null ? input.sensorCount : 2);
+    const holding = Boolean(input && input.holding);
+    const moving = Boolean(input && input.moving);
+    const phaseA = input && input.phaseA;
+    const phaseOhm = input && input.phaseOhm;
+    const moveFactor = Number(input && input.moveFactor != null ? input.moveFactor : 1.15);
+
+    if (!Number.isFinite(sensorCount) || sensorCount < 0) throw new Error('invalid current-draw inputs');
+    if (!Number.isFinite(moveFactor) || moveFactor < 0) throw new Error('invalid current-draw inputs');
+
+    const wifiMa = wifiOn ? ESP32_WIFI_MA : ESP32_MODEM_SLEEP_MA;
+    const sensorMa = sensorCount * (sensorsOn ? BH1750_ACTIVE_MA : BH1750_POWERDOWN_MA);
+    const logicMa = wifiMa + sensorMa + A4988_LOGIC_MA;
+    const logic = (logicMa / 1000) * LOGIC_V;
+    const hold = windingHoldW({ phaseA, phaseOhm });
+    const coilsOn = holding || moving;
+    const motor = coilsOn ? hold * (moving ? moveFactor : 1) : 0;
+    const motor12vAvgMa = motor > 0 ? (motor / MOTOR_V) * 1000 : 0;
+    const motorPhasePeakMa = coilsOn
+      ? NEMA17_PHASE_A * 1000 * (moving ? moveFactor : 1)
+      : 0;
+
+    let mode = 'idle-worm';
+    if (moving) mode = 'moving';
+    else if (holding && wifiOn) mode = 'idle-hold';
+    else if (holding && !wifiOn) mode = 'wifi-sleep-hold';
+    else if (!holding && !wifiOn) mode = 'wifi-sleep-worm';
+
+    return {
+      mode,
+      wifiOn,
+      holding: coilsOn && !moving,
+      moving,
+      wifiMa,
+      sensorMa,
+      driverLogicMa: A4988_LOGIC_MA,
+      logic3v3Ma: logicMa,
+      motor12vAvgMa,
+      motorPhasePeakMa,
+      logicW: logic,
+      motorW: motor,
+      totalW: logic + motor,
+      usbBudgetW: USB_5V_BUDGET_W,
+      usbCanFeed: logic + motor <= USB_5V_BUDGET_W,
+    };
+  }
+
+  function drawModes() {
+    return Object.freeze({
+      'idle-hold': currentDraw({ wifiOn: true, holding: true, moving: false }),
+      'idle-worm': currentDraw({ wifiOn: true, holding: false, moving: false }),
+      moving: currentDraw({ wifiOn: true, holding: true, moving: true }),
+      'wifi-sleep-hold': currentDraw({ wifiOn: false, holding: true, moving: false }),
+    });
+  }
+
+  // Pack figures are typical retail labels, not a cell we discharged.
+  // cellWh is the chemistry energy (≈ 3.7 V × Ah). Marketing 5 V·Ah is larger.
+  const PACKS = Object.freeze([
+    Object.freeze({
+      id: 'usb-10ah',
+      label: 'פאוורבנק USB ‏10,000 mAh',
+      cellWh: 37,
+      railV: 5,
+      maxA: 2.4,
+      canMotor12v: false,
+      note: 'התאים הם ~3.7 V × 10 Ah ≈ 37 Wh. היציאה 5 V לא מזינה VMOT.',
+    }),
+    Object.freeze({
+      id: '2s18650',
+      label: '2×18650 (2S, ~2,500 mAh)',
+      cellWh: 18.5,
+      railV: 7.4,
+      maxA: 5,
+      canMotor12v: false,
+      note: 'שני תאים בטור. עדיין מתחת ל־12 V של המנהל.',
+    }),
+    Object.freeze({
+      id: '3s2200',
+      label: 'LiPo 3S 2,200 mAh',
+      cellWh: 24.4,
+      railV: 11.1,
+      maxA: 22,
+      canMotor12v: true,
+      note: '3S טעון ~12.6 V יכול להזין A4988. לא נמדד.',
+    }),
+    Object.freeze({
+      id: 'pb12-7ah',
+      label: 'עופרת 12 V 7 Ah (UPS)',
+      cellWh: 84,
+      railV: 12,
+      maxA: 7,
+      canMotor12v: true,
+      note: 'סוללת גיבוי טיפוסית. כבדה; מתאימה ל־hold ארוך יותר.',
+    }),
+  ]);
+
+  function packById(id) {
+    for (let i = 0; i < PACKS.length; i++) {
+      if (PACKS[i].id === id) return PACKS[i];
+    }
+    return null;
+  }
+
+  function sizeBattery(input) {
+    const src = input || {};
+    const day = dailyEnergy(src);
+    const hoursWanted = Number(src.hoursWanted != null ? src.hoursWanted : 24);
+    const dod = Number(src.dod != null ? src.dod : 0.8);
+    const converterEff = Number(src.converterEff != null ? src.converterEff : 0.85);
+    if (![hoursWanted, dod, converterEff].every(Number.isFinite)
+      || hoursWanted <= 0 || dod <= 0 || dod > 1 || converterEff <= 0 || converterEff > 1) {
+      throw new Error('invalid battery inputs');
+    }
+    const pack = packById(src.packId) || PACKS[0];
+    const wAvg = day.totalWh / 24;
+    const requiredWh = (wAvg * hoursWanted) / (dod * converterEff);
+    const usableWh = pack.cellWh * dod * converterEff;
+    const hoursOnPack = wAvg > 0 ? usableWh / wAvg : Infinity;
+    const peakW = day.moveW + day.logicW;
+    const peakA = peakW / pack.railV;
+    const packAh = pack.cellWh / pack.railV;
+    const cRate = packAh > 0 ? peakA / packAh : Infinity;
+    const motorNeeded = day.holdW > 0 || (src.movesPerDay || 0) > 0;
+
+    let kind = 'hours-ok';
+    if (!pack.canMotor12v && motorNeeded && day.holdW > 0) kind = 'pack-cannot-motor-rail';
+    else if (!pack.canMotor12v && day.coilsIdle === 0 && day.moveW > 0) kind = 'pack-cannot-move-pulse';
+    else if (day.coilsIdle > 0 && hoursOnPack < 6) kind = 'hold-kills-pack';
+    else if (day.coilsIdle === 0 && hoursOnPack >= 12) kind = 'worm-makes-ups-viable';
+
+    return {
+      pack,
+      wAvg,
+      requiredWh,
+      usableWh,
+      hoursOnPack,
+      hoursWanted,
+      dod,
+      converterEff,
+      peakW,
+      peakA,
+      cRate,
+      motorNeeded,
+      canFeedMotorRail: pack.canMotor12v,
+      kind,
+      daily: day,
+    };
+  }
+
   return {
     LOGIC_V,
     MOTOR_V,
@@ -132,11 +288,16 @@
     NEMA17_PHASE_A,
     NEMA17_PHASE_OHM,
     NEMA17_PHASES,
+    PACKS,
     windingHoldW,
     logicW,
     motorW,
     dailyEnergy,
     verdict,
     sizeBudget,
+    currentDraw,
+    drawModes,
+    packById,
+    sizeBattery,
   };
 });

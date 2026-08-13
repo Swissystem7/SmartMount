@@ -101,4 +101,41 @@ test('bad inputs are rejected', () => {
   assert.throws(() => T.profile({ distanceSteps: 10, vmax: 0 }), /invalid/);
   assert.throws(() => T.glareLatency({ moveSec: -1 }), /invalid/);
   assert.throws(() => T.loopBudget({ handleClientMs: 1, i2cReadMs: 1, vPeakSps: 0 }), /invalid/);
+  assert.throws(() => T.loopPhases({ handleClientMs: -1 }), /invalid/);
+  assert.throws(() => T.missProbability({ flashMs: -4 }), /invalid/);
+});
+
+test('a sample loop is still handleClient-dominated; a non-sample loop is tiny', () => {
+  const sample = T.loopPhases({
+    handleClientMs: 8, i2cReadMs: 2, thisLoopSamples: true, vPeakSps: 105,
+  });
+  assert.equal(sample.phases.length, 5);
+  assert.ok(sample.phases[0].ms > sample.phases[2].ms, 'HTTP dwarfs the law');
+  assert.ok(sample.busyMs < 15);
+  assert.equal(sample.firmwareWdtConfigured, false);
+
+  const idle = T.loopPhases({
+    handleClientMs: 8, i2cReadMs: 2, thisLoopSamples: false, vPeakSps: 105,
+  });
+  assert.equal(idle.phases.find((p) => p.id === 'i2c').ms, 0);
+  assert.ok(idle.busyMs < sample.busyMs);
+});
+
+test('latency chain: just-missed sample is the 2 s plant lag', () => {
+  const due = T.latencyChain({ fromDeg: 0, toDeg: 20, samplePhase01: 1 });
+  const missed = T.latencyChain({ fromDeg: 0, toDeg: 20, samplePhase01: 0 });
+  assert.ok(due.waitSampleMs < 1);
+  assert.ok(Math.abs(missed.waitSampleMs - 2000) < 1e-9);
+  assert.equal(missed.bottleneck, 'sample');
+  assert.ok(missed.totalMs > due.totalMs + 1.9 * 1000);
+  assert.ok(due.motorMs > 900 && due.motorMs < 1200);
+});
+
+test('a 400 ms sun-flash is usually invisible to a 2 s poll', () => {
+  const flash = T.missProbability({ flashMs: 400, periodMs: 2000 });
+  assert.ok(Math.abs(flash.miss - 0.8) < 1e-9);
+  assert.equal(flash.alwaysSeen, false);
+  const long = T.missProbability({ flashMs: 2500, periodMs: 2000 });
+  assert.equal(long.miss, 0);
+  assert.equal(long.alwaysSeen, true);
 });

@@ -64,4 +64,57 @@ test('zero moves still burns hold energy if coils stay on', () => {
 test('bad inputs throw', () => {
   assert.throws(() => P.windingHoldW({ phaseA: -1 }), /invalid/);
   assert.throws(() => P.dailyEnergy({ movesPerDay: -3 }), /invalid/);
+  assert.throws(() => P.sizeBattery({ hoursWanted: 0 }), /invalid/);
+});
+
+test('idle-hold current is coil-dominated; worm idle is the MCU', () => {
+  const modes = P.drawModes();
+  assert.ok(modes['idle-hold'].totalW > 6);
+  assert.ok(modes['idle-hold'].motor12vAvgMa > 400);
+  assert.ok(modes['idle-worm'].totalW < 1);
+  assert.equal(modes['idle-worm'].motor12vAvgMa, 0);
+  assert.ok(modes.moving.totalW > modes['idle-hold'].totalW);
+  assert.ok(modes['wifi-sleep-hold'].wifiMa < modes['idle-hold'].wifiMa);
+  assert.equal(modes['idle-hold'].usbCanFeed, false);
+  assert.equal(modes['idle-worm'].usbCanFeed, true);
+});
+
+test('a USB power bank cannot feed the 12 V motor rail', () => {
+  const r = P.sizeBattery({
+    packId: 'usb-10ah',
+    movesPerDay: 24,
+    moveDurationSec: 1.2,
+    selfLocking: false,
+    hoursWanted: 24,
+  });
+  assert.equal(r.pack.canMotor12v, false);
+  assert.equal(r.kind, 'pack-cannot-motor-rail');
+  assert.ok(r.hoursOnPack < 8, 'hold current empties 37 Wh in a workday');
+});
+
+test('a 3S LiPo can feed VMOT; a worm turns it into a viable UPS', () => {
+  const hold = P.sizeBattery({
+    packId: '3s2200',
+    movesPerDay: 24,
+    moveDurationSec: 1.2,
+    selfLocking: false,
+  });
+  assert.equal(hold.canFeedMotorRail, true);
+  assert.equal(hold.kind, 'hold-kills-pack');
+
+  const worm = P.sizeBattery({
+    packId: '3s2200',
+    movesPerDay: 24,
+    moveDurationSec: 1.2,
+    selfLocking: true,
+  });
+  assert.equal(worm.kind, 'worm-makes-ups-viable');
+  assert.ok(worm.hoursOnPack > 12);
+  assert.ok(worm.requiredWh < hold.requiredWh);
+});
+
+test('every pack is labeled as typical, not a measured cell', () => {
+  assert.equal(P.PACKS.length, 4);
+  assert.ok(P.packById('pb12-7ah').cellWh > P.packById('3s2200').cellWh);
+  assert.equal(P.packById('nope'), null);
 });
