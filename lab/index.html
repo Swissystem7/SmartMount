@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartMount — מצב הדגמה הנדסי</title>
+<meta name="description" content="סימולציית חדר: מקור אור ניתן לגרירה, לולאת בקרה זהה לקושחת ESP32, כשל חיישן ומגבלת פאנל.">
+<meta name="theme-color" content="#0f1420">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#08080f;color:#e8e8f0;min-height:100vh}
+a{color:#58a6ff}
+nav{background:#0d1117;border-bottom:1px solid #21262d;padding:12px 20px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+nav .brand{font-weight:800;color:#58a6ff;margin-left:auto}
+nav a{text-decoration:none;font-size:.85rem;color:#8b949e}
+nav a:hover,nav a.on{color:#e8e8f0}
+.banner{background:#7c2d12;color:#ffedd5;font:700 .8rem system-ui,sans-serif;padding:8px 16px;text-align:center;border-bottom:1px solid rgba(255,255,255,.12)}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 16px 48px}
+h1{font-size:1.55rem;font-weight:800;margin-bottom:6px}
+.lead{color:#8b949e;font-size:.9rem;line-height:1.65;margin-bottom:18px;max-width:70ch}
+.grid{display:grid;grid-template-columns:1.4fr .9fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:#161b22;border:1px solid #21262d;border-radius:14px;padding:16px}
+.card h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin-bottom:12px}
+#room{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d;touch-action:none;cursor:crosshair}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.btn{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:8px;padding:8px 12px;cursor:pointer;font:600 .8rem inherit}
+.btn:hover{border-color:#58a6ff;color:#58a6ff}
+.btn.on{background:#1f4068;border-color:#58a6ff;color:#58a6ff}
+.btn.danger.on{background:#3a1010;border-color:#f85149;color:#f85149}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.m{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px}
+.m b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
+.m span{font-size:.7rem;color:#8b949e}
+.m.hold b{color:#f59e0b}
+.m.clamp b{color:#a371f7}
+.m.ok b{color:#3fb950}
+.m.fail b{color:#f85149}
+.const{font-size:.75rem;color:#8b949e;line-height:1.7;margin-top:8px}
+.const code{color:#79c0ff;font-size:.72rem}
+.log{max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.log div{background:#0d1117;border:1px solid #21262d;border-radius:7px;padding:6px 9px;font-size:.75rem;color:#c9d1d9}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:.75rem;color:#8b949e}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:5px;vertical-align:middle}
+.hint{font-size:.78rem;color:#8b949e;margin-top:8px;line-height:1.5}
+</style>
+</head>
+<body>
+<nav>
+  <span class="brand">SmartMount</span>
+  <a href="../">בית</a>
+  <a class="on" href="./">מעבדה הנדסית</a>
+  <a href="../build/">מפרט בנייה</a>
+  <a href="../geometry/">גאומטריית בוהק</a>
+  <a href="../dashboard/">לוח בקרה</a>
+</nav>
+<div class="banner">סימולציה — הלולאה כאן היא פורט JS של <code>firmware/smart_mount.ino</code>. אין חומרה מחוברת.</div>
+<div class="wrap">
+  <h1>מצב הדגמה הנדסי</h1>
+  <p class="lead">גררו את מקור האור בחדר. הלולאה מריצה את חוק ההחלטה של הקושחה — אותם ספים, deadband, הידוק לגבול פאנל, ו־hold על כשל חיישן — לא סימולציה מנותקת.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>חדר וירטואלי</h2>
+      <svg id="room" viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="wallG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#12151c"/>
+            <stop offset="100%" stop-color="#0a0c10"/>
+          </linearGradient>
+          <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fde68a" stop-opacity="1"/>
+            <stop offset="55%" stop-color="#f59e0b" stop-opacity=".85"/>
+            <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="800" height="420" fill="url(#wallG)"/>
+        <rect x="0" y="368" width="800" height="52" fill="#161b22"/>
+        <rect x="620" y="36" width="150" height="150" rx="4" fill="#1a2230" stroke="#3b82f6" stroke-opacity=".35"/>
+        <text x="695" y="28" fill="#8b949e" font-size="11" text-anchor="middle" font-family="sans-serif">חלון</text>
+        <line id="rayTop" x1="0" y1="0" x2="0" y2="0" stroke="#f0a500" stroke-width="1.5" stroke-dasharray="5 4" opacity=".7"/>
+        <line id="rayBot" x1="0" y1="0" x2="0" y2="0" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="5 4" opacity=".55"/>
+        <g id="naiveGhost" opacity="0">
+          <rect x="-70" y="-88" width="140" height="80" rx="4" fill="none" stroke="#f85149" stroke-width="2" stroke-dasharray="6 4"/>
+        </g>
+        <g id="tv">
+          <rect x="-72" y="-90" width="144" height="84" rx="5" fill="#1c2128" stroke="#58a6ff" stroke-width="2.5"/>
+          <rect x="-64" y="-82" width="128" height="68" rx="2" fill="#0d1117"/>
+          <text x="0" y="-42" fill="#58a6ff" font-size="13" text-anchor="middle" font-family="sans-serif">TV</text>
+          <rect x="-3" y="-6" width="6" height="28" fill="#444c56"/>
+          <circle id="sTop" cx="0" cy="-96" r="6" fill="#f0a500"/>
+          <circle id="sBot" cx="0" cy="-48" r="6" fill="#58a6ff"/>
+        </g>
+        <rect x="372" y="348" width="56" height="8" rx="3" fill="#444c56"/>
+        <g id="sun" style="cursor:grab">
+          <circle r="28" fill="url(#sunGlow)"/>
+          <circle r="11" fill="#fde68a"/>
+        </g>
+      </svg>
+      <div class="legend">
+        <span><i style="background:#f0a500"></i>חיישן עליון (0x23)</span>
+        <span><i style="background:#58a6ff"></i>חיישן תחתון (0x5C)</span>
+        <span><i style="background:#f85149"></i>צל נאיבי (כשל → מקסימום)</span>
+      </div>
+      <p class="hint">גררו את השמש. כפתור «כשל BH1750» מדמה קריאה שלילית — החוק הבטוח מחזיק זווית; הנאיבי מתייחס לחושך ומטייל למקסימום.</p>
+    </div>
+
+    <div class="card">
+      <h2>לולאת קושחה</h2>
+      <div class="row">
+        <button class="btn on" data-panel="0" id="p0">OLED 40°</button>
+        <button class="btn" data-panel="1" id="p1">QLED 30°</button>
+        <button class="btn" data-panel="2" id="p2">LED/VA 20°</button>
+      </div>
+      <div class="row">
+        <button class="btn danger" id="failTop">כשל חיישן עליון</button>
+        <button class="btn danger" id="failBot">כשל חיישן תחתון</button>
+        <button class="btn" id="showNaive">הצג חוק נאיבי</button>
+      </div>
+      <div class="metrics">
+        <div class="m" id="mTop"><b>—</b><span>lux עליון</span></div>
+        <div class="m" id="mBot"><b>—</b><span>lux תחתון</span></div>
+        <div class="m" id="mRatio"><b>—</b><span>יחס בוהק</span></div>
+        <div class="m" id="mDec"><b>—</b><span>החלטה</span></div>
+        <div class="m" id="mCur"><b>—</b><span>currentAngle (מהסטופר)</span></div>
+        <div class="m" id="mTgt"><b>—</b><span>target / צעדים</span></div>
+      </div>
+      <div class="const">
+        קבועים מ־<code>firmware/smart_mount.ino</code>:<br>
+        <code>PANEL_LIMITS {40,30,20}</code> שורה 21 ·
+        <code>STEPS_PER_DEGREE</code> שורה 28 ·
+        <code>lux&lt;0 → return currentAngle</code> שורות 87–92 ·
+        <code>min(luxBot, 1)</code> שורה 95 ·
+        <code>glareRatio &gt; 3.0</code> שורה 99 ·
+        <code>(ratio-3)*5</code> שורה 101 ·
+        <code>stepper.moveTo</code> שורות 106–113 ·
+        <code>|Δ| &gt; 1.0</code> deadband שורה 214
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Port of firmware/smart_mount.ino — constants must stay identical ──
+// PANEL_LIMITS[] = { 40.0, 30.0, 20.0 };          // ino:21
+const PANEL_LIMITS = [40.0, 30.0, 20.0];
+const PANEL_NAMES  = ['OLED', 'QLED', 'LED/VA'];
+// STEPS_PER_DEGREE = (200.0 * 5.0) / 360.0;       // ino:28
+const STEPS_PER_DEGREE = (200.0 * 5.0) / 360.0;
+const GLARE_THRESHOLD  = 3.0;   // ino:99
+const GAIN_DEG         = 5.0;   // ino:101
+const MIN_LUX          = 1.0;   // ino:95
+const DEADBAND_DEG     = 1.0;   // ino:214
+
+let panel = 0;
+let currentAngle = 0;   // synced from stepper position — ino:53-55
+let targetAngle  = 0;
+let currentSteps = 0;
+let targetSteps  = 0;
+let failTop = false;
+let failBot = false;
+let showNaive = false;
+let light = { x: 695, y: 90 };
+
+// calcOptimalAngle — ino:86-104
+function calcOptimalAngle(luxTop, luxBot, heldAngle, panelIdx) {
+  // ino:87-92 — BH1750 negative = hold, never slam to max
+  if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot) || luxTop < 0 || luxBot < 0) {
+    return { angle: heldAngle, hold: true, ratio: null, clamped: false };
+  }
+  const ratio = luxTop / Math.max(luxBot, MIN_LUX); // ino:95
+  const limit = PANEL_LIMITS[panelIdx];              // ino:96
+  let angle = 0.0;
+  if (ratio > GLARE_THRESHOLD) {                     // ino:99
+    angle = Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG, limit); // ino:101
+  }
+  return { angle, hold: false, ratio, clamped: angle >= limit && ratio > GLARE_THRESHOLD };
+}
+
+// moveToAngle — ino:106-113 (absolute moveTo, no premature currentAngle)
+function commandMoveTo(deg, panelIdx) {
+  const limit = PANEL_LIMITS[panelIdx];
+  const clamped = Math.max(-limit, Math.min(limit, deg)); // ino:108
+  targetAngle = clamped;
+  targetSteps = Math.round(clamped * STEPS_PER_DEGREE);   // ino:112-113
+  return clamped;
+}
+
+// What the pre-fix relative-move + treat-negative-as-dark law would do
+function naiveAngle(luxTop, luxBot, panelIdx) {
+  const ratio = luxTop / Math.max(luxBot, MIN_LUX);
+  const limit = PANEL_LIMITS[panelIdx];
+  if (ratio > GLARE_THRESHOLD) return Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG, limit);
+  return 0;
+}
+
+function sensorLux(sx, sy, nx, ny) {
+  const dx = light.x - sx, dy = light.y - sy;
+  const dist = Math.max(Math.hypot(dx, dy), 24);
+  const ndot = Math.max(0, (dx * nx + dy * ny) / dist);
+  const ambient = 40;
+  return ambient + ndot * 220000 / (dist * dist);
+}
+
+function addLog(msg) {
+  const el = document.getElementById('log');
+  const row = document.createElement('div');
+  const t = new Date();
+  const hh = String(t.getHours()).padStart(2,'0');
+  const mm = String(t.getMinutes()).padStart(2,'0');
+  const ss = String(t.getSeconds()).padStart(2,'0');
+  row.textContent = hh + ':' + mm + ':' + ss + ' — ' + msg;
+  el.prepend(row);
+  while (el.children.length > 12) el.lastChild.remove();
+}
+
+function setMetric(id, val, cls) {
+  const el = document.getElementById(id);
+  el.className = 'm' + (cls ? ' ' + cls : '');
+  el.querySelector('b').textContent = val;
+}
+
+function tick() {
+  const pivotX = 400, pivotY = 340;
+  const rad = currentAngle * Math.PI / 180;
+  const topLocal = { x: 0, y: -96 };
+  const botLocal = { x: 0, y: -48 };
+  function world(p) {
+    const c = Math.cos(rad), s = Math.sin(rad);
+    return { x: pivotX + p.x * c - p.y * s, y: pivotY + p.x * s + p.y * c };
+  }
+  const wTop = world(topLocal);
+  const wBot = world(botLocal);
+  // Top faces up/out of the screen plane; bot faces the panel (inward).
+  const nTop = { x: Math.sin(rad) * 0.35 + 0.55, y: -0.85 };
+  const nBot = { x: -Math.sin(rad), y: Math.cos(rad) };
+
+  let luxTop = sensorLux(wTop.x, wTop.y, nTop.x, nTop.y);
+  let luxBot = sensorLux(wBot.x, wBot.y, nBot.x, nBot.y) * 0.18 + 35;
+  if (failTop) luxTop = -1;
+  if (failBot) luxBot = -1;
+
+  const decision = calcOptimalAngle(luxTop, luxBot, currentAngle, panel);
+  const next = decision.angle;
+  let moved = false;
+  if (Math.abs(next - currentAngle) > DEADBAND_DEG) { // ino:214
+    commandMoveTo(next, panel);
+    moved = true;
+  } else if (!decision.hold) {
+    targetAngle = next; // ino:217
+  }
+
+  // stepper.run() — currentAngle follows position, not the command (ino:53-55, 206-207)
+  if (currentSteps !== targetSteps) {
+    const dir = Math.sign(targetSteps - currentSteps);
+    currentSteps += dir * Math.min(4, Math.abs(targetSteps - currentSteps));
+    currentAngle = currentSteps / STEPS_PER_DEGREE;
+  }
+
+  const naive = naiveAngle(luxTop, luxBot, panel);
+
+  document.getElementById('tv').setAttribute('transform',
+    'translate(400 340) rotate(' + currentAngle + ')');
+  const ghost = document.getElementById('naiveGhost');
+  ghost.setAttribute('transform', 'translate(400 340) rotate(' + naive + ')');
+  ghost.setAttribute('opacity', showNaive ? '0.9' : '0');
+
+  document.getElementById('sun').setAttribute('transform', 'translate(' + light.x + ' ' + light.y + ')');
+  document.getElementById('rayTop').setAttribute('x1', light.x);
+  document.getElementById('rayTop').setAttribute('y1', light.y);
+  document.getElementById('rayTop').setAttribute('x2', wTop.x);
+  document.getElementById('rayTop').setAttribute('y2', wTop.y);
+  document.getElementById('rayBot').setAttribute('x1', light.x);
+  document.getElementById('rayBot').setAttribute('y1', light.y);
+  document.getElementById('rayBot').setAttribute('x2', wBot.x);
+  document.getElementById('rayBot').setAttribute('y2', wBot.y);
+  document.getElementById('rayTop').setAttribute('opacity', failTop ? '0.15' : '0.7');
+  document.getElementById('rayBot').setAttribute('opacity', failBot ? '0.15' : '0.55');
+
+  if (decision.hold) {
+    setMetric('mTop', failTop ? 'FAIL (−1)' : luxTop.toFixed(0) + ' lx', failTop ? 'fail' : '');
+    setMetric('mBot', failBot ? 'FAIL (−1)' : luxBot.toFixed(0) + ' lx', failBot ? 'fail' : '');
+    setMetric('mRatio', '—', 'hold');
+    setMetric('mDec', 'HOLD', 'hold');
+  } else {
+    setMetric('mTop', luxTop.toFixed(0) + ' lx');
+    setMetric('mBot', luxBot.toFixed(0) + ' lx');
+    setMetric('mRatio', decision.ratio.toFixed(2) + '×', decision.ratio > GLARE_THRESHOLD ? 'fail' : 'ok');
+    setMetric('mDec', decision.clamped ? 'CLAMP ' + PANEL_LIMITS[panel] + '°' : (moved ? 'MOVE' : 'שקט'),
+      decision.clamped ? 'clamp' : (moved ? '' : 'ok'));
+  }
+  setMetric('mCur', currentAngle.toFixed(1) + '°');
+  setMetric('mTgt', targetAngle.toFixed(1) + '° / ' + targetSteps + ' st');
+
+  if (decision.hold && tick._wasHold !== true) {
+    addLog('כשל חיישן — מחזיק ' + currentAngle.toFixed(1) + '° (ino:87–92). נאיבי היה מגיע ל־' + naive.toFixed(1) + '°');
+  } else if (!decision.hold && decision.clamped && tick._wasClamp !== true) {
+    addLog('יחס ' + decision.ratio.toFixed(1) + '× — נצמד לגבול ' + PANEL_NAMES[panel] + ' ' + PANEL_LIMITS[panel] + '°');
+  } else if (moved && !decision.hold) {
+    addLog('יחס ' + decision.ratio.toFixed(2) + '× → יעד ' + next.toFixed(1) + '°  moveTo(' + targetSteps + ')');
+  }
+  tick._wasHold = decision.hold;
+  tick._wasClamp = !decision.hold && decision.clamped;
+}
+
+const svg = document.getElementById('room');
+function svgPt(evt) {
+  const pt = svg.createSVGPoint();
+  pt.x = evt.clientX; pt.y = evt.clientY;
+  const ctm = svg.getScreenCTM().inverse();
+  return pt.matrixTransform(ctm);
+}
+let dragging = false;
+svg.addEventListener('pointerdown', e => {
+  const p = svgPt(e);
+  if (Math.hypot(p.x - light.x, p.y - light.y) < 48) {
+    dragging = true;
+    svg.setPointerCapture(e.pointerId);
+  } else {
+    light.x = Math.max(40, Math.min(760, p.x));
+    light.y = Math.max(24, Math.min(300, p.y));
+  }
+});
+svg.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const p = svgPt(e);
+  light.x = Math.max(40, Math.min(760, p.x));
+  light.y = Math.max(24, Math.min(300, p.y));
+});
+svg.addEventListener('pointerup', () => { dragging = false; });
+
+document.querySelectorAll('[data-panel]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    panel = parseInt(btn.dataset.panel, 10);
+    document.querySelectorAll('[data-panel]').forEach(b => b.classList.toggle('on', b === btn));
+    const limit = PANEL_LIMITS[panel];
+    if (Math.abs(currentAngle) > limit) commandMoveTo(currentAngle, panel);
+    addLog('פאנל ' + PANEL_NAMES[panel] + ' — גבול ±' + limit + '° (ino:21, 144–157)');
+  });
+});
+document.getElementById('failTop').addEventListener('click', function () {
+  failTop = !failTop; this.classList.toggle('on', failTop);
+});
+document.getElementById('failBot').addEventListener('click', function () {
+  failBot = !failBot; this.classList.toggle('on', failBot);
+});
+document.getElementById('showNaive').addEventListener('click', function () {
+  showNaive = !showNaive; this.classList.toggle('on', showNaive);
+});
+
+addLog('לולאה עלתה — hold על קריאה שלילית, moveTo מוחלט, deadband 1°');
+setInterval(tick, 80);
+tick();
+</script>
+</body>
+</html>
