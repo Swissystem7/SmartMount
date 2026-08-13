@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartMount — מכונת מצבים</title>
+<meta name="description" content="מה שהקושחה באמת עושה (autoMode + moveTo) מול מכונת מצבים בטוחה מוצעת: הומינג, FAULT, סטול. לא רץ על לוח.">
+<meta name="theme-color" content="#0f1420">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{margin-bottom:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.group{margin-bottom:12px}
+.group h3{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+svg.diagram{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d}
+.node{fill:#161b22;stroke:#30363d;stroke-width:1.5}
+.node.on{fill:#1f4068;stroke:#58a6ff}
+.node.fault{fill:#3a1010;stroke:#f85149}
+.node.dead{fill:#2d1f00;stroke:#e3b341}
+.label{fill:#c9d1d9;font:700 11px system-ui,sans-serif;text-anchor:middle}
+.label.on{fill:#79c0ff}
+.edge{stroke:#30363d;stroke-width:1.2;fill:none;marker-end:url(#arr)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
+.kv b{display:block;font-size:.95rem;font-variant-numeric:tabular-nums}
+.kv span{font-size:.7rem;color:var(--muted)}
+.log{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.log div{background:#0d1117;border:1px solid #21262d;border-radius:7px;padding:6px 9px;font-size:.75rem;color:#c9d1d9}
+.note-warn{background:#2d1f00;border:1px solid #9e6a03;color:#e3b341;border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;margin:12px 0}
+.fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
+.check{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted);margin:8px 0}
+.st{display:inline-block;font:700 .75rem ui-monospace,Menlo,Consolas,monospace;padding:2px 7px;border-radius:5px;background:#21262d}
+.st.fault{background:#3a1010;color:#f85149}
+.st.ok{background:#1a3a2a;color:#3fb950}
+.st.meh{background:#2d1f00;color:#e3b341}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
+  <span class="brand">SmartMount</span>
+  <a href="../">בית</a>
+  <a href="../lab/">מעבדה הנדסית</a>
+  <a href="../spec/">מפרט בנייה</a>
+  <a href="../geometry/">גאומטריית בוהק</a>
+  <a href="../protocol/">חוזה API</a>
+  <a class="on" href="./" aria-current="page">מכונת מצבים</a>
+  <a href="../runtime/">תזמון והספק</a>
+  <a href="../dashboard/">לוח בקרה</a>
+</nav>
+<div class="banner">שתי מכונות על המחשב. אף אחת לא רצה על ESP32. הימנית היא קריאת ה־<code>.ino</code>; השמאלית היא תכנון.</div>
+<main id="main" class="wrap">
+  <h1>מכונת מצבים — מה שיש מול מה שחסר</h1>
+  <p class="lead">
+    הקושחה היא <code>bool autoMode</code> ועוד «האם ל־AccelStepper נשאר מרחק».
+    <code>setup()</code> קורא <code>setCurrentPosition(0)</code> בלי מפסק קצה.
+    אין <code>UNHOMED</code>, אין <code>FAULT</code>, אין סטול, אין WDT ייעודי.
+    אותו אירוע נשלח לשתי המכונות — זו הנקודה.
+  </p>
+
+  <div class="note-warn">
+    המכונה ה«בטוחה» לא נכתבה ל־<code>.ino</code> ולא נבדקה מול חומרה.
+    אי אפשר לעשות הומינג בתוכנה בלי מפסק. בלי תולעת / בלם, <code>POWER_LOSS</code> הוא נפילה — ראו
+    <a href="../spec/">מומנט</a>.
+  </div>
+
+  <div class="row" role="group" aria-label="תרחיש מוכן">
+    <button type="button" class="btn on" id="scReset">אתחול נקי</button>
+    <button type="button" class="btn" id="scLie">אתחול באמצע הטיה</button>
+    <button type="button" class="btn" id="scSensor">כשל חיישן</button>
+    <button type="button" class="btn" id="scHome">הומינג בלי מפסק</button>
+    <button type="button" class="btn" id="scStall">סטול בתנועה</button>
+  </div>
+  <label class="check">
+    <input type="checkbox" id="hasEndstop">
+    יש מפסק קצה בחומרה (בלוח האמיתי — אין)
+  </label>
+  <label class="check">
+    <input type="checkbox" id="selfLock">
+    נעילה עצמית (תולעת / בלם)
+  </label>
+
+  <div class="grid" style="margin-top:12px">
+    <div class="card">
+      <h2>מה שה־.ino עושה</h2>
+      <svg class="diagram" viewBox="0 0 420 160" role="img" aria-labelledby="fwTitle" dir="ltr">
+        <title id="fwTitle">BOOT ואז RUN בלבד</title>
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#30363d"/>
+          </marker>
+        </defs>
+        <rect id="fwBOOT" class="node" x="30" y="50" width="120" height="48" rx="10"/>
+        <text class="label" id="fwBOOTL" x="90" y="78">BOOT</text>
+        <path class="edge" d="M150 74 H190"/>
+        <rect id="fwRUN" class="node" x="190" y="40" width="190" height="68" rx="10"/>
+        <text class="label" id="fwRUNL" x="285" y="70">RUN</text>
+        <text fill="#8b949e" font-size="10" text-anchor="middle" font-family="sans-serif" x="285" y="90">autoMode · distanceToGo</text>
+      </svg>
+      <p><span class="st" id="fwState">BOOT</span></p>
+      <div class="kv">
+        <div><b id="fwAng">0°</b><span>believed (הקושחה)</span></div>
+        <div><b id="fwMech">0°</b><span>מכני (הזרוע)</span></div>
+        <div><b id="fwTgt">0°</b><span>יעד</span></div>
+        <div><b id="fwFlags">—</b><span>דגלים</span></div>
+      </div>
+      <p class="fine" id="fwWhy">—</p>
+    </div>
+
+    <div class="card">
+      <h2>מוצע — לא בקושחה</h2>
+      <svg class="diagram" viewBox="0 0 520 280" role="img" aria-labelledby="sfTitle" dir="ltr">
+        <title id="sfTitle">BOOT, UNHOMED, HOMING, IDLE, MOVING, FAULT, DEAD</title>
+        <rect id="sfBOOT" class="node" x="10" y="16" width="88" height="36" rx="8"/>
+        <text class="label" id="sfBOOTL" x="54" y="38">BOOT</text>
+        <rect id="sfUNHOMED" class="node" x="120" y="16" width="100" height="36" rx="8"/>
+        <text class="label" id="sfUNHOMEDL" x="170" y="38">UNHOMED</text>
+        <rect id="sfHOMING" class="node" x="246" y="16" width="88" height="36" rx="8"/>
+        <text class="label" id="sfHOMINGL" x="290" y="38">HOMING</text>
+        <rect id="sfIDLE_AUTO" class="node" x="10" y="80" width="100" height="36" rx="8"/>
+        <text class="label" id="sfIDLE_AUTOL" x="60" y="102">IDLE_AUTO</text>
+        <rect id="sfIDLE_MANUAL" class="node" x="130" y="80" width="110" height="36" rx="8"/>
+        <text class="label" id="sfIDLE_MANUALL" x="185" y="102">IDLE_MANUAL</text>
+        <rect id="sfMOVING" class="node" x="270" y="80" width="88" height="36" rx="8"/>
+        <text class="label" id="sfMOVINGL" x="314" y="102">MOVING</text>
+        <rect id="sfFAULT_SENSOR" class="node" x="10" y="150" width="120" height="36" rx="8"/>
+        <text class="label" id="sfFAULT_SENSORL" x="70" y="172">FAULT_SENSOR</text>
+        <rect id="sfFAULT_HOME" class="node" x="150" y="150" width="110" height="36" rx="8"/>
+        <text class="label" id="sfFAULT_HOMEL" x="205" y="172">FAULT_HOME</text>
+        <rect id="sfFAULT_STALL" class="node" x="280" y="150" width="110" height="36" rx="8"/>
+        <text class="label" id="sfFAULT_STALLL" x="335" y="172">FAULT_STALL</text>
+        <rect id="sfFAULT_LIMIT" class="node" x="10" y="216" width="110" height="36" rx="8"/>
+        <text class="label" id="sfFAULT_LIMITL" x="65" y="238">FAULT_LIMIT</text>
+        <rect id="sfDEAD" class="node" x="150" y="216" width="88" height="36" rx="8"/>
+        <text class="label" id="sfDEADL" x="194" y="238">DEAD</text>
+      </svg>
+      <p><span class="st" id="sfState">BOOT</span></p>
+      <div class="kv">
+        <div><b id="sfAng">0°</b><span>believed</span></div>
+        <div><b id="sfMech">0°</b><span>מכני</span></div>
+        <div><b id="sfTgt">0°</b><span>יעד</span></div>
+        <div><b id="sfFlags">—</b><span>דגלים</span></div>
+      </div>
+      <p class="fine" id="sfWhy">—</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>אותו אירוע — שתי תשובות</h2>
+    <div class="group">
+      <h3>אתחול</h3>
+      <div class="row">
+        <button type="button" class="btn" data-ev="BOOT_OK">BOOT_DONE · WiFi OK</button>
+        <button type="button" class="btn" data-ev="BOOT_TO">BOOT_DONE · WiFi timeout</button>
+      </div>
+    </div>
+    <div class="group">
+      <h3>דגימה ופקודות</h3>
+      <div class="row">
+        <button type="button" class="btn" data-ev="GLARE">SAMPLE בוהק 10×</button>
+        <button type="button" class="btn" data-ev="CLEAR_ROOM">SAMPLE חדר רגוע</button>
+        <button type="button" class="btn" data-ev="DEG12">POST deg=12</button>
+        <button type="button" class="btn" data-ev="DEG99">POST deg=99</button>
+        <button type="button" class="btn" data-ev="AUTO">set-mode auto=1</button>
+        <button type="button" class="btn" data-ev="MANUAL">set-mode auto=0</button>
+      </div>
+    </div>
+    <div class="group">
+      <h3>תנועה והומינג</h3>
+      <div class="row">
+        <button type="button" class="btn" data-ev="ARRIVE">ARRIVE</button>
+        <button type="button" class="btn" data-ev="TICK">TICK 1s</button>
+        <button type="button" class="btn" data-ev="HOME_START">HOME_START</button>
+        <button type="button" class="btn" data-ev="HOME_FOUND">HOME_FOUND</button>
+      </div>
+    </div>
+    <div class="group">
+      <h3>כשלים</h3>
+      <div class="row">
+        <button type="button" class="btn danger" data-ev="SENSOR_FAIL">SENSOR_FAIL</button>
+        <button type="button" class="btn" data-ev="SENSOR_OK">SENSOR_OK</button>
+        <button type="button" class="btn danger" data-ev="STALL">STALL</button>
+        <button type="button" class="btn danger" data-ev="LIMIT">LIMIT</button>
+        <button type="button" class="btn danger" data-ev="POWER">POWER_LOSS</button>
+        <button type="button" class="btn" data-ev="CLEAR">CLEAR</button>
+      </div>
+    </div>
+    <div class="log" id="log" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <p class="fine">
+      הקוד: <code>src/lib/fsm.js</code>. הבדיקות נועלות ש־<code>.ino</code> עדיין בלי enum של מצבים,
+      בלי הומינג ובלי WDT — ושתי המכונות חולקות על SAMPLE אחרי אתחול לא־מאופס.
+    </p>
+  </div>
+</main>
+<script src="../src/lib/control-params.js"></script>
+<script src="../src/lib/control.js"></script>
+<script src="../src/lib/fsm.js"></script>
+<script>
+let fw = SM_FSM.fresh('firmware', { mechanicalAngle: 0 });
+let sf = SM_FSM.fresh('safe', { hasEndstop: false, mechanicalAngle: 0 });
+
+function paintNode(prefix, state, all) {
+  all.forEach((name) => {
+    const el = document.getElementById(prefix + name);
+    const lb = document.getElementById(prefix + name + 'L');
+    if (!el) return;
+    const on = name === state;
+    const fault = name.indexOf('FAULT') === 0 || name === 'DEAD' || name === 'UNHOMED';
+    el.setAttribute('class', 'node' + (on && name === 'DEAD' ? ' dead' : on && fault ? ' fault' : on ? ' on' : ''));
+    if (lb) lb.setAttribute('class', 'label' + (on ? ' on' : ''));
+  });
+}
+
+function flags(s) {
+  return [
+    s.autoMode ? 'auto' : 'ידני',
+    s.moving ? 'זז' : 'עומד',
+    s.homed ? 'homed' : 'לא homed',
+    s.sensorFail ? 'חיישן×' : 'חיישן✓',
+    s.dropped ? 'נפל' : '',
+    s.reject || '',
+  ].filter(Boolean).join(' · ');
+}
+
+function stClass(state) {
+  if (state.indexOf('FAULT') === 0 || state === 'DEAD') return 'st fault';
+  if (state === 'UNHOMED' || state === 'HOMING') return 'st meh';
+  if (state === 'IDLE_AUTO' || state === 'IDLE_MANUAL' || state === 'RUN') return 'st ok';
+  return 'st';
+}
+
+function render() {
+  paintNode('fw', fw.state, SM_FSM.FIRMWARE_STATES);
+  paintNode('sf', sf.state, SM_FSM.SAFE_STATES);
+  document.getElementById('fwState').textContent = fw.state;
+  document.getElementById('fwState').className = stClass(fw.state);
+  document.getElementById('sfState').textContent = sf.state;
+  document.getElementById('sfState').className = stClass(sf.state);
+  document.getElementById('fwAng').textContent = fw.believedAngle.toFixed(1) + '°';
+  document.getElementById('fwMech').textContent = fw.mechanicalAngle.toFixed(1) + '°';
+  document.getElementById('fwTgt').textContent = fw.targetAngle.toFixed(1) + '°';
+  document.getElementById('fwFlags').textContent = flags(fw);
+  document.getElementById('fwWhy').textContent = fw.reason;
+  document.getElementById('sfAng').textContent = sf.believedAngle.toFixed(1) + '°';
+  document.getElementById('sfMech').textContent = sf.mechanicalAngle.toFixed(1) + '°';
+  document.getElementById('sfTgt').textContent = sf.targetAngle.toFixed(1) + '°';
+  document.getElementById('sfFlags').textContent = flags(sf);
+  document.getElementById('sfWhy').textContent = sf.reason;
+}
+
+function addLog(line) {
+  const el = document.getElementById('log');
+  const row = document.createElement('div');
+  row.textContent = line;
+  el.prepend(row);
+  while (el.children.length > 16) el.lastChild.remove();
+}
+
+function syncOpts() {
+  const end = document.getElementById('hasEndstop').checked;
+  const lock = document.getElementById('selfLock').checked;
+  fw.selfLocking = lock;
+  sf.selfLocking = lock;
+  sf.hasEndstop = end;
+}
+
+function send(ev, label) {
+  syncOpts();
+  fw = SM_FSM.step(fw, ev);
+  sf = SM_FSM.step(sf, ev);
+  addLog(label + ' → .ino ' + fw.state + (fw.reject ? ' [' + fw.reject + ']' : '') +
+    ' · מוצע ' + sf.state + (sf.reject ? ' [' + sf.reject + ']' : ''));
+  render();
+}
+
+const EV = {
+  BOOT_OK: [{ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE (WiFi OK)'],
+  BOOT_TO: [{ type: 'BOOT_DONE', wifiOk: false }, 'BOOT_DONE (timeout)'],
+  GLARE: [{ type: 'SAMPLE', luxTop: 800, luxBot: 80 }, 'SAMPLE 10×'],
+  CLEAR_ROOM: [{ type: 'SAMPLE', luxTop: 80, luxBot: 80 }, 'SAMPLE חדר רגוע'],
+  DEG12: [{ type: 'SET_ANGLE', deg: 12 }, 'SET_ANGLE 12'],
+  DEG99: [{ type: 'SET_ANGLE', deg: 99 }, 'SET_ANGLE 99 (יוצמד)'],
+  AUTO: [{ type: 'SET_MODE', auto: true }, 'SET_MODE auto'],
+  MANUAL: [{ type: 'SET_MODE', auto: false }, 'SET_MODE ידני'],
+  ARRIVE: [{ type: 'ARRIVE' }, 'ARRIVE'],
+  TICK: [{ type: 'TICK', dtMs: 1000 }, 'TICK 1000ms'],
+  HOME_START: [{ type: 'HOME_START' }, 'HOME_START'],
+  HOME_FOUND: [{ type: 'HOME_FOUND' }, 'HOME_FOUND'],
+  SENSOR_FAIL: [{ type: 'SENSOR_FAIL' }, 'SENSOR_FAIL'],
+  SENSOR_OK: [{ type: 'SENSOR_OK' }, 'SENSOR_OK'],
+  STALL: [{ type: 'STALL' }, 'STALL'],
+  LIMIT: [{ type: 'LIMIT' }, 'LIMIT'],
+  POWER: [{ type: 'POWER_LOSS' }, 'POWER_LOSS'],
+  CLEAR: [{ type: 'CLEAR' }, 'CLEAR'],
+};
+
+document.querySelectorAll('[data-ev]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const pair = EV[b.dataset.ev];
+    send(pair[0], pair[1]);
+  });
+});
+
+function resetBoth(mech) {
+  const lock = document.getElementById('selfLock').checked;
+  const end = document.getElementById('hasEndstop').checked;
+  fw = SM_FSM.fresh('firmware', { mechanicalAngle: mech, selfLocking: lock });
+  sf = SM_FSM.fresh('safe', { mechanicalAngle: mech, selfLocking: lock, hasEndstop: end });
+  document.getElementById('log').textContent = '';
+  addLog('איפוס — מכני ' + mech + '° · believed עדיין לא קיים עד BOOT_DONE');
+  render();
+}
+
+document.getElementById('scReset').addEventListener('click', () => resetBoth(0));
+document.getElementById('scLie').addEventListener('click', () => {
+  resetBoth(12);
+  send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE באמצע 12°');
+  send({ type: 'SET_ANGLE', deg: 15 }, 'SET_ANGLE 15');
+  send({ type: 'ARRIVE' }, 'ARRIVE');
+  addLog('שימו לב: .ino מאמין 15°, הזרוע ב־27°. המוצע סירב לזוז בלי הומינג.');
+});
+document.getElementById('scSensor').addEventListener('click', () => {
+  resetBoth(0);
+  send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE');
+  send({ type: 'HOME_START' }, 'HOME_START');
+  send({ type: 'HOME_FOUND' }, 'HOME_FOUND');
+  send({ type: 'SENSOR_FAIL' }, 'SENSOR_FAIL');
+  send({ type: 'SAMPLE', luxTop: 9000, luxBot: 40 }, 'SAMPLE תחת כשל');
+});
+document.getElementById('scHome').addEventListener('click', () => {
+  document.getElementById('hasEndstop').checked = false;
+  resetBoth(0);
+  send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE');
+  send({ type: 'HOME_START' }, 'HOME_START בלי מפסק');
+});
+document.getElementById('scStall').addEventListener('click', () => {
+  document.getElementById('hasEndstop').checked = true;
+  resetBoth(0);
+  send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE');
+  send({ type: 'HOME_START' }, 'HOME_START');
+  send({ type: 'HOME_FOUND' }, 'HOME_FOUND');
+  sf.moveBudgetMs = 800;
+  send({ type: 'SET_ANGLE', deg: 12 }, 'SET_ANGLE 12 (תקציב 800ms)');
+  send({ type: 'TICK', dtMs: 2000 }, 'TICK 2000ms');
+});
+
+['hasEndstop', 'selfLock'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', syncOpts);
+});
+
+resetBoth(0);
+</script>
+</body>
+</html>
