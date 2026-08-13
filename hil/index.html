@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartMount — תוכנית HIL</title>
+<meta name="description" content="תוכנית חומרה-בלולאה ל-ESP32. אף מקרה לא רץ — אין לוח על השולחן.">
+<meta name="theme-color" content="#0f1420">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.card{margin-bottom:16px}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+@media(max-width:720px){.kv{grid-template-columns:1fr 1fr}}
+.kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
+.kv b{display:block;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.kv span{font-size:.7rem;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.case{background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.case h3{font-size:.95rem;margin-bottom:6px}
+.case p{font-size:.84rem;color:var(--muted);line-height:1.6;margin:4px 0}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.tag{display:inline-block;font-size:.68rem;font-weight:700;border-radius:5px;padding:2px 7px}
+.tag.never{background:#3a1010;color:#f85149}
+.tag.fix{background:#1f4068;color:#79c0ff}
+.tag.none{background:#21262d;color:#8b949e}
+.tag.low{background:#2d1f00;color:#e3b341}
+.tag.high{background:#3a1010;color:#f85149}
+.fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
+.note-warn{background:#2d1f00;border:1px solid #9e6a03;color:#e3b341;border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;margin:12px 0}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
+  <span class="brand">SmartMount</span>
+  <a href="../">בית</a>
+  <a href="../lab/">מעבדה הנדסית</a>
+  <a href="../spec/">מפרט בנייה</a>
+  <a href="../geometry/">גאומטריית בוהק</a>
+  <a href="../protocol/">חוזה API</a>
+  <a href="../fsm/">מכונת מצבים</a>
+  <a href="../runtime/">תזמון והספק</a>
+  <a href="../power/">תקציב הספק</a>
+  <a class="on" href="./" aria-current="page">תוכנית HIL</a>
+  <a href="../alts/">חלופות</a>
+  <a href="../dashboard/">לוח בקרה</a>
+</nav>
+<div class="banner">לא רץ על חומרה. שנים-עשר מקרים כתובים, אפס לוגים מהלוח. <code>STATUS = never-run</code>.</div>
+<main id="main" class="wrap">
+  <h1>תוכנית Hardware-in-the-Loop</h1>
+  <p class="lead">
+    הבדיקות על המחשב נועלות את החוק ואת מכונת המצבים.
+    הן לא רואות BH1750, לא פולס STEP, ולא נפילה.
+    כאן המקרים שהיו רצים על שולחן — כולל מה אסור לתלות עליו.
+  </p>
+  <div class="note-warn">
+    HIL-10 הוא מסה מדומה עם מגן. לא טלוויזיה. אי אפשר להפוך את הסטטוס ל־«רץ»
+    מתוך <code>npm test</code>. המסמך המלא: <a href="../docs/HIL.md">docs/HIL.md</a>.
+  </div>
+  <div class="kv">
+    <div><b id="nCases">—</b><span>מקרים</span></div>
+    <div><b id="nRun">0</b><span>רצו על לוח</span></div>
+    <div><b id="nHigh">—</b><span>סיכון גבוה</span></div>
+    <div><b>never-run</b><span>סטטוס קשיח בקוד</span></div>
+  </div>
+  <div class="row" id="filters" role="group" aria-label="סינון לפי מתקן"></div>
+  <div id="list"></div>
+  <p class="fine">
+    המקור: <code>src/lib/hil.js</code>. הבדיקות נועלות שאין מקרה «עבר»,
+    ש־HIL-10 אוסר טלוויזיה, וש־HIL-07 הוא שקר האפס מהמעבדה.
+  </p>
+</main>
+<script src="../src/lib/hil.js"></script>
+<script>
+const FIX_HE = {};
+SM_HIL.FIXTURES.forEach((f) => { FIX_HE[f.id] = f.label; });
+let filter = 'all';
+
+function tag(cls, text) {
+  return '<span class="tag ' + cls + '">' + text + '</span>';
+}
+
+function render() {
+  const s = SM_HIL.summary();
+  document.getElementById('nCases').textContent = String(s.cases);
+  document.getElementById('nRun').textContent = String(s.run);
+  document.getElementById('nHigh').textContent = String(s.hazards.high || 0);
+
+  const filters = document.getElementById('filters');
+  filters.textContent = '';
+  const opts = [{ id: 'all', label: 'הכול' }].concat(SM_HIL.FIXTURES);
+  opts.forEach((f) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn' + (filter === f.id ? ' on' : '');
+    b.textContent = f.label;
+    b.addEventListener('click', () => { filter = f.id; render(); });
+    filters.appendChild(b);
+  });
+
+  const list = document.getElementById('list');
+  list.textContent = '';
+  SM_HIL.CASES.filter((c) => filter === 'all' || c.fixture === filter).forEach((c) => {
+    const el = document.createElement('article');
+    el.className = 'case';
+    el.innerHTML =
+      '<div class="meta">' +
+        tag('never', 'never-run') +
+        tag('fix', FIX_HE[c.fixture]) +
+        tag(c.hazard, 'סיכון ' + c.hazard) +
+      '</div>' +
+      '<h3>' + c.id + ' — ' + c.title + '</h3>' +
+      '<p><strong>הזרקה:</strong> ' + c.inject + '</p>' +
+      '<p><strong>עבר:</strong> ' + c.expect + '</p>' +
+      '<p><strong>מוכיח:</strong> ' + c.proves + '</p>' +
+      '<p><strong>לא מוכיח:</strong> ' + c.cannotProve + '</p>' +
+      '<p><strong>מכשירים:</strong> ' + c.instruments.join(' · ') + '</p>';
+    list.appendChild(el);
+  });
+}
+render();
+</script>
+</body>
+</html>
