@@ -1,0 +1,9 @@
+{
+  "name": "smartmount",
+  "private": true,
+  "description": "ESP32 anti-glare mount — firmware + browser demo. Not a product.",
+  "scripts": {
+    "test": "node --test",
+    "sync-params": "node scripts/sync-control-params.js"
+  }
+}

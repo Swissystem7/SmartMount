@@ -35,12 +35,13 @@
     return luxTop / Math.max(luxBot, MIN_LUX);
   }
 
-  function calcOptimalAngle(luxTop, luxBot, panel = 'LED') {
+  function calcOptimalAngle(luxTop, luxBot, panel = 'LED', currentAngle = 0) {
     const limit = PANEL_LIMITS[panel];
     if (limit === undefined) throw new Error('unknown panel type: ' + panel);
 
     const ratio = glareRatio(luxTop, luxBot);
-    if (ratio === null) return 0;              // bad reading: hold still
+    // Firmware returns currentAngle on a failed BH1750 read (hold, never slam).
+    if (ratio === null) return currentAngle;
     if (ratio <= GLARE_THRESHOLD) return 0;
 
     return Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
@@ -57,11 +58,47 @@
     return Math.min(Math.max(angle, -limit), limit);
   }
 
+  function hmToMinutes(hhmm) {
+    const [h, m] = String(hhmm).split(':').map(Number);
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return NaN;
+    return h * 60 + m;
+  }
+
+  // Dashboard schedule: during a matching window the mount goes to the
+  // panel limit (full protection), otherwise the glare law applies.
+  function isScheduleActive(schedules, now = new Date()) {
+    if (!Array.isArray(schedules) || !schedules.length) return false;
+    const day = now.getDay();
+    const hhmm = now.getHours() * 60 + now.getMinutes();
+    return schedules.some((s) => {
+      if (parseInt(s.day, 10) !== day) return false;
+      const from = hmToMinutes(s.from);
+      const to = hmToMinutes(s.to);
+      if (!Number.isFinite(from) || !Number.isFinite(to) || from >= to) return false;
+      return hhmm >= from && hhmm <= to;
+    });
+  }
+
+  function resolveAutoTarget({
+    schedules = [],
+    now = new Date(),
+    panel = 'LED',
+    luxTop,
+    luxBot,
+    currentAngle = 0,
+  } = {}) {
+    if (PANEL_LIMITS[panel] === undefined) throw new Error('unknown panel type: ' + panel);
+    if (isScheduleActive(schedules, now)) return PANEL_LIMITS[panel];
+    return calcOptimalAngle(luxTop, luxBot, panel, currentAngle);
+  }
+
   return {
     calcOptimalAngle,
     glareRatio,
     shouldMove,
     clampToPanel,
+    isScheduleActive,
+    resolveAutoTarget,
     PANEL_LIMITS,
     GLARE_THRESHOLD,
     GAIN_DEG_PER_RATIO,

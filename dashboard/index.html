@@ -18,7 +18,11 @@
       display: flex; align-items: center; justify-content: space-between;
     }
     header h1 { font-size: 1.5rem; font-weight: 700; color: #58a6ff; }
-    header span { color: #8b949e; font-size: 0.85rem; }
+    header span { color: #b1bac4; font-size: 0.85rem; }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid #58a6ff;
+      outline-offset: 2px;
+    }
     .header-actions { display: flex; gap: 10px; align-items: center; }
 
     .grid {
@@ -78,7 +82,7 @@
       border: 1px solid #21262d; text-align: center;
     }
     .lux-val { font-size: 1.6rem; font-weight: 700; }
-    .lux-label { font-size: 0.75rem; color: #8b949e; margin-top: 4px; }
+    .lux-label { font-size: 0.75rem; color: #b1bac4; margin-top: 4px; }
     .lux-bar { height: 4px; background: #21262d; border-radius: 2px; margin-top: 8px; overflow: hidden; }
     .lux-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
 
@@ -96,8 +100,8 @@
       display: flex; gap: 8px; margin-bottom: 16px;
     }
     .panel-btn {
-      flex: 1; padding: 10px; background: #0d1117; border: 1px solid #21262d;
-      color: #8b949e; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+      flex: 1; padding: 10px; background: #0d1117; border: 1px solid #30363d;
+      color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
       transition: all 0.2s;
     }
     .panel-btn.active { background: #1f4068; border-color: #58a6ff; color: #58a6ff; }
@@ -111,7 +115,7 @@
     .mode-manual { background: #2d1f00; color: #e3b341; border: 1px solid #9e6a03; }
 
     .slider-wrap { margin-top: 8px; }
-    .slider-wrap label { font-size: 0.8rem; color: #8b949e; display: block; margin-bottom: 8px; }
+    .slider-wrap label { font-size: 0.8rem; color: #b1bac4; display: block; margin-bottom: 8px; }
     input[type=range] {
       width: 100%; accent-color: #58a6ff;
       height: 6px; border-radius: 3px;
@@ -263,13 +267,14 @@
   </style>
 </head>
 <body>
-<nav class="site-nav">
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
   <span class="brand">SmartMount</span>
   <a href="../">בית</a>
   <a href="../lab/">מעבדה הנדסית</a>
   <a href="../spec/">מפרט בנייה</a>
   <a href="../geometry/">גאומטריית בוהק</a>
-  <a class="on" href="./">לוח בקרה</a>
+  <a class="on" href="./" aria-current="page">לוח בקרה</a>
 </nav>
 <div id="SIM-BANNER" style="background:#7c2d12;color:#ffedd5;font:700 0.82rem system-ui,sans-serif;padding:8px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.15)">
   ⚠️ סימולציה — לוח הבקרה אינו מחובר לחומרה. הקריאות והמדדים הם נתוני דוגמה. "SmartMount Cloud" אינו שירות קיים ואי אפשר להירשם אליו או לשלם עליו.
@@ -287,10 +292,10 @@
     </span>
   </div>
   <div class="header-actions">
-    <button class="calib-btn" onclick="openCalib()">🎯 כיול</button>
+    <button type="button" class="calib-btn" onclick="openCalib()">🎯 כיול</button>
     <button id="loginBtn" class="calib-btn" style="border-color:#1f6feb;color:#58a6ff" onclick="openAuth()">התחבר (הדגמה)</button>
     <div id="avatarWrap" style="position:relative;display:none">
-      <div id="userAvatar" onclick="toggleUserMenu(event)" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1f6feb,#388bfd);display:flex;align-items:center;justify-content:center;font-size:0.95rem;font-weight:700;cursor:pointer;color:#fff">👤</div>
+      <button type="button" id="userAvatar" onclick="toggleUserMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-controls="userMenu" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1f6feb,#388bfd);display:flex;align-items:center;justify-content:center;font-size:0.95rem;font-weight:700;cursor:pointer;color:#fff;border:0">👤</button>
       <div id="userMenu" class="user-menu">
         <div class="user-menu-name" id="userMenuName"></div>
         <button onclick="alert('החשבון שלי — בקרוב!')">👤 החשבון שלי</button>
@@ -301,7 +306,7 @@
 </header>
 
 <!-- Calibration Modal -->
-<div class="modal-overlay" id="calibModal">
+<div class="modal-overlay" id="calibModal" role="dialog" aria-modal="true" aria-labelledby="calibTitle">
   <div class="modal">
     <div class="modal-step" id="calibStepLabel">שלב 1 מתוך 3</div>
     <h3 id="calibTitle">כיול חיישן בוהק</h3>
@@ -389,7 +394,7 @@
   </div>
 </div>
 
-<div class="grid">
+<main id="main" class="grid">
 
   <!-- TV Visualizer -->
   <div class="card">
@@ -443,27 +448,30 @@
       </div>
     </div>
 
-    <div class="glare-indicator" id="glareIndicator">
-      <div class="glare-dot" id="glareDot"></div>
+    <div class="glare-indicator" id="glareIndicator" role="status" aria-live="polite">
+      <div class="glare-dot" id="glareDot" aria-hidden="true"></div>
       <div class="glare-text" id="glareText">טוען נתונים...</div>
     </div>
 
     <!-- Controls -->
-    <h2 style="margin-bottom:12px">⚙️ הגדרות</h2>
-    <div class="panel-select">
-      <button class="panel-btn" onclick="setPanel(0)">OLED</button>
-      <button class="panel-btn" onclick="setPanel(1)">QLED</button>
-      <button class="panel-btn active" id="panelBtn2" onclick="setPanel(2)">LED</button>
+    <h2 style="margin-bottom:12px" id="settingsHeading">⚙️ הגדרות</h2>
+    <div class="panel-select" role="group" aria-labelledby="settingsHeading" aria-label="סוג פאנל">
+      <button type="button" class="panel-btn" aria-pressed="false" onclick="setPanel(0)">OLED</button>
+      <button type="button" class="panel-btn" aria-pressed="false" onclick="setPanel(1)">QLED</button>
+      <button type="button" class="panel-btn active" id="panelBtn2" aria-pressed="true" onclick="setPanel(2)">LED</button>
     </div>
 
-    <button class="mode-toggle mode-auto" id="modeBtn" onclick="toggleMode()">
+    <button type="button" class="mode-toggle mode-auto" id="modeBtn" onclick="toggleMode()"
+            aria-pressed="true" aria-controls="manualSlider">
       🤖 מצב אוטומטי — פעיל
     </button>
 
     <div class="slider-wrap">
-      <label>שליטה ידנית על זווית: <span id="manualVal">0°</span></label>
+      <label for="manualSlider" id="manualSliderLabel">שליטה ידנית על זווית: <span id="manualVal">0°</span></label>
       <input type="range" id="manualSlider" min="-40" max="40" value="0"
-             disabled oninput="onSlider(this.value)">
+             disabled oninput="onSlider(this.value)"
+             aria-valuemin="-20" aria-valuemax="20" aria-valuenow="0" aria-valuetext="0 מעלות"
+             aria-disabled="true">
     </div>
   </div>
 
@@ -490,19 +498,21 @@
 
   <!-- Lux History Chart (full width) -->
   <div class="card full-width">
-    <h2>📊 היסטוריית בהירות — 60 שניות אחרונות</h2>
+    <h2 id="chartHeading">📊 היסטוריית בהירות — 60 שניות אחרונות</h2>
     <div class="chart-legend">
       <div class="legend-item">
-        <div class="legend-dot" style="background:#f0a500"></div>
+        <div class="legend-dot" style="background:#f0a500" aria-hidden="true"></div>
         <span>חיישן עליון (חיצוני)</span>
       </div>
       <div class="legend-item">
-        <div class="legend-dot" style="background:#58a6ff"></div>
+        <div class="legend-dot" style="background:#58a6ff" aria-hidden="true"></div>
         <span>חיישן תחתון (מסך)</span>
       </div>
     </div>
+    <p id="chartSummary" class="sr-only" aria-live="polite">אין עדיין דגימות בהירות.</p>
     <div class="chart-container">
-      <svg id="luxChart" viewBox="0 0 600 200" preserveAspectRatio="none">
+      <svg id="luxChart" viewBox="0 0 600 200" preserveAspectRatio="none"
+           role="img" aria-labelledby="chartHeading" aria-describedby="chartSummary">
         <defs>
           <linearGradient id="gradTop" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#f0a500" stop-opacity="0.3"/>
@@ -543,7 +553,7 @@
   <!-- Event Log (full width) -->
   <div class="card full-width">
     <h2>📋 לוג אירועים — פעילות אחרונה</h2>
-    <div id="eventLog" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+    <div id="eventLog" role="log" aria-live="polite" aria-relevant="additions" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
       <div style="color:#8b949e;font-size:0.85rem;text-align:center;padding:16px">ממתין לנתונים...</div>
     </div>
   </div>
@@ -559,6 +569,7 @@
     <ul class="schedule-list" id="schedList"></ul>
 
     <div class="sched-add-row">
+      <label class="sr-only" for="schedDay">יום</label>
       <select id="schedDay">
         <option value="0">ראשון</option>
         <option value="1">שני</option>
@@ -568,20 +579,23 @@
         <option value="5">שישי</option>
         <option value="6">שבת</option>
       </select>
+      <label class="sr-only" for="schedFrom">משעה</label>
       <input type="time" id="schedFrom" value="14:00">
-      <span style="color:#8b949e;font-size:0.85rem">עד</span>
+      <span style="color:#b1bac4;font-size:0.85rem">עד</span>
+      <label class="sr-only" for="schedTo">עד שעה</label>
       <input type="time" id="schedTo" value="17:00">
-      <button onclick="addSchedule()">+ הוסף</button>
+      <button type="button" onclick="addSchedule()">+ הוסף</button>
     </div>
     <div id="schedError">⚠️ שעת הסיום חייבת להיות מאוחרת יותר</div>
-    <p style="font-size:0.78rem;color:#8b949e;margin-top:10px">
+    <p style="font-size:0.78rem;color:#b1bac4;margin-top:10px">
       בזמני ההגנה המוגדרים, המערכת תעבור אוטומטית למצב מוגן גם בלי זיהוי בוהק חזק.
     </p>
   </div>
 
-</div>
+</main>
 
 <script src="../src/lib/control-params.js"></script>
+<script src="../src/lib/control.js"></script>
 <script>
 // ── Demo simulation — constants from config/control-params.json (via generated JS) ──
 let autoMode  = true;
@@ -644,16 +658,8 @@ function saveSchedules() {
   localStorage.setItem('sm_schedules', JSON.stringify(schedules));
 }
 
-function isScheduleActive() {
-  const now = new Date();
-  const day = now.getDay();
-  const hhmm = now.getHours() * 60 + now.getMinutes();
-  return schedules.some(s => {
-    if (parseInt(s.day) !== day) return false;
-    const [fh, fm] = s.from.split(':').map(Number);
-    const [th, tm] = s.to.split(':').map(Number);
-    return hhmm >= fh * 60 + fm && hhmm <= th * 60 + tm;
-  });
+function scheduleOnNow() {
+  return isScheduleActive(schedules, new Date());
 }
 
 function renderSchedules() {
@@ -667,7 +673,7 @@ function renderSchedules() {
       <span class="sched-day">${DAY_NAMES[s.day]}</span>
       <span class="sched-time">${s.from} — ${s.to}</span>
       <span class="sched-active">הגן אוטומטית</span>
-      <button class="sched-del" onclick="removeSchedule(${i})" title="מחק">✕</button>
+      <button type="button" class="sched-del" onclick="removeSchedule(${i})" aria-label="מחק חלון ${DAY_NAMES[s.day]} ${s.from} עד ${s.to}">✕</button>
     </li>
   `).join('');
 }
@@ -740,6 +746,14 @@ function updateChart() {
     label.setAttribute('y', Math.max(y - 3, 10));
     label.setAttribute('opacity', '1');
   }
+
+  const lastTop = histTop.length ? histTop[histTop.length - 1] : '—';
+  const lastBot = histBot.length ? histBot[histBot.length - 1] : '—';
+  const sum = document.getElementById('chartSummary');
+  if (sum) {
+    sum.textContent = 'גרף בהירות ל־60 שניות. עליון כעת ' + lastTop +
+      ' לוקס, תחתון ' + lastBot + ' לוקס. קנה מידה 0 עד 1200.';
+  }
 }
 
 // ── Main update loop ───────────────────────────────────────────────────
@@ -755,7 +769,7 @@ function update() {
   if (histBot.length > HISTORY_LEN) histBot.shift();
 
   // Schedule override
-  const schedActive = isScheduleActive();
+  const schedActive = scheduleOnNow();
   document.getElementById('schedActiveBadge').classList.toggle('visible', schedActive);
 
   if (autoMode) {
@@ -813,14 +827,22 @@ function applyPanelLimitsToSlider() {
   if (!Number.isFinite(v)) v = 0;
   v = Math.max(-limit, Math.min(limit, v));
   slider.value = v;
+  slider.setAttribute('aria-valuemin', String(-limit));
+  slider.setAttribute('aria-valuemax', String(limit));
+  slider.setAttribute('aria-valuenow', String(Math.round(v)));
+  slider.setAttribute('aria-valuetext', Math.round(v) + ' מעלות');
+  slider.setAttribute('aria-disabled', slider.disabled ? 'true' : 'false');
   document.getElementById('manualVal').textContent = Math.round(v) + '°';
   if (!autoMode) angle = v;
 }
 
 function setPanel(p) {
   panel = p;
-  document.querySelectorAll('.panel-btn').forEach((b,i) =>
-    b.classList.toggle('active', i === p));
+  document.querySelectorAll('.panel-btn').forEach((b,i) => {
+    const on = i === p;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
   angle = Math.max(-LIMITS[p], Math.min(LIMITS[p], angle));
   applyPanelLimitsToSlider();
 }
@@ -832,10 +854,12 @@ function toggleMode() {
   if (autoMode) {
     btn.textContent = '🤖 מצב אוטומטי — פעיל';
     btn.className = 'mode-toggle mode-auto';
+    btn.setAttribute('aria-pressed', 'true');
     slider.disabled = true;
   } else {
     btn.textContent = '🕹️ מצב ידני — פעיל';
     btn.className = 'mode-toggle mode-manual';
+    btn.setAttribute('aria-pressed', 'false');
     slider.disabled = false;
     applyPanelLimitsToSlider();
     slider.value = Math.round(angle);
@@ -850,6 +874,9 @@ function onSlider(val) {
   v = Math.max(-limit, Math.min(limit, v));
   document.getElementById('manualSlider').value = v;
   document.getElementById('manualVal').textContent = v + '°';
+  const sl = document.getElementById('manualSlider');
+  sl.setAttribute('aria-valuenow', String(v));
+  sl.setAttribute('aria-valuetext', v + ' מעלות');
   angle = v;
 }
 
