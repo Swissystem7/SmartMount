@@ -50,6 +50,7 @@ test('a dark screen-side sensor cannot divide by zero', () => {
 test('a failed sensor read holds position instead of slamming the panel', () => {
   assert.equal(calcOptimalAngle(-1, 100), 0);
   assert.equal(calcOptimalAngle(500, -2), 0);
+  assert.equal(calcOptimalAngle(-1, 100, 'OLED', 12.5), 12.5);
   assert.equal(glareRatio(-1, 100), null);
 });
 
