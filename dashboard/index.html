@@ -511,10 +511,10 @@
         <line x1="0" y1="50"  x2="600" y2="50"  stroke="#21262d" stroke-width="1"/>
         <line x1="0" y1="100" x2="600" y2="100" stroke="#21262d" stroke-width="1"/>
         <line x1="0" y1="150" x2="600" y2="150" stroke="#21262d" stroke-width="1"/>
-        <!-- Y axis labels -->
-        <text x="6" y="46"  fill="#8b949e" font-size="10" font-family="sans-serif">1000</text>
-        <text x="6" y="96"  fill="#8b949e" font-size="10" font-family="sans-serif">500</text>
-        <text x="6" y="146" fill="#8b949e" font-size="10" font-family="sans-serif">250</text>
+        <!-- Y axis labels — match luxToY(lux) with LUX_MAX_DISPLAY=1200 -->
+        <text x="6" y="46"  fill="#8b949e" font-size="10" font-family="sans-serif">900</text>
+        <text x="6" y="96"  fill="#8b949e" font-size="10" font-family="sans-serif">600</text>
+        <text x="6" y="146" fill="#8b949e" font-size="10" font-family="sans-serif">300</text>
         <text x="6" y="196" fill="#8b949e" font-size="10" font-family="sans-serif">0</text>
         <!-- Area fills -->
         <path id="areaTop" fill="url(#gradTop)" stroke="none" d=""/>
@@ -583,7 +583,10 @@ let angle     = 0;
 let targetAngle = 0;
 const LIMITS  = [20, 40, 30];
 const PANEL_NAMES = ['OLED','QLED','LED'];
+const GLARE_THRESHOLD = 3; // shared by movement law and UI glare indicator
 let simTime   = 0;
+let lastDisplayedLuxTop = null;
+let lastDisplayedLuxBot = null;
 
 // ── Calibration state ─────────────────────────────────────────────────
 let calibStep     = 0;
@@ -615,8 +618,12 @@ function simSensors() {
   return { lux_top: luxTop, lux_bot: luxBot };
 }
 
+function glareThreshold() {
+  return calibThreshold !== null ? calibThreshold : GLARE_THRESHOLD;
+}
+
 function calcAngle(luxTop, luxBot) {
-  const threshold = calibThreshold !== null ? calibThreshold : 3;
+  const threshold = glareThreshold();
   const ratio = luxTop / Math.max(luxBot, 1);
   if (ratio > threshold) return Math.min((ratio - threshold) * 5, LIMITS[panel]);
   return 0;
@@ -731,6 +738,8 @@ function updateChart() {
 // ── Main update loop ───────────────────────────────────────────────────
 function update() {
   const { lux_top, lux_bot } = simSensors();
+  lastDisplayedLuxTop = lux_top;
+  lastDisplayedLuxBot = lux_bot;
 
   // Push history
   histTop.push(lux_top);
@@ -762,9 +771,9 @@ function update() {
   document.getElementById('luxTopBar').style.width = Math.min(lux_top / 10, 100) + '%';
   document.getElementById('luxBotBar').style.width = Math.min(lux_bot / 2, 100) + '%';
 
-  // Glare indicator
+  // Glare indicator — same threshold as calcAngle / movement
   const ratio = lux_top / Math.max(lux_bot, 1);
-  const threshold = calibThreshold !== null ? calibThreshold : 6;
+  const threshold = glareThreshold();
   const dot  = document.getElementById('glareDot');
   const text = document.getElementById('glareText');
   if (ratio > threshold)           { dot.style.background='#f85149'; text.textContent='⚠️ בוהק חזק — מכוון מחדש'; showGlareToast(); }
@@ -788,11 +797,25 @@ function update() {
   updateStats(ratio, threshold, angle);
 }
 
+function applyPanelLimitsToSlider() {
+  const slider = document.getElementById('manualSlider');
+  const limit = LIMITS[panel];
+  slider.min = -limit;
+  slider.max = limit;
+  let v = parseFloat(slider.value);
+  if (!Number.isFinite(v)) v = 0;
+  v = Math.max(-limit, Math.min(limit, v));
+  slider.value = v;
+  document.getElementById('manualVal').textContent = Math.round(v) + '°';
+  if (!autoMode) angle = v;
+}
+
 function setPanel(p) {
   panel = p;
   document.querySelectorAll('.panel-btn').forEach((b,i) =>
     b.classList.toggle('active', i === p));
   angle = Math.max(-LIMITS[p], Math.min(LIMITS[p], angle));
+  applyPanelLimitsToSlider();
 }
 
 function toggleMode() {
@@ -807,15 +830,23 @@ function toggleMode() {
     btn.textContent = '🕹️ מצב ידני — פעיל';
     btn.className = 'mode-toggle mode-manual';
     slider.disabled = false;
+    applyPanelLimitsToSlider();
     slider.value = Math.round(angle);
     document.getElementById('manualVal').textContent = Math.round(angle) + '°';
   }
 }
 
 function onSlider(val) {
-  document.getElementById('manualVal').textContent = val + '°';
-  angle = parseFloat(val);
+  const limit = LIMITS[panel];
+  let v = parseFloat(val);
+  if (!Number.isFinite(v)) v = 0;
+  v = Math.max(-limit, Math.min(limit, v));
+  document.getElementById('manualSlider').value = v;
+  document.getElementById('manualVal').textContent = v + '°';
+  angle = v;
 }
+
+applyPanelLimitsToSlider();
 
 // ── Calibration modal ──────────────────────────────────────────────────
 function openCalib() {
@@ -866,18 +897,28 @@ function showCalibStep() {
 }
 
 function calibNext() {
-  // Read current sensor values from simulation
-  const { lux_top } = simSensors();
+  // Sample the same reading the meters are currently showing — not a fresh
+  // simSensors() draw, which would calibrate against a different value.
+  const lux = lastDisplayedLuxTop;
+  if (lux === null) {
+    document.getElementById('calibDesc').textContent =
+      'אין קריאה מוצגת עדיין. המתן שהמדדים יתעדכנו ונסה שוב.';
+    return;
+  }
 
   if (calibStep === 1) {
-    calibBaseline = lux_top;
+    calibBaseline = lux;
     calibStep = 2;
   } else if (calibStep === 2) {
-    calibMax = lux_top;
+    if (lux <= calibBaseline) {
+      document.getElementById('calibDesc').textContent =
+        'הרמה המקסימלית חייבת להיות גבוהה מרמת הבסיס. הפנה אור חזק יותר ונסה שוב.';
+      return;
+    }
+    calibMax = lux;
     // Threshold ratio: halfway between baseline ratio and max
     const rawRatio = calibMax / Math.max(calibBaseline, 1);
     calibThreshold = Math.max(1.5, rawRatio * 0.6);
-    // Save to localStorage
     localStorage.setItem('sm_calib', JSON.stringify({
       baseline:  calibBaseline,
       max:       calibMax,
@@ -975,7 +1016,7 @@ function updateStats(ratio, threshold, angleCur) {
     addEvent('⚠️', `בוהק זוהה — יחס ${ratio.toFixed(1)}×, מכוון לזווית ${angleCur.toFixed(0)}°`, '#f85149');
   }
   if (!isGlare && lastGlareState) {
-    addEvent('✅', `בוהק טופל — חזרה לזווית 0°`, '#3fb950');
+    addEvent('✅', `בוהק טופל — יעד ${targetAngle.toFixed(0)}°`, '#3fb950');
   }
   lastGlareState = isGlare;
 
