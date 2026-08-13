@@ -29,6 +29,7 @@ test('five reviewed bugs stay fixed-in-source or fixed-in-ui, never hardware-ver
   }
   assert.equal(C.bug('sensor-fail-hold').severity, 'safety');
   assert.match(C.bug('sensor-fail-hold').now, /HOLD/);
+  assert.match(C.bug('api-reject').now, /toInt|foo|OLED/);
 });
 
 test('open hazards include never-flashed and no homing', () => {

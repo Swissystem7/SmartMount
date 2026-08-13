@@ -58,47 +58,20 @@
     return Math.min(Math.max(angle, -limit), limit);
   }
 
-  function hmToMinutes(hhmm) {
-    const [h, m] = String(hhmm).split(':').map(Number);
-    if (!Number.isFinite(h) || !Number.isFinite(m)) return NaN;
-    return h * 60 + m;
+  // moveToAngle — ino: constrain then lroundf(deg * STEPS_PER_DEGREE).
+  // JS Math.round matches lroundf for the half-away-from-zero cases we hit.
+  function moveToAngle(deg, panel = 'LED') {
+    const clamped = clampToPanel(deg, panel);
+    return { clamped: clamped, steps: Math.round(clamped * P.stepsPerDegree) };
   }
 
-  // Dashboard schedule: during a matching window the mount goes to the
-  // panel limit (full protection), otherwise the glare law applies.
-  function isScheduleActive(schedules, now = new Date()) {
-    if (!Array.isArray(schedules) || !schedules.length) return false;
-    const day = now.getDay();
-    const hhmm = now.getHours() * 60 + now.getMinutes();
-    return schedules.some((s) => {
-      if (parseInt(s.day, 10) !== day) return false;
-      const from = hmToMinutes(s.from);
-      const to = hmToMinutes(s.to);
-      if (!Number.isFinite(from) || !Number.isFinite(to) || from >= to) return false;
-      return hhmm >= from && hhmm <= to;
-    });
-  }
-
-  function resolveAutoTarget({
-    schedules = [],
-    now = new Date(),
-    panel = 'LED',
-    luxTop,
-    luxBot,
-    currentAngle = 0,
-  } = {}) {
-    if (PANEL_LIMITS[panel] === undefined) throw new Error('unknown panel type: ' + panel);
-    if (isScheduleActive(schedules, now)) return PANEL_LIMITS[panel];
-    return calcOptimalAngle(luxTop, luxBot, panel, currentAngle);
-  }
-
+  // No schedule, cloud, or calibration — those are not in the .ino.
   return {
     calcOptimalAngle,
     glareRatio,
     shouldMove,
     clampToPanel,
-    isScheduleActive,
-    resolveAutoTarget,
+    moveToAngle,
     PANEL_LIMITS,
     GLARE_THRESHOLD,
     GAIN_DEG_PER_RATIO,

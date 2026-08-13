@@ -42,7 +42,7 @@
       severity: 'contract',
       status: 'fixed-in-source',
       was: 'type / deg / auto יכלו להיכנס ריקים או כזבל ולהפוך לברירת מחדל שקטה.',
-      now: 'סוג פאנל רק 0..2. set-angle ו-set-mode מחזירים 400 על חסר / לא מספר / auto≠0|1.',
+      now: 'set-angle ו-set-mode מחזירים 400 על חסר / לא מספר / auto≠0|1. type מחוץ ל-0..2 נדחה. חור שנשאר: toInt("foo")=0 → OLED, לא 400.',
       where: 'firmware/smart_mount.ino — handleSetAngle, handleSetPanel, handleSetMode',
       provenBy: 'test/protocol.test.js',
     }),
@@ -58,13 +58,13 @@
     }),
     Object.freeze({
       id: 'dashboard-honesty',
-      title: 'הדשבורד מפסיק לשקר לעצמו',
+      title: 'הדשבורד מפסיק להיות תיאטרון מוצר',
       severity: 'honesty',
       status: 'fixed-in-ui',
-      was: 'סף בוהק כפול, סליידר חופשי, כיול מקבל max≤baseline, גרף lux עם ציר לא תואם.',
-      now: 'סף אחד, היצמדות לגבול פאנל, דגימת הערך שמוצג, לוג יעד אמיתי. הבאנר אומר שזו סימולציה.',
+      was: 'Cloud ₪9.90, התחברות, «החשבון שלי», סף כפול, סליידר חופשי.',
+      now: 'אין ענן ואין חשבון. סליידרי lux מריצים control.js. באנר: סימולציה, לא חומרה.',
       where: 'dashboard/index.html',
-      provenBy: 'test/pages.test.js (באנר כנות)',
+      provenBy: 'test/pages.test.js (אין Cloud / ₪9.90)',
     }),
   ]);
 
@@ -109,24 +109,27 @@
       'MOVING', 'FAULT_SENSOR', 'FAULT_HOME', 'FAULT_STALL', 'FAULT_LIMIT', 'DEAD',
     ]),
     safeNote: 'מכונה מוצעת על המחשב. לא נכתבה ל-.ino ולא רצה על ESP32. בלי מפסק אי אפשר להומינג.',
-    cells: 165,
+    cells: 165, // 11×15 safe only. Firmware is a separate 2×15 = 30.
   });
 
   const TRADEOFFS = Object.freeze([
     Object.freeze({
       id: 'actuator',
+      question: 'איזה מפעיל?',
       chose: 'מנוע צעד + יחס 1:5',
       because: 'זה מה שה-.ino כבר מדבר. לא כי הוכחנו שזה הכי טוב לטלוויזיה.',
       better: 'מפעיל קווי עם תולעת — נעילה עצמית, מהלך איטי, מתאים ל-VESA.',
     }),
     Object.freeze({
       id: 'sensing',
+      question: 'איך מודדים בוהק?',
       chose: 'יחס שני BH1750',
       because: 'מבטל תאורה כללית בזול. נכשל כששני החיישנים רואים את אותה מנורה.',
       better: 'מצלמה / מד בהירות על קו הראייה. נכון פיזיקלית, מחוץ להיקף.',
     }),
     Object.freeze({
       id: 'zero',
+      question: 'איך יודעים איפה אפס?',
       chose: 'שקר האפס ב-setup',
       because: 'אין מפסק ב-BOM של ההאקתון.',
       better: 'מפסק קצה + הומינג. חובה למוצר. לא קיים בקושחה.',
@@ -136,7 +139,7 @@
   const SHOWN = Object.freeze([
     'סקירת קושחת ESP32 עם באגי בטיחות שננעלו בבדיקות מארח',
     'חוזה HTTP מפורש (ארבעה נתיבים, דחיית קלט רע)',
-    'מכונת מצבים כפולה: מה שכתוב מול מה שחסר, כולל 165 תאים',
+    'מכונת מצבים כפולה: מה שכתוב מול מה שחסר — 30 + 165 תאים',
     'תקציב תזמון והספק מדפי נתונים, לא ממד-זרם',
     'כנות: באנר, HIL never-run, PARK, אין נתיב הכנסה',
   ]);

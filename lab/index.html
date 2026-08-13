@@ -6,6 +6,7 @@
 <title>SmartMount — מצב הדגמה הנדסי</title>
 <meta name="description" content="סימולציית חדר עם קונסולת הזרקת תקלות: כשל חיישן, ניתוק WiFi, פקודה מעל גבול הפאנל — מול חוק הקושחה.">
 <meta name="theme-color" content="#0f1420">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
 .grid{display:grid;grid-template-columns:1.4fr .9fr;gap:16px}
@@ -29,6 +30,8 @@
 .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:.75rem;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:5px;vertical-align:middle}
 .hint{font-size:.78rem;color:var(--muted);margin-top:8px;line-height:1.5}
+label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
+input[type=range]{width:100%;accent-color:#58a6ff}
 .faults{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
 .fault{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:12px}
 .fault h3{font-size:.88rem;margin-bottom:6px}
@@ -44,22 +47,28 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
 <body>
 <a class="skip-link" href="#main">דלג לתוכן</a>
 <nav class="site-nav" aria-label="ניווט ראשי">
-  <span class="brand">SmartMount</span>
+  <a class="brand" href="../">SmartMount</a>
   <a href="../">בית</a>
   <a href="../case/">מקרה הנדסי</a>
-  <a class="on" href="./" aria-current="page">מעבדה הנדסית</a>
-  <a href="../spec/">מפרט בנייה</a>
-  <a href="../geometry/">גאומטריית בוהק</a>
-  <a href="../protocol/">חוזה API</a>
-  <a href="../fsm/">מכונת מצבים</a>
-  <a href="../runtime/">תזמון והספק</a>
-  <a href="../power/">תקציב הספק</a>
-  <a href="../hil/">תוכנית HIL</a>
-  <a href="../alts/">חלופות</a>
-  <a href="../dashboard/">לוח בקרה</a>
+  <a class="on" href="./" aria-current="page">מעבדה</a>
+  <a class="nav-mid" href="../spec/">מפרט</a>
+  <details class="nav-more">
+    <summary>עוד</summary>
+    <div class="nav-more-list">
+      <a href="../spec/">מפרט בנייה</a>
+      <a href="../geometry/">גאומטריית בוהק</a>
+      <a href="../protocol/">חוזה API</a>
+      <a href="../fsm/">מכונת מצבים</a>
+      <a href="../runtime/">תזמון והספק</a>
+      <a href="../power/">תקציב הספק</a>
+      <a href="../hil/">תוכנית HIL</a>
+      <a href="../alts/">חלופות</a>
+      <a href="../dashboard/">לוח בקרה</a>
+    </div>
+  </details>
 </nav>
 <div class="banner">סימולציה — הלולאה כאן היא פורט JS של <code>firmware/smart_mount.ino</code>. אין חומרה מחוברת.</div>
-<main id="main" class="wrap">
+<main id="main" tabindex="-1" class="wrap">
   <h1>מצב הדגמה הנדסי</h1>
   <p class="lead">גררו את מקור האור. הלולאה מריצה את חוק ההחלטה של הקושחה. מתחת — קונסולת תקלות: הורגים חיישן, מנתקים WiFi, או שולחים זווית מעל הגבול, ורואים מה הקושחה עושה במקום להתרסק.</p>
 
@@ -97,7 +106,7 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
           <circle id="sBot" cx="0" cy="-48" r="6" fill="#58a6ff"/>
         </g>
         <rect x="372" y="348" width="56" height="8" rx="3" fill="#444c56"/>
-        <g id="sun" style="cursor:grab">
+        <g id="sun" style="cursor:grab" tabindex="0" role="img" aria-label="מקור אור — גררו או השתמשו בסליידרים">
           <circle r="28" fill="url(#sunGlow)"/>
           <circle r="11" fill="#fde68a"/>
         </g>
@@ -107,7 +116,11 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
         <span><i style="background:#58a6ff"></i>חיישן תחתון (0x5C)</span>
         <span><i style="background:#f85149"></i>צל נאיבי (כשל → מקסימום)</span>
       </div>
-      <p class="hint" id="roomHint">גררו את השמש. כשל BH1750 מדמה קריאה שלילית — החוק הבטוח מחזיק זווית; הנאיבי מתייחס לחושך ומטה למקסימום.</p>
+      <label class="sl" for="sunX">מיקום אור אופקי: <span id="sunXVal">695</span></label>
+      <input type="range" id="sunX" min="40" max="760" value="695">
+      <label class="sl" for="sunY">מיקום אור אנכי: <span id="sunYVal">90</span></label>
+      <input type="range" id="sunY" min="24" max="300" value="90">
+      <p class="hint" id="roomHint">גררו את השמש, הזיזו בסליידרים, או מקמו אותה במקלדת (חצים). כשל BH1750 מדמה קריאה שלילית — החוק הבטוח מחזיק זווית; הנאיבי מתייחס לחושך ומטה למקסימום.</p>
     </div>
 
     <div class="card">
@@ -143,7 +156,7 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
   <div class="card" style="margin-top:16px">
     <h2>קונסולת הזרקת תקלות</h2>
     <p class="hint" style="margin-top:0;margin-bottom:12px">
-      שלוש התקלות שהקושחה טוענת שהיא שורדת. כל כפתור עובר דרך אותם כללים כמו ב־<code>.ino</code>
+      ארבע הזרקות: כשל חיישן, ניתוק WiFi, פקודה מעל הגבול, ואתחול שמשקר אפס. כל כפתור עובר דרך אותם כללים כמו ב־<code>.ino</code>
       (או דרך <a href="../protocol/">חוזה ה־HTTP</a> כשזה פקודה מרחוק).
     </p>
     <div class="faults">
@@ -199,15 +212,13 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
 </main>
 
 <script src="../src/lib/control-params.js"></script>
+<script src="../src/lib/control.js"></script>
 <script src="../src/lib/protocol.js"></script>
 <script>
-const PANEL_LIMITS = CONTROL_PARAMS.limitsArray;
 const PANEL_NAMES  = CONTROL_PARAMS.panelNames;
+const LIMITS = CONTROL_PARAMS.limitsArray;
 const STEPS_PER_DEGREE = CONTROL_PARAMS.stepsPerDegree;
-const GLARE_THRESHOLD  = CONTROL_PARAMS.glareThreshold;
-const GAIN_DEG         = CONTROL_PARAMS.gainDegPerRatio;
-const MIN_LUX          = CONTROL_PARAMS.minLux;
-const DEADBAND_DEG     = CONTROL_PARAMS.deadbandDeg;
+const MIN_LUX = CONTROL_PARAMS.minLux;
 
 let panel = 0;
 let currentAngle = 0;
@@ -223,31 +234,30 @@ let lastLux = { top: 0, bot: 0 };
 let light = { x: 695, y: 90 };
 let lieOffset = 0;
 
-function calcOptimalAngle(luxTop, luxBot, heldAngle, panelIdx) {
-  if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot) || luxTop < 0 || luxBot < 0) {
-    return { angle: heldAngle, hold: true, ratio: null, clamped: false };
-  }
-  const ratio = luxTop / Math.max(luxBot, MIN_LUX);
-  const limit = PANEL_LIMITS[panelIdx];
-  let angle = 0.0;
-  if (ratio > GLARE_THRESHOLD) {
-    angle = Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG, limit);
-  }
-  return { angle, hold: false, ratio, clamped: angle >= limit && ratio > GLARE_THRESHOLD };
+function decide(luxTop, luxBot, heldAngle, panelIdx) {
+  const name = PANEL_NAMES[panelIdx];
+  const angle = calcOptimalAngle(luxTop, luxBot, name, heldAngle);
+  const ratio = glareRatio(luxTop, luxBot);
+  const limit = LIMITS[panelIdx];
+  return {
+    angle: angle,
+    hold: ratio === null,
+    ratio: ratio,
+    clamped: ratio !== null && angle >= limit && ratio > GLARE_THRESHOLD,
+  };
 }
 
 function commandMoveTo(deg, panelIdx) {
-  const limit = PANEL_LIMITS[panelIdx];
-  const clamped = Math.max(-limit, Math.min(limit, deg));
-  targetAngle = clamped;
-  targetSteps = Math.round(clamped * STEPS_PER_DEGREE);
-  return clamped;
+  const r = moveToAngle(deg, PANEL_NAMES[panelIdx]);
+  targetAngle = r.clamped;
+  targetSteps = r.steps;
+  return r.clamped;
 }
 
 function naiveAngle(luxTop, luxBot, panelIdx) {
   const ratio = luxTop / Math.max(luxBot, MIN_LUX);
-  const limit = PANEL_LIMITS[panelIdx];
-  if (ratio > GLARE_THRESHOLD) return Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG, limit);
+  const limit = LIMITS[panelIdx];
+  if (ratio > GLARE_THRESHOLD) return Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
   return 0;
 }
 
@@ -350,7 +360,7 @@ function tick() {
   if (failBot) luxBot = -1;
   lastLux = { top: luxTop, bot: luxBot };
 
-  const decision = calcOptimalAngle(luxTop, luxBot, currentAngle, panel);
+  const decision = decide(luxTop, luxBot, currentAngle, panel);
   const next = decision.angle;
   let moved = false;
   if (autoMode) {
@@ -398,7 +408,7 @@ function tick() {
     setMetric('mTop', luxTop.toFixed(0) + ' lx');
     setMetric('mBot', luxBot.toFixed(0) + ' lx');
     setMetric('mRatio', decision.ratio.toFixed(2) + '×', decision.ratio > GLARE_THRESHOLD ? 'fail' : 'ok');
-    const label = !autoMode ? 'ידני' : (decision.clamped ? 'CLAMP ' + PANEL_LIMITS[panel] + '°' : (moved ? 'MOVE' : 'שקט'));
+    const label = !autoMode ? 'ידני' : (decision.clamped ? 'CLAMP ' + LIMITS[panel] + '°' : (moved ? 'MOVE' : 'שקט'));
     setMetric('mDec', label, decision.clamped ? 'clamp' : (moved || !autoMode ? '' : 'ok'));
   }
   setMetric('mCur', currentAngle.toFixed(1) + '°' + (lieOffset ? ' / מכני ' + visual.toFixed(1) + '°' : ''));
@@ -407,7 +417,7 @@ function tick() {
   if (autoMode && decision.hold && tick._wasHold !== true) {
     addLog('כשל חיישן — מחזיק ' + currentAngle.toFixed(1) + '° (ino:99–101). נאיבי היה מגיע ל־' + naive.toFixed(1) + '°');
   } else if (autoMode && !decision.hold && decision.clamped && tick._wasClamp !== true) {
-    addLog('יחס ' + decision.ratio.toFixed(1) + '× — נצמד לגבול ' + PANEL_NAMES[panel] + ' ' + PANEL_LIMITS[panel] + '°');
+    addLog('יחס ' + decision.ratio.toFixed(1) + '× — נצמד לגבול ' + PANEL_NAMES[panel] + ' ' + LIMITS[panel] + '°');
   } else if (autoMode && moved && !decision.hold) {
     addLog('יחס ' + decision.ratio.toFixed(2) + '× → יעד ' + next.toFixed(1) + '°  moveTo(' + targetSteps + ')');
   }
@@ -423,6 +433,16 @@ function svgPt(evt) {
   pt.x = evt.clientX; pt.y = evt.clientY;
   return pt.matrixTransform(ctm.inverse());
 }
+function setLight(x, y) {
+  light.x = Math.max(40, Math.min(760, x));
+  light.y = Math.max(24, Math.min(300, y));
+  const sx = document.getElementById('sunX');
+  const sy = document.getElementById('sunY');
+  if (sx.value !== String(Math.round(light.x))) sx.value = String(Math.round(light.x));
+  if (sy.value !== String(Math.round(light.y))) sy.value = String(Math.round(light.y));
+  document.getElementById('sunXVal').textContent = String(Math.round(light.x));
+  document.getElementById('sunYVal').textContent = String(Math.round(light.y));
+}
 let dragging = false;
 svg.addEventListener('pointerdown', e => {
   const p = svgPt(e);
@@ -430,22 +450,33 @@ svg.addEventListener('pointerdown', e => {
     dragging = true;
     svg.setPointerCapture(e.pointerId);
   } else {
-    light.x = Math.max(40, Math.min(760, p.x));
-    light.y = Math.max(24, Math.min(300, p.y));
+    setLight(p.x, p.y);
   }
 });
 svg.addEventListener('pointermove', e => {
   if (!dragging) return;
   const p = svgPt(e);
-  light.x = Math.max(40, Math.min(760, p.x));
-  light.y = Math.max(24, Math.min(300, p.y));
+  setLight(p.x, p.y);
 });
 svg.addEventListener('pointerup', () => { dragging = false; });
+document.getElementById('sunX').addEventListener('input', function () {
+  setLight(Number(this.value), light.y);
+});
+document.getElementById('sunY').addEventListener('input', function () {
+  setLight(light.x, Number(this.value));
+});
+document.getElementById('sun').addEventListener('keydown', function (e) {
+  const step = e.shiftKey ? 24 : 12;
+  if (e.key === 'ArrowLeft') { setLight(light.x - step, light.y); e.preventDefault(); }
+  if (e.key === 'ArrowRight') { setLight(light.x + step, light.y); e.preventDefault(); }
+  if (e.key === 'ArrowUp') { setLight(light.x, light.y - step); e.preventDefault(); }
+  if (e.key === 'ArrowDown') { setLight(light.x, light.y + step); e.preventDefault(); }
+});
 
 document.querySelectorAll('[data-panel]').forEach(btn => {
   btn.addEventListener('click', () => {
     httpCall('POST', '/set-panel', { type: btn.dataset.panel });
-    addLog('פאנל ' + PANEL_NAMES[panel] + ' — גבול ±' + PANEL_LIMITS[panel] + '°');
+    addLog('פאנל ' + PANEL_NAMES[panel] + ' — גבול ±' + LIMITS[panel] + '°');
   });
 });
 
