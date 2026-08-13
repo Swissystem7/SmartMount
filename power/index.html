@@ -6,6 +6,7 @@
 <title>SmartMount — תקציב הספק</title>
 <meta name="description" content="זרם idle / תנועה / WiFi וחישוב סוללה מול NEMA17. לא מדידה מהלוח.">
 <meta name="theme-color" content="#0f1420">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -39,22 +40,28 @@ td.num{font-variant-numeric:tabular-nums}
 <body>
 <a class="skip-link" href="#main">דלג לתוכן</a>
 <nav class="site-nav" aria-label="ניווט ראשי">
-  <span class="brand">SmartMount</span>
+  <a class="brand" href="../">SmartMount</a>
   <a href="../">בית</a>
-    <a href="../case/">מקרה הנדסי</a>
-  <a href="../lab/">מעבדה הנדסית</a>
-  <a href="../spec/">מפרט בנייה</a>
-  <a href="../geometry/">גאומטריית בוהק</a>
-  <a href="../protocol/">חוזה API</a>
-  <a href="../fsm/">מכונת מצבים</a>
-  <a href="../runtime/">תזמון והספק</a>
-  <a class="on" href="./" aria-current="page">תקציב הספק</a>
-  <a href="../hil/">תוכנית HIL</a>
-  <a href="../alts/">חלופות</a>
-  <a href="../dashboard/">לוח בקרה</a>
+  <a href="../case/">מקרה הנדסי</a>
+  <a href="../lab/">מעבדה</a>
+  <a class="nav-mid" href="../spec/">מפרט</a>
+  <details class="nav-more">
+    <summary>עוד</summary>
+    <div class="nav-more-list">
+      <a href="../spec/">מפרט בנייה</a>
+      <a href="../geometry/">גאומטריית בוהק</a>
+      <a href="../protocol/">חוזה API</a>
+      <a href="../fsm/">מכונת מצבים</a>
+      <a href="../runtime/">תזמון והספק</a>
+      <a class="on" href="../power/" aria-current="page">תקציב הספק</a>
+      <a href="../hil/">תוכנית HIL</a>
+      <a href="../alts/">חלופות</a>
+      <a href="../dashboard/">לוח בקרה</a>
+    </div>
+  </details>
 </nav>
 <div class="banner">מספרי דפי-נתונים טיפוסיים. הלוח לא נמדד במד-זרם. USB 5 V אינו פס המנוע.</div>
-<main id="main" class="wrap">
+<main id="main" tabindex="-1" class="wrap">
   <h1>תקציב הספק — זרם וסוללה</h1>
   <p class="lead">
     החזקת שני סלילי 17HS4401-class היא <code>2 × I²R = 6.75 W</code> לפני הפסדי מנהל.
@@ -95,7 +102,7 @@ td.num{font-variant-numeric:tabular-nums}
     <div class="card">
       <h2>חבילת סוללה — טיפוסית</h2>
       <div class="row" id="packs" role="group" aria-label="חבילת סוללה"></div>
-      <label class="sl" for="hours">שעות רצויות: <span id="hoursLbl">24</span></label>
+      <label class="sl" for="hoursWanted">שעות רצויות: <span id="hoursLbl">24</span></label>
       <input type="range" id="hoursWanted" min="2" max="72" step="1" value="24">
       <svg id="hours" viewBox="0 0 640 120" role="img" aria-label="שעות על החבילה" dir="ltr"></svg>
       <div class="kv">

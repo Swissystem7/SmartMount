@@ -6,6 +6,7 @@
 <title>SmartMount — חוזה HTTP / Serial</title>
 <meta name="description" content="החוזה המדויק של הקושחה: ארבעה נתיבי WebServer, ארגומנטים ב־query, ומה ש־Serial באמת מדפיס.">
 <meta name="theme-color" content="#0f1420">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -34,22 +35,28 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
 <body>
 <a class="skip-link" href="#main">דלג לתוכן</a>
 <nav class="site-nav" aria-label="ניווט ראשי">
-  <span class="brand">SmartMount</span>
+  <a class="brand" href="../">SmartMount</a>
   <a href="../">בית</a>
-    <a href="../case/">מקרה הנדסי</a>
-  <a href="../lab/">מעבדה הנדסית</a>
-  <a href="../spec/">מפרט בנייה</a>
-  <a href="../geometry/">גאומטריית בוהק</a>
-  <a class="on" href="./" aria-current="page">חוזה API</a>
-  <a href="../fsm/">מכונת מצבים</a>
-  <a href="../runtime/">תזמון והספק</a>
-  <a href="../power/">תקציב הספק</a>
-  <a href="../hil/">תוכנית HIL</a>
-  <a href="../alts/">חלופות</a>
-  <a href="../dashboard/">לוח בקרה</a>
+  <a href="../case/">מקרה הנדסי</a>
+  <a href="../lab/">מעבדה</a>
+  <a class="nav-mid" href="../spec/">מפרט</a>
+  <details class="nav-more">
+    <summary>עוד</summary>
+    <div class="nav-more-list">
+      <a href="../spec/">מפרט בנייה</a>
+      <a href="../geometry/">גאומטריית בוהק</a>
+      <a class="on" href="../protocol/" aria-current="page">חוזה API</a>
+      <a href="../fsm/">מכונת מצבים</a>
+      <a href="../runtime/">תזמון והספק</a>
+      <a href="../power/">תקציב הספק</a>
+      <a href="../hil/">תוכנית HIL</a>
+      <a href="../alts/">חלופות</a>
+      <a href="../dashboard/">לוח בקרה</a>
+    </div>
+  </details>
 </nav>
 <div class="banner">החוזה הזה נגזר מ־<code>firmware/smart_mount.ino</code> — לא מ־OpenAPI. אין לוח מחובר.</div>
-<main id="main" class="wrap">
+<main id="main" tabindex="-1" class="wrap">
   <h1>חוזה HTTP / Serial</h1>
   <p class="lead">
     הקושחה מעלה <code>WebServer(80)</code> אחרי ניסיון WiFi של 10 שניות.

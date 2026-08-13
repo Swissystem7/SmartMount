@@ -6,6 +6,7 @@
 <title>SmartMount — מפרט בנייה</title>
 <meta name="description" content="BOM כנה, מחשבון מומנט מול NEMA17, תרשים חיווט, והשאלות שטרם נפתרו.">
 <meta name="theme-color" content="#0f1420">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
 .wrap{max-width:1000px}
@@ -46,22 +47,28 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
 <body>
 <a class="skip-link" href="#main">דלג לתוכן</a>
 <nav class="site-nav" aria-label="ניווט ראשי">
-  <span class="brand">SmartMount</span>
+  <a class="brand" href="../">SmartMount</a>
   <a href="../">בית</a>
-    <a href="../case/">מקרה הנדסי</a>
-  <a href="../lab/">מעבדה הנדסית</a>
-  <a class="on" href="./" aria-current="page">מפרט בנייה</a>
-  <a href="../geometry/">גאומטריית בוהק</a>
-  <a href="../protocol/">חוזה API</a>
-  <a href="../fsm/">מכונת מצבים</a>
-  <a href="../runtime/">תזמון והספק</a>
-  <a href="../power/">תקציב הספק</a>
-  <a href="../hil/">תוכנית HIL</a>
-  <a href="../alts/">חלופות</a>
-  <a href="../dashboard/">לוח בקרה</a>
+  <a href="../case/">מקרה הנדסי</a>
+  <a href="../lab/">מעבדה</a>
+  <a class="nav-mid on" href="../spec/" aria-current="page">מפרט</a>
+  <details class="nav-more">
+    <summary>עוד</summary>
+    <div class="nav-more-list">
+      <a class="on" href="../spec/" aria-current="page">מפרט בנייה</a>
+      <a href="../geometry/">גאומטריית בוהק</a>
+      <a href="../protocol/">חוזה API</a>
+      <a href="../fsm/">מכונת מצבים</a>
+      <a href="../runtime/">תזמון והספק</a>
+      <a href="../power/">תקציב הספק</a>
+      <a href="../hil/">תוכנית HIL</a>
+      <a href="../alts/">חלופות</a>
+      <a href="../dashboard/">לוח בקרה</a>
+    </div>
+  </details>
 </nav>
 <div class="banner">מפרט קונספט — לא ערכת בנייה. המחירים הם טווחי מדף נפוצים (אוגוסט 2026), לא הצעת רכש.</div>
-<main id="main" class="wrap">
+<main id="main" tabindex="-1" class="wrap">
   <h1>מפרט בנייה</h1>
   <p class="lead">מסמך ההאקתון הישן (עכשיו בארכיון) העריך ₪35–50 ל־ESP32 + חיישן + מנוע. זה BOM של לוח לחם, לא של תושבת שנושאת 20–40 ק״ג. כאן הרשימה האמיתית — כולל מה שחסר.</p>
 

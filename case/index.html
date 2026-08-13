@@ -12,6 +12,7 @@
 <meta property="og:description" content="באגי בטיחות, FSM, ופשרות. הקושחה לא רצה על לוח. אין מוצר.">
 <meta property="og:url" content="https://swissystem7.github.io/SmartMount/case/">
 <meta property="og:locale" content="he_IL">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
 .wrap{max-width:920px}
@@ -54,22 +55,28 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
 <body>
 <a class="skip-link" href="#main">דלג לתוכן</a>
 <nav class="site-nav" aria-label="ניווט ראשי">
-  <span class="brand">SmartMount</span>
+  <a class="brand" href="../">SmartMount</a>
   <a href="../">בית</a>
   <a class="on" href="./" aria-current="page">מקרה הנדסי</a>
-  <a href="../lab/">מעבדה הנדסית</a>
-  <a href="../spec/">מפרט בנייה</a>
-  <a href="../geometry/">גאומטריית בוהק</a>
-  <a href="../protocol/">חוזה API</a>
-  <a href="../fsm/">מכונת מצבים</a>
-  <a href="../runtime/">תזמון והספק</a>
-  <a href="../power/">תקציב הספק</a>
-  <a href="../hil/">תוכנית HIL</a>
-  <a href="../alts/">חלופות</a>
-  <a href="../dashboard/">לוח בקרה</a>
+  <a href="../lab/">מעבדה</a>
+  <a class="nav-mid" href="../spec/">מפרט</a>
+  <details class="nav-more">
+    <summary>עוד</summary>
+    <div class="nav-more-list">
+      <a href="../spec/">מפרט בנייה</a>
+      <a href="../geometry/">גאומטריית בוהק</a>
+      <a href="../protocol/">חוזה API</a>
+      <a href="../fsm/">מכונת מצבים</a>
+      <a href="../runtime/">תזמון והספק</a>
+      <a href="../power/">תקציב הספק</a>
+      <a href="../hil/">תוכנית HIL</a>
+      <a href="../alts/">חלופות</a>
+      <a href="../dashboard/">לוח בקרה</a>
+    </div>
+  </details>
 </nav>
 <div class="banner">הקושחה לא רצה על לוח. זה מקרה לתיק עבודות, לא מוצר ולא ערכת בנייה.</div>
-<main id="main" class="wrap">
+<main id="main" tabindex="-1" class="wrap">
   <h1>מקרה הנדסי — מה שבאמת נבנה כאן</h1>
   <p class="lead">
     דף למגייסת או למגייס firmware / embedded. לא מצגת מוצר.
@@ -117,7 +124,7 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
     </section>
   </div>
   <p class="fine">
-    165 תאים (2×15 + 11×15) ננעלו מ־<code>step()</code>. אף מכונה לא רצה על ESP32.
+    30 תאים בקושחה (2×15) + 165 במכונה המוצעת (11×15) ננעלו מ־<code>step()</code>. אף מכונה לא רצה על ESP32.
     לחיצה אחת: <a href="../fsm/">סייר המצבים</a>.
   </p>
 
@@ -155,7 +162,7 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
       </ul>
     </section>
   </div>
-  <p class="fine">המסמך: <a href="../docs/TESTING.md">docs/TESTING.md</a>. הפקודה: <code>npm test</code> — בלי תלויות, בלי CI ב־<code>.github/workflows</code>.</p>
+  <p class="fine">המסמך: <a href="https://github.com/Swissystem7/SmartMount/blob/master/docs/TESTING.md">docs/TESTING.md</a>. הפקודה: <code>npm test</code> — בלי תלויות, בלי CI ב־<code>.github/workflows</code>.</p>
 
   <h2 id="skills">מה התיק מציג, ומה הוא לא מציג</h2>
   <div class="grid2">
@@ -173,11 +180,11 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
     <a class="btn primary" href="../lab/">מעבדה — קונסולת תקלות</a>
     <a class="btn" href="../fsm/">מכונת מצבים</a>
     <a class="btn" href="https://github.com/Swissystem7/SmartMount/blob/master/firmware/smart_mount.ino">הקושחה ב-GitHub</a>
-    <a class="btn" href="../MONETIZATION.md">למה אין מוצר</a>
+    <a class="btn" href="https://github.com/Swissystem7/SmartMount/blob/master/MONETIZATION.md">למה אין מוצר</a>
   </div>
   <p class="fine">
-    פסק דין שוק: <a href="../RESEARCH.md">RESEARCH.md</a> (PARK).
-    פסק דין הכנסה: <a href="../MONETIZATION.md">MONETIZATION.md</a> (תיק עבודות בלבד).
+    פסק דין שוק: <a href="https://github.com/Swissystem7/SmartMount/blob/master/RESEARCH.md">RESEARCH.md</a> (PARK).
+    פסק דין הכנסה: <a href="https://github.com/Swissystem7/SmartMount/blob/master/MONETIZATION.md">MONETIZATION.md</a> (תיק עבודות בלבד).
     המקור של העמוד הזה: <code>src/lib/case.js</code>.
   </p>
 </main>
@@ -230,7 +237,7 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
   C.TRADEOFFS.forEach(function (t) {
     const tr = document.createElement('tr');
     tr.innerHTML =
-      '<td>' + t.id + '</td><td>' + t.chose + '</td><td>' + t.because + '</td><td>' + t.better + '</td>';
+      '<td>' + t.question + '</td><td>' + t.chose + '</td><td>' + t.because + '</td><td>' + t.better + '</td>';
     tb.appendChild(tr);
   });
 

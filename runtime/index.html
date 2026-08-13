@@ -6,6 +6,7 @@
 <title>SmartMount — תזמון והספק</title>
 <meta name="description" content="פרופיל AccelStepper, למה דגימת 2 שניות שולטת על ההשהיה, ותקציב הספק: סלילי NEMA17 מול ESP32. לא מדידה מהלוח.">
 <meta name="theme-color" content="#0f1420">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
 .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
@@ -33,22 +34,28 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
 <body>
 <a class="skip-link" href="#main">דלג לתוכן</a>
 <nav class="site-nav" aria-label="ניווט ראשי">
-  <span class="brand">SmartMount</span>
+  <a class="brand" href="../">SmartMount</a>
   <a href="../">בית</a>
-    <a href="../case/">מקרה הנדסי</a>
-  <a href="../lab/">מעבדה הנדסית</a>
-  <a href="../spec/">מפרט בנייה</a>
-  <a href="../geometry/">גאומטריית בוהק</a>
-  <a href="../protocol/">חוזה API</a>
-  <a href="../fsm/">מכונת מצבים</a>
-  <a class="on" href="./" aria-current="page">תזמון והספק</a>
-  <a href="../power/">תקציב הספק</a>
-  <a href="../hil/">תוכנית HIL</a>
-  <a href="../alts/">חלופות</a>
-  <a href="../dashboard/">לוח בקרה</a>
+  <a href="../case/">מקרה הנדסי</a>
+  <a href="../lab/">מעבדה</a>
+  <a class="nav-mid" href="../spec/">מפרט</a>
+  <details class="nav-more">
+    <summary>עוד</summary>
+    <div class="nav-more-list">
+      <a href="../spec/">מפרט בנייה</a>
+      <a href="../geometry/">גאומטריית בוהק</a>
+      <a href="../protocol/">חוזה API</a>
+      <a href="../fsm/">מכונת מצבים</a>
+      <a class="on" href="../runtime/" aria-current="page">תזמון והספק</a>
+      <a href="../power/">תקציב הספק</a>
+      <a href="../hil/">תוכנית HIL</a>
+      <a href="../alts/">חלופות</a>
+      <a href="../dashboard/">לוח בקרה</a>
+    </div>
+  </details>
 </nav>
 <div class="banner">מודל רציף של AccelStepper + מספרים טיפוסיים מדפי נתונים. הלוח לא נמדד באוסצילוסקופ ולא במד-זרם.</div>
-<main id="main" class="wrap">
+<main id="main" tabindex="-1" class="wrap">
   <h1>תזמון והספק</h1>
   <p class="lead">
     הקושחה קובעת <code>setMaxSpeed(500)</code> ו־<code>setAcceleration(200)</code>,

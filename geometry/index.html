@@ -6,6 +6,7 @@
 <title>SmartMount — גאומטריית בוהק</title>
 <meta name="description" content="חוק ההחזרה, ולמה יחס הארה (lux) אינו בהירות לצופה (cd/m²).">
 <meta name="theme-color" content="#0f1420">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
 .grid{display:grid;grid-template-columns:1.35fr .85fr;gap:16px}
@@ -34,29 +35,36 @@ input[type=range]{width:100%;accent-color:#58a6ff}
 <body>
 <a class="skip-link" href="#main">דלג לתוכן</a>
 <nav class="site-nav" aria-label="ניווט ראשי">
-  <span class="brand">SmartMount</span>
+  <a class="brand" href="../">SmartMount</a>
   <a href="../">בית</a>
-    <a href="../case/">מקרה הנדסי</a>
-  <a href="../lab/">מעבדה הנדסית</a>
-  <a href="../spec/">מפרט בנייה</a>
-  <a class="on" href="./" aria-current="page">גאומטריית בוהק</a>
-  <a href="../protocol/">חוזה API</a>
-  <a href="../fsm/">מכונת מצבים</a>
-  <a href="../runtime/">תזמון והספק</a>
-  <a href="../power/">תקציב הספק</a>
-  <a href="../hil/">תוכנית HIL</a>
-  <a href="../alts/">חלופות</a>
-  <a href="../dashboard/">לוח בקרה</a>
+  <a href="../case/">מקרה הנדסי</a>
+  <a href="../lab/">מעבדה</a>
+  <a class="nav-mid" href="../spec/">מפרט</a>
+  <details class="nav-more">
+    <summary>עוד</summary>
+    <div class="nav-more-list">
+      <a href="../spec/">מפרט בנייה</a>
+      <a class="on" href="../geometry/" aria-current="page">גאומטריית בוהק</a>
+      <a href="../protocol/">חוזה API</a>
+      <a href="../fsm/">מכונת מצבים</a>
+      <a href="../runtime/">תזמון והספק</a>
+      <a href="../power/">תקציב הספק</a>
+      <a href="../hil/">תוכנית HIL</a>
+      <a href="../alts/">חלופות</a>
+      <a href="../dashboard/">לוח בקרה</a>
+    </div>
+  </details>
 </nav>
 <div class="banner">סימולציית אופטיקה דו־ממדית — חוק ההחזרה, לא מדידת BH1750. זה מה שהאלגוריתם לא רואה.</div>
-<main id="main" class="wrap">
+<main id="main" tabindex="-1" class="wrap">
   <h1>גאומטריית בוהק</h1>
   <p class="lead">שני חיישני lux מודדים הארה כללית. בוהק על מסך הוא השתקפות ספקולרית: זווית הפגיעה שווה לזווית ההחזרה. גררו את האור ואת העין, והטו את המסך — ותראו מתי ההטיה באמת מוציאה את הכתם, ומתי היא רק מחליפה כתם בכתם.</p>
 
   <div class="grid">
     <div class="card">
       <h2>חתך חדר — מבט מהצד</h2>
-      <svg id="scene" viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg">
+      <svg id="scene" viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sceneTitle">
+        <title id="sceneTitle">חתך חדר: אור, מסך ועין — גרירה או סליידרים</title>
         <rect width="800" height="420" fill="#0d1117"/>
         <rect x="0" y="0" width="800" height="420" fill="none" stroke="#21262d"/>
         <rect x="0" y="388" width="800" height="32" fill="#161b22"/>
@@ -67,11 +75,11 @@ input[type=range]{width:100%;accent-color:#58a6ff}
         <line id="reflected" x1="0" y1="0" x2="0" y2="0" stroke="#f85149" stroke-width="2.2"/>
         <line id="normal" x1="0" y1="0" x2="0" y2="0" stroke="#8b949e" stroke-width="1" stroke-dasharray="4 3"/>
         <g id="screen"></g>
-        <g id="light" style="cursor:grab">
+        <g id="light" style="cursor:grab" tabindex="0" role="img" aria-label="מקור אור">
           <circle r="16" fill="#fde68a"/>
           <circle r="26" fill="#f59e0b" fill-opacity=".25"/>
         </g>
-        <g id="eye" style="cursor:grab">
+        <g id="eye" style="cursor:grab" tabindex="0" role="img" aria-label="עין הצופה">
           <circle r="14" fill="#1f4068" stroke="#58a6ff" stroke-width="2"/>
           <circle cx="4" cy="-2" r="4" fill="#e8e8f0"/>
         </g>
@@ -81,17 +89,25 @@ input[type=range]{width:100%;accent-color:#58a6ff}
     <div class="card">
       <h2>תנאי גאומטריה</h2>
       <div class="row">
-        <button class="btn on" id="scOver">מנורה מעל</button>
-        <button class="btn" id="scFace">חלון ממול</button>
-        <button class="btn" id="scLow">בוהק מלמטה</button>
+        <button type="button" class="btn on" id="scOver">מנורה מעל</button>
+        <button type="button" class="btn" id="scFace">חלון ממול</button>
+        <button type="button" class="btn" id="scLow">בוהק מלמטה</button>
       </div>
+      <label class="sl" for="lightX">אור אופקי: <span id="lightXVal">280</span></label>
+      <input type="range" id="lightX" min="40" max="780" value="280">
+      <label class="sl" for="lightY">אור אנכי: <span id="lightYVal">36</span></label>
+      <input type="range" id="lightY" min="20" max="380" value="36">
+      <label class="sl" for="eyeX">עין אופקית: <span id="eyeXVal">560</span></label>
+      <input type="range" id="eyeX" min="40" max="780" value="560">
+      <label class="sl" for="eyeY">עין אנכית: <span id="eyeYVal">268</span></label>
+      <input type="range" id="eyeY" min="20" max="380" value="268">
       <label class="sl" for="tilt">הטיית מסך: <span id="tiltVal">0°</span> (ידני — לא חיישן)</label>
       <input type="range" id="tilt" min="-20" max="40" value="0">
       <div class="kv">
         <div><b id="kInc">—</b><span>זווית פגיעה</span></div>
         <div><b id="kRef">—</b><span>זווית החזרה</span></div>
       </div>
-      <div class="verdict meh" id="verdict">מזיזים אור או עין…</div>
+      <div class="verdict meh" id="verdict" role="status" aria-live="polite">מזיזים אור או עין…</div>
       <p class="fine">
         <code>calcOptimalAngle</code> בקושחה מחזיר רק זווית ≥ 0 לפי יחס שני חיישנים.
         הוא לא יודע איפה העין ואיפה הכתם. תרחיש «בוהק מלמטה» נשאר מחוץ לחוק בכוונה —
@@ -145,10 +161,24 @@ input[type=range]{width:100%;accent-color:#58a6ff}
 const PIVOT = { x: 70, y: 250 };
 const HALF = 70;
 let tilt = 0;
-let light = { x: 260, y: 50 };
-let eye = { x: 560, y: 250 };
+let light = { x: 280, y: 36 };
+let eye = { x: 560, y: 268 };
 let drag = null;
 let scene = 'over';
+
+function syncGeomSliders() {
+  const map = [
+    ['lightX', light.x], ['lightY', light.y],
+    ['eyeX', eye.x], ['eyeY', eye.y],
+  ];
+  map.forEach(function (pair) {
+    const el = document.getElementById(pair[0]);
+    const rounded = Math.round(pair[1]);
+    if (el && el.value !== String(rounded)) el.value = String(rounded);
+    const lab = document.getElementById(pair[0] + 'Val');
+    if (lab) lab.textContent = String(rounded);
+  });
+}
 
 function norm(x, y) {
   const l = Math.hypot(x, y) || 1;
@@ -282,6 +312,7 @@ function draw() {
     v.textContent = 'הקרן המוחזרת מחטיאה את העין. הצפייה נקייה כאן בלי קשר ליחס שני חיישני lux.';
   }
   paintOptics(hits);
+  syncGeomSliders();
 }
 
 const svg = document.getElementById('scene');
@@ -314,6 +345,29 @@ document.getElementById('tilt').addEventListener('input', e => {
   document.getElementById('tiltVal').textContent = tilt + '°';
   draw();
 });
+document.getElementById('lightX').addEventListener('input', function () {
+  light.x = Number(this.value); draw();
+});
+document.getElementById('lightY').addEventListener('input', function () {
+  light.y = Number(this.value); draw();
+});
+document.getElementById('eyeX').addEventListener('input', function () {
+  eye.x = Number(this.value); draw();
+});
+document.getElementById('eyeY').addEventListener('input', function () {
+  eye.y = Number(this.value); draw();
+});
+function bindArrows(id, obj) {
+  document.getElementById(id).addEventListener('keydown', function (e) {
+    const step = e.shiftKey ? 24 : 12;
+    if (e.key === 'ArrowLeft') { obj.x = clamp(obj.x - step, 40, 780); e.preventDefault(); draw(); }
+    if (e.key === 'ArrowRight') { obj.x = clamp(obj.x + step, 40, 780); e.preventDefault(); draw(); }
+    if (e.key === 'ArrowUp') { obj.y = clamp(obj.y - step, 20, 380); e.preventDefault(); draw(); }
+    if (e.key === 'ArrowDown') { obj.y = clamp(obj.y + step, 20, 380); e.preventDefault(); draw(); }
+  });
+}
+bindArrows('light', light);
+bindArrows('eye', eye);
 
 function applyScene(name) {
   scene = name;

@@ -3,92 +3,100 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SmartMount — תושבת טלוויזיה חכמה נגד בוהק</title>
-<meta name="description" content="SmartMount היא הדגמת קונספט לתיק עבודות: קושחת ESP32 שמזהה בוהק בשני חיישני אור. אין חומרה מחוברת, אין מוצר.">
+<title>SmartMount — תיק הנדסי: קושחת הטיה נגד בוהק</title>
+<meta name="description" content="פריט תיק עבודות: קושחת ESP32 + מראה JS שנבדקת על המחשב. הקושחה לא רצה על לוח. אלגוריתם הבוהק לא כויל. אין מוצר.">
 <meta name="theme-color" content="#0f1420">
+<link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
 <link rel="canonical" href="https://swissystem7.github.io/SmartMount/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="SmartMount — תושבת טלוויזיה חכמה נגד בוהק">
-<meta property="og:description" content="הדגמת קונספט לתיק עבודות — קושחת ESP32 + דפים הנדסיים. אין חומרה מחוברת, אין מוצר.">
+<meta property="og:title" content="SmartMount — תיק הנדסי, לא מוצר">
+<meta property="og:description" content="קושחת ESP32 שמטה מסך לפי שני חיישני אור. לא רצה על לוח. אין נתיב הכנסה.">
 <meta property="og:url" content="https://swissystem7.github.io/SmartMount/">
 <meta property="og:locale" content="he_IL">
 <link rel="stylesheet" href="./assets/site.css">
 <style>
-body.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
-.landing .wrap{max-width:640px;width:100%;padding:12px 0 24px}
-.badge{display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.5px;color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:6px;padding:3px 10px;margin-bottom:18px}
-.landing h1{font-size:2rem;font-weight:900;line-height:1.25;margin-bottom:10px}
+body.landing{display:flex;flex-direction:column;align-items:center;padding:0 0 40px}
+.landing .wrap{max-width:680px;width:100%;padding:20px 16px 32px}
+.badge{display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.4px;color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:6px;padding:3px 10px;margin-bottom:16px}
+.landing h1{font-size:1.85rem;font-weight:900;line-height:1.3;margin-bottom:10px}
 h1 em{font-style:normal;background:linear-gradient(135deg,#38bdf8,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
-.landing .lead{color:#a9b4d0;line-height:1.7;margin-bottom:22px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:24px}
-.landing .card{background:#111120;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px}
-.card b{display:block;font-size:.9rem;margin-bottom:4px}
-.card span{font-size:.78rem;color:#b1bac4;line-height:1.5}
-.cta{display:flex;flex-wrap:wrap;gap:10px}
-a.btn{text-decoration:none;font-weight:700;font-size:.9rem;border-radius:10px;padding:11px 20px;display:inline-block}
-a.primary{background:linear-gradient(135deg,#38bdf8,#8b5cf6);color:#fff}
+.landing .lead{margin-bottom:16px}
+.facts{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 20px}
+.facts div{background:#111120;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;font-size:.84rem;line-height:1.55;color:#c9d1d9}
+.facts b{color:#e8e8f0}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}
+a.btn{text-decoration:none;font-weight:700;font-size:.9rem;border-radius:10px;padding:11px 20px;display:inline-block;min-height:44px}
+a.primary{background:linear-gradient(135deg,#38bdf8,#8b5cf6);color:#fff;border:0}
 a.ghost{border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
-.note{margin-top:22px;font-size:.76rem;color:#b1bac4;line-height:1.6;border-top:1px solid rgba(255,255,255,.07);padding-top:14px}
+.more{font-size:.8rem;color:var(--muted);line-height:1.7}
+.more a{white-space:nowrap}
+.note{margin-top:20px;font-size:.76rem;color:var(--muted);line-height:1.6;border-top:1px solid rgba(255,255,255,.07);padding-top:14px}
 </style>
 </head>
 <body class="landing">
 <a class="skip-link" href="#main">דלג לתוכן</a>
 <nav class="site-nav" style="align-self:stretch" aria-label="ניווט ראשי">
-  <span class="brand">SmartMount</span>
+  <a class="brand" href="./">SmartMount</a>
   <a class="on" href="./" aria-current="page">בית</a>
   <a href="./case/">מקרה הנדסי</a>
-  <a href="./lab/">מעבדה הנדסית</a>
-  <a href="./spec/">מפרט בנייה</a>
-  <a href="./geometry/">גאומטריית בוהק</a>
-  <a href="./protocol/">חוזה API</a>
-  <a href="./fsm/">מכונת מצבים</a>
-  <a href="./runtime/">תזמון והספק</a>
-  <a href="./power/">תקציב הספק</a>
-  <a href="./hil/">תוכנית HIL</a>
-  <a href="./alts/">חלופות</a>
-  <a href="./dashboard/">לוח בקרה</a>
+  <a href="./lab/">מעבדה</a>
+  <a class="nav-mid" href="./spec/">מפרט</a>
+  <details class="nav-more">
+    <summary>עוד</summary>
+    <div class="nav-more-list">
+      <a href="./spec/">מפרט בנייה</a>
+      <a href="./geometry/">גאומטריית בוהק</a>
+      <a href="./protocol/">חוזה API</a>
+      <a href="./fsm/">מכונת מצבים</a>
+      <a href="./runtime/">תזמון והספק</a>
+      <a href="./power/">תקציב הספק</a>
+      <a href="./hil/">תוכנית HIL</a>
+      <a href="./alts/">חלופות</a>
+      <a href="./dashboard/">לוח בקרה</a>
+    </div>
+  </details>
 </nav>
-<main id="main" class="wrap">
-  <span class="badge">הדגמת מוצר — אין חומרה מחוברת</span>
-  <h1>SmartMount — תושבת טלוויזיה <em>שמתגוננת מבוהק</em></h1>
-  <p class="lead">שני חיישני אור מודדים את עוצמת האור שפוגעת במסך מול זו שמאחוריו. כשהיחס מצביע על בוהק ישיר, מנוע צעד מטה את המסך — עד לגבול זווית הצפייה של סוג הפאנל. זה פריט תיק עבודות, לא מוצר: אין נתיב הכנסה.</p>
-  <div class="grid">
-    <div class="card"><b>מקרה הנדסי</b><span>באגי בטיחות שתוקנו בסקירה, מכונת מצבים, ופשרות — למגייסים</span></div>
-    <div class="card"><b>קושחת ESP32</b><span>שני חיישני BH1750, מנוע צעד עם ממסרה 1:5, ו-API מעל HTTP</span></div>
-    <div class="card"><b>מגבלת פאנל</b><span id="panelLimitsText">OLED · QLED · LED — ראו config/control-params.json</span></div>
-    <div class="card"><b>לוח בקרה</b><span>כיול, קריאות חיישנים, מצב אוטומטי או ידני</span></div>
-    <div class="card"><b>מעבדה הנדסית</b><span>חדר וירטואלי + קונסולת תקלות: כשל חיישן, ניתוק WiFi, פקודה מעל הגבול</span></div>
-    <div class="card"><b>גאומטריית בוהק</b><span>חוק ההחזרה, ולמה יחס lux אינו בהירות לצופה</span></div>
-    <div class="card"><b>חוזה API</b><span>ארבעה נתיבי WebServer + Serial 115200 — בדיוק מה שיש ב־.ino</span></div>
-    <div class="card"><b>מחשבון מומנט</b><span>NEMA17 + 1:5 מול מסך 18 ק״ג — למה ₪35–50 אינם תושבת</span></div>
-    <div class="card"><b>מכונת מצבים</b><span>מה שה־.ino עושה (auto + moveTo) מול FSM בטוח מוצע: הומינג, FAULT, סטול</span></div>
-    <div class="card"><b>תזמון והספק</b><span>דגימת 2 שניות שולטת על ההשהיה; סלילי NEMA17 שולטים על הוואטים</span></div>
-    <div class="card"><b>תקציב הספק</b><span>זרם idle/תנועה/WiFi וחישוב סוללה — דפי נתונים, לא מד-זרם</span></div>
-    <div class="card"><b>תוכנית HIL</b><span>שנים-עשר מקרים על השולחן. אפס רצו. HIL-10 אוסר טלוויזיה</span></div>
-    <div class="card"><b>חלופות</b><span>צעד מול סרבו מול מפעיל קווי; יחס lux מול מוחלט; למה המסגרת</span></div>
+<main id="main" class="wrap" tabindex="-1">
+  <span class="badge">תיק עבודות — הקושחה לא רצה על לוח</span>
+  <h1>שני חיישני אור. מנוע צעד. <em>בלי מסך על הקיר.</em></h1>
+  <p class="lead">
+    SmartMount היא סקירת קושחת ESP32: יחס שני BH1750 מטה את המסך כשיש בוהק,
+    עד לגבול זווית הצפייה של הפאנל. מחקר השוק פסק PARK. אין נתיב הכנסה.
+    מה שנשאר הוא באגי בטיחות, חוק בקרה שנבדק על המחשב, ומכונת מצבים כפולה.
+  </p>
+  <div class="facts">
+    <div><b>לא הועלה ללוח.</b> <code>firmware/smart_mount.ino</code> נכתב ל־ESP32. אפס פולסי STEP נמדדו.</div>
+    <div><b>הבוהק לא כויל.</b> סף 3 ורווח 5° הם מספרים עגולים. BH1750 רואה lux כללי, לא כתם בעין.</div>
+    <div><b>אין הומינג ואין תולעת.</b> <code>setCurrentPosition(0)</code> משקר. ניתוק חשמל = נפילה במודל.</div>
   </div>
   <div class="cta">
-    <a class="btn primary" href="./case/">מקרה הנדסי למגייסים</a>
-    <a class="btn ghost" href="./lab/">מעבדה</a>
-    <a class="btn ghost" href="./spec/">מפרט בנייה</a>
-    <a class="btn ghost" href="./geometry/">גאומטריית בוהק</a>
-    <a class="btn ghost" href="./protocol/">חוזה API</a>
-    <a class="btn ghost" href="./fsm/">מכונת מצבים</a>
-    <a class="btn ghost" href="./runtime/">תזמון והספק</a>
-    <a class="btn ghost" href="./power/">תקציב הספק</a>
-    <a class="btn ghost" href="./hil/">תוכנית HIL</a>
-    <a class="btn ghost" href="./alts/">חלופות</a>
-    <a class="btn ghost" href="./dashboard/">לוח בקרה</a>
+    <a class="btn primary" href="./case/">מקרה הנדסי — 90 שניות למגייסים</a>
+    <a class="btn ghost" href="./lab/">מעבדה: הזרקת תקלות</a>
     <a class="btn ghost" href="https://github.com/Swissystem7/SmartMount">קוד ב-GitHub</a>
   </div>
-  <p class="note">מה שרואים כאן הוא הדגמה. לוח הבקרה אינו מחובר לחומרה — הוא מציג נתוני דוגמה. הקושחה בתיקיית <code>firmware/</code> נכתבה לחומרה אמיתית אך טרם נבדקה מולה, ואלגוריתם זיהוי הבוהק לא כויל מול מדידה. אין שירות ענן, אין חשבונות ואין סליקה. קבועי בקרה: <code>config/control-params.json</code>.</p>
+  <p class="more">
+    שאר העמודים:
+    <a href="./spec/">מפרט</a> ·
+    <a href="./geometry/">גאומטריית בוהק</a> ·
+    <a href="./protocol/">חוזה API</a> ·
+    <a href="./fsm/">מכונת מצבים</a> ·
+    <a href="./runtime/">תזמון</a> ·
+    <a href="./power/">הספק</a> ·
+    <a href="./hil/">HIL (never-run)</a> ·
+    <a href="./alts/">חלופות</a> ·
+    <a href="./dashboard/">לוח בקרה</a>
+  </p>
+  <p class="note">
+    אבירן סוויסה · אין חומרה מחוברת לדמו. אין ענן, אין חשבון ואין סליקה.
+    קבועי הבקרה: <code>config/control-params.json</code>.
+    פאנלים: <span id="panelLimitsText">OLED · QLED · LED</span>.
+  </p>
 </main>
 <script src="./src/lib/control-params.js"></script>
 <script>
   if (window.CONTROL_PARAMS) {
     document.getElementById('panelLimitsText').textContent =
-      CONTROL_PARAMS.panels.map(function (p) { return p.id + ' ' + p.limitDeg + '°'; }).join(', ') +
-      ' — התושבת לא חורגת מהן';
+      CONTROL_PARAMS.panels.map(function (p) { return p.id + ' ' + p.limitDeg + '°'; }).join(', ');
   }
 </script>
 </body>

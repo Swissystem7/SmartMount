@@ -6,6 +6,7 @@
 <title>SmartMount — תוכנית HIL</title>
 <meta name="description" content="תוכנית חומרה-בלולאה ל-ESP32. אף מקרה לא רץ — אין לוח על השולחן.">
 <meta name="theme-color" content="#0f1420">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
 .card{margin-bottom:16px}
@@ -32,22 +33,28 @@
 <body>
 <a class="skip-link" href="#main">דלג לתוכן</a>
 <nav class="site-nav" aria-label="ניווט ראשי">
-  <span class="brand">SmartMount</span>
+  <a class="brand" href="../">SmartMount</a>
   <a href="../">בית</a>
-    <a href="../case/">מקרה הנדסי</a>
-  <a href="../lab/">מעבדה הנדסית</a>
-  <a href="../spec/">מפרט בנייה</a>
-  <a href="../geometry/">גאומטריית בוהק</a>
-  <a href="../protocol/">חוזה API</a>
-  <a href="../fsm/">מכונת מצבים</a>
-  <a href="../runtime/">תזמון והספק</a>
-  <a href="../power/">תקציב הספק</a>
-  <a class="on" href="./" aria-current="page">תוכנית HIL</a>
-  <a href="../alts/">חלופות</a>
-  <a href="../dashboard/">לוח בקרה</a>
+  <a href="../case/">מקרה הנדסי</a>
+  <a href="../lab/">מעבדה</a>
+  <a class="nav-mid" href="../spec/">מפרט</a>
+  <details class="nav-more">
+    <summary>עוד</summary>
+    <div class="nav-more-list">
+      <a href="../spec/">מפרט בנייה</a>
+      <a href="../geometry/">גאומטריית בוהק</a>
+      <a href="../protocol/">חוזה API</a>
+      <a href="../fsm/">מכונת מצבים</a>
+      <a href="../runtime/">תזמון והספק</a>
+      <a href="../power/">תקציב הספק</a>
+      <a class="on" href="../hil/" aria-current="page">תוכנית HIL</a>
+      <a href="../alts/">חלופות</a>
+      <a href="../dashboard/">לוח בקרה</a>
+    </div>
+  </details>
 </nav>
 <div class="banner">לא רץ על חומרה. שנים-עשר מקרים כתובים, אפס לוגים מהלוח. <code>STATUS = never-run</code>.</div>
-<main id="main" class="wrap">
+<main id="main" tabindex="-1" class="wrap">
   <h1>תוכנית Hardware-in-the-Loop</h1>
   <p class="lead">
     הבדיקות על המחשב נועלות את החוק ואת מכונת המצבים.
@@ -56,7 +63,7 @@
   </p>
   <div class="note-warn">
     HIL-10 הוא מסה מדומה עם מגן. לא טלוויזיה. אי אפשר להפוך את הסטטוס ל־«רץ»
-    מתוך <code>npm test</code>. המסמך המלא: <a href="../docs/HIL.md">docs/HIL.md</a>.
+    מתוך <code>npm test</code>. המסמך המלא: <a href="https://github.com/Swissystem7/SmartMount/blob/master/docs/HIL.md">docs/HIL.md</a>.
   </div>
   <div class="kv">
     <div><b id="nCases">—</b><span>מקרים</span></div>
