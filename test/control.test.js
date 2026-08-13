@@ -31,8 +31,8 @@ test('tilt never exceeds what the panel can take', () => {
   }
 });
 
-test('an OLED is tilted less than a QLED under identical glare', () => {
-  assert.ok(calcOptimalAngle(100_000, 100, 'OLED') < calcOptimalAngle(100_000, 100, 'QLED'));
+test('an OLED is tilted further than a VA/LED under identical glare', () => {
+  assert.ok(calcOptimalAngle(100_000, 100, 'OLED') > calcOptimalAngle(100_000, 100, 'LED'));
 });
 
 test('an unknown panel type is rejected rather than silently defaulted', () => {
@@ -96,9 +96,9 @@ test('a manual angle is clamped symmetrically', () => {
 });
 
 test('switching to a stricter panel pulls the angle back into range', () => {
-  const wideAngle = clampToPanel(38, 'QLED');
+  const wideAngle = clampToPanel(38, 'OLED');
   assert.equal(wideAngle, 38);
-  assert.equal(clampToPanel(wideAngle, 'OLED'), PANEL_LIMITS.OLED);
+  assert.equal(clampToPanel(wideAngle, 'LED'), PANEL_LIMITS.LED);
 });
 
 // Documented limitation, asserted so it cannot change unnoticed: auto mode

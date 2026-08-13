@@ -12,14 +12,13 @@
 //   above it               -> tilt GAIN degrees per unit of excess ratio,
 //                             capped by what the panel can take
 //
-// Panel limits are viewing-angle limits: an OLED washes out far sooner than a
-// QLED, so it is allowed less tilt.
+// OLED ~178° viewing angle; VA/LED wash out off-axis so they get a tighter tilt cap.
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
   else Object.assign(root, api);
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  const PANEL_LIMITS = Object.freeze({ OLED: 20, QLED: 40, LED: 30 });
+  const PANEL_LIMITS = Object.freeze({ OLED: 40, QLED: 30, LED: 20 });
   const GLARE_THRESHOLD = 3.0;   // below this, ambient light is not glare
   const GAIN_DEG_PER_RATIO = 5.0;
   const DEADBAND_DEG = 1.0;      // ignore corrections smaller than this

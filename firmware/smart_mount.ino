@@ -17,8 +17,8 @@ const char* WIFI_SSID     = "YOUR_WIFI";
 const char* WIFI_PASS     = "YOUR_PASSWORD";
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 10000;
 
-// Panel type limits (viewing angle in degrees from center)
-const float PANEL_LIMITS[] = { 20.0, 40.0, 30.0 };  // OLED, QLED, LED
+// OLED ~178° viewing angle; VA/LED wash out off-axis so they get a tighter tilt cap.
+const float PANEL_LIMITS[] = { 40.0, 30.0, 20.0 };  // OLED, QLED, LED/VA
 const int   PANEL_COUNT    = 3;
 enum PanelType { OLED = 0, QLED = 1, LED = 2 };
 PanelType currentPanel = LED;
