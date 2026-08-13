@@ -2,7 +2,7 @@
 
 מסמכים כאן **אינם** מקור האמת. הם נשמרו כדי שאפשר לראות מה נאמר בהאקתון, לא כדי למכור מוצר.
 
-מקור האמת: [README.md](../../README.md). מחקר השוק: [RESEARCH.md](../../RESEARCH.md). אסטרטגיית בדיקה: [TESTING.md](../TESTING.md).
+מקור האמת: [README.md](../../README.md). מחקר השוק: [RESEARCH.md](../../RESEARCH.md). אסטרטגיית בדיקה: [TESTING.md](../TESTING.md). תוכנית HIL: [HIL.md](../HIL.md).
 
 | קובץ | למה בארכיון |
 |---|---|

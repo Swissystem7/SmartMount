@@ -15,15 +15,18 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 | [מפרט בנייה](https://swissystem7.github.io/SmartMount/spec/) | BOM כנה, מחשבון מומנט מול NEMA17, חיווט SVG |
 | [גאומטריית בוהק](https://swissystem7.github.io/SmartMount/geometry/) | חוק ההחזרה + למה יחס lux אינו בהירות לצופה |
 | [חוזה API](https://swissystem7.github.io/SmartMount/protocol/) | ארבעה נתיבי HTTP + Serial 115200 — בדיוק מה שבקושחה |
-| [מכונת מצבים](https://swissystem7.github.io/SmartMount/fsm/) | מה שה־`.ino` עושה (auto + moveTo) מול FSM בטוח מוצע — לא רץ על לוח |
-| [תזמון והספק](https://swissystem7.github.io/SmartMount/runtime/) | פרופיל AccelStepper, לולאה שיתופית, תקציב I²R מול USB |
+| [מכונת מצבים](https://swissystem7.github.io/SmartMount/fsm/) | מה שה־`.ino` עושה (auto + moveTo) מול FSM בטוח מוצע — טבלת 165 תאים מ־`step()` |
+| [תזמון והספק](https://swissystem7.github.io/SmartMount/runtime/) | פרופיל AccelStepper, גנט של `loop()`, הבזק שמש שמתפספס בין דגימות |
+| [תקציב הספק](https://swissystem7.github.io/SmartMount/power/) | זרם idle / תנועה / WiFi וחישוב סוללה — דפי נתונים, לא מד-זרם |
+| [תוכנית HIL](https://swissystem7.github.io/SmartMount/hil/) | שנים-עשר מקרים על השולחן. אפס רצו. HIL-10 אוסר טלוויזיה |
+| [חלופות](https://swissystem7.github.io/SmartMount/alts/) | צעד מול סרבו מול מפעיל קווי; יחס lux מול מוחלט; למה המסגרת |
 | [לוח בקרה](https://swissystem7.github.io/SmartMount/dashboard/) | סימולציית UI (נתוני דוגמה) |
 
 קוד: [Swissystem7/SmartMount](https://github.com/Swissystem7/SmartMount).
 
 ## מה באמת עובד
 
-בדיקות יחידה רצות על המחשב בלי תלויות (`node --test`): חוק ההטיה, חוזה ה־HTTP, מומנט המנוע, הפער בין lux לבהירות, מכונת המצבים (מה שיש מול מה שחסר), ותקציב תזמון/הספק. פירוט מה נבדק ומה **אי אפשר** לבדוק בלי לוח: [docs/TESTING.md](docs/TESTING.md).
+בדיקות יחידה רצות על המחשב בלי תלויות (`node --test`): חוק ההטיה, חוזה ה־HTTP, מומנט המנוע, הפער בין lux לבהירות, **כל תא** במכונת המצבים (2×15 + 11×15), תקציב תזמון/הספק/סוללה, תוכנית HIL שמוגדרת כ־never-run, וחלופות שנדחו. פירוט מה נבדק ומה **אי אפשר** לבדוק בלי לוח: [docs/TESTING.md](docs/TESTING.md). תוכנית השולחן: [docs/HIL.md](docs/HIL.md).
 
 בקושחה ובדשבורד תוקנו באגים שהיו מסוכנים או מטעים:
 
@@ -35,7 +38,7 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 - **גבולות צפייה:** OLED 40° (הרחב ביותר), QLED 30°, LED/VA 20°.
 - **כנות ב־UI:** «ניסיון Cloud» פותח היסטוריה מקומית; התחברות ותנאים מסומנים כהדגמה.
 
-מה **לא** עובד: אין ESP32 מחובר לדמו, אין מדידת בוהק אמיתית, ואין הרכבה מכנית שנשאה מסך. הומינג, מפעיל נעילה עצמית וגאומטריית הכתם — פתוחים (ראו [מפרט](https://swissystem7.github.io/SmartMount/spec/)). מכונת המצבים ה«בטוחה» ומספרי התזמון/הספק הם מודלים על המחשב, לא קושחה שרצה ולא מדידת מעבדה.
+מה **לא** עובד: אין ESP32 מחובר לדמו, אין מדידת בוהק אמיתית, ואין הרכבה מכנית שנשאה מסך. הומינג, מפעיל נעילה עצמית וגאומטריית הכתם — פתוחים (ראו [מפרט](https://swissystem7.github.io/SmartMount/spec/)). מכונת המצבים ה«בטוחה», מספרי התזמון/הספק/הסוללה ותוכנית ה-HIL הם מודלים ומסמכים על המחשב, לא קושחה שרצה ולא מדידת מעבדה.
 
 ## מה המחקר מצא
 
