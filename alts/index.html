@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartMount — חלופות שנדחו</title>
+<meta name="description" content="למה צעד ולא סרבו, למה יחס ולא lux מוחלט, ולמה מיקום החיישן על המסגרת. שיפוט לדמו — לא bake-off במעבדה.">
+<meta name="theme-color" content="#0f1420">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.card{margin-bottom:18px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.opt{background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:12px 14px}
+.opt.chosen{border-color:#58a6ff}
+.opt.better{border-color:#3fb950}
+.opt.reject{border-color:#f85149}
+.opt h3{font-size:.92rem;margin:6px 0}
+.opt p{font-size:.8rem;color:var(--muted);line-height:1.6}
+.tag{display:inline-block;font-size:.68rem;font-weight:700;border-radius:5px;padding:2px 7px}
+.tag.chosen-for-demo{background:#1f4068;color:#79c0ff}
+.tag.rejected,.tag.rejected-as-home{background:#3a1010;color:#f85149}
+.tag.better-for-a-real-mount,.tag.required-for-a-product{background:#1a3a2a;color:#3fb950}
+.tag.deferred,.tag.out-of-scope{background:#2d1f00;color:#e3b341}
+.fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
+.note-warn{background:#2d1f00;border:1px solid #9e6a03;color:#e3b341;border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;margin:12px 0}
+.q{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin-bottom:8px}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">דלג לתוכן</a>
+<nav class="site-nav" aria-label="ניווט ראשי">
+  <span class="brand">SmartMount</span>
+  <a href="../">בית</a>
+  <a href="../lab/">מעבדה הנדסית</a>
+  <a href="../spec/">מפרט בנייה</a>
+  <a href="../geometry/">גאומטריית בוהק</a>
+  <a href="../protocol/">חוזה API</a>
+  <a href="../fsm/">מכונת מצבים</a>
+  <a href="../runtime/">תזמון והספק</a>
+  <a href="../power/">תקציב הספק</a>
+  <a href="../hil/">תוכנית HIL</a>
+  <a class="on" href="./" aria-current="page">חלופות</a>
+  <a href="../dashboard/">לוח בקרה</a>
+</nav>
+<div class="banner">מפרט קונספט — שיפוטי תיק עבודות, לא מדידת מעבדה. מה שנבחר לדמו הוא מה שהקושחה כבר מניחה.</div>
+<main id="main" class="wrap">
+  <h1>חלופות שנדחו — ולמה</h1>
+  <p class="lead">
+    סרבו מול צעד מול מפעיל קווי. יחס lux מול סף מוחלט מול nits לצופה.
+    חיישן על המסגרת מול קיר מול מצלמה. כל שורה היא החלטה, לא שכחה.
+  </p>
+  <div class="note-warn">
+    «נבחר לדמו» ≠ «הוכח כטוב ביותר». מפעיל קווי + תולעת + מפסק קצה הם מה שהייתי בונה
+    אם מישהו היה מבטל את פסק ה־PARK ומתעקש על חומרה. ראו <a href="../spec/">מפרט</a>.
+  </div>
+  <div id="list"></div>
+  <p class="fine">
+    המקור: <code>src/lib/alts.js</code>. הבדיקות נועלות את חמש ההחלטות
+    ואת זה שהדמו בחר בצעד + יחס + מסגרת + זרם החזקה + שקר האפס.
+  </p>
+</main>
+<script src="../src/lib/alts.js"></script>
+<script>
+const VERDICT_HE = {
+  'chosen-for-demo': 'נבחר לדמו',
+  rejected: 'נדחה',
+  'rejected-as-home': 'נדחה כאפס',
+  'better-for-a-real-mount': 'עדיף לתושבת אמיתית',
+  'required-for-a-product': 'חובה למוצר',
+  deferred: 'נדחה לשלב הבא',
+  'out-of-scope': 'מחוץ להיקף',
+};
+
+function optClass(v) {
+  if (v === 'chosen-for-demo') return 'chosen';
+  if (v === 'better-for-a-real-mount' || v === 'required-for-a-product') return 'better';
+  if (v.indexOf('reject') === 0) return 'reject';
+  return '';
+}
+
+const list = document.getElementById('list');
+SM_ALTS.DECISIONS.forEach((d) => {
+  const card = document.createElement('section');
+  card.className = 'card';
+  card.innerHTML = '<p class="q">' + d.question + '</p><div class="opts"></div>';
+  const opts = card.querySelector('.opts');
+  d.options.forEach((o) => {
+    const el = document.createElement('article');
+    el.className = 'opt ' + optClass(o.verdict);
+    el.innerHTML =
+      '<span class="tag ' + o.verdict + '">' + (VERDICT_HE[o.verdict] || o.verdict) + '</span>' +
+      '<h3>' + o.label + '</h3>' +
+      '<p>' + o.why + '</p>';
+    opts.appendChild(el);
+  });
+  list.appendChild(card);
+});
+</script>
+</body>
+</html>
