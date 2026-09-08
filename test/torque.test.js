@@ -72,3 +72,14 @@ test('bad inputs are rejected rather than returning NaN', () => {
   assert.throws(() => T.gravityTorqueNm({ massKg: -1, cogOffsetM: 0.1, tiltFromVerticalDeg: 0 }));
   assert.throws(() => T.gearedHoldingNm({ motorHoldingNm: 0.4, gearRatio: 0, efficiency: 0.8 }));
 });
+
+test('gravityTorqueNm throws Error when cogOffsetM is zero or negative', () => {
+  assert.throws(
+    () => T.gravityTorqueNm({ massKg: 10, cogOffsetM: 0, tiltFromVerticalDeg: 30 }),
+    new Error('invalid torque inputs')
+  );
+  assert.throws(
+    () => T.gravityTorqueNm({ massKg: 10, cogOffsetM: -1, tiltFromVerticalDeg: 30 }),
+    new Error('invalid torque inputs')
+  );
+});
