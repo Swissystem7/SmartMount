@@ -1,21 +1,21 @@
 # SmartMount - local web research (20260906-152405)
 
-- Provider: LOCAL_WEB (duckduckgo-lite + qwen3:14b@http://100.106.183.93:11435)
+- Provider: LOCAL_WEB (duckduckgo-lite + qwen3:14b served by a local model endpoint on the owner's server)
 - Sources: 16
 - Queries: motorized TV mount with light sensor competitors 2026 | auto tilt TV mount alternatives with photocell | market size for smart motorized TV mounts 2026 | 2026 hackathons for IoT hardware development | grants for smart home automation 2026 | security requirements for ESP32 based smart mounts
 - Note: free login-less research; a Perplexity Deep Research replaces this when available.
 
 ## PRODUCT_TRUTH  
 SmartMount היא פרויקט חומרה שמתבסס על ESP32 וחיישני BH1750, עם מנוע צעד שמטרתו לנהל מסך לפי יחס האור. פרויקט זה **לא** מוצע כמוצר מסחרי, ולא עבר בדיקה או הפקה. הקושחה ב-`firmware/smart_mount.ino` נכתבה ללוח אמיתי, אך **לא רצה מול חומרה**. האלגוריתם של הבוהק **לא נבדק מול מדידה**. אין ענן, חשבונות או סליקה.  
-הבדיקות היחידות שרוצות הן על המחשב, ללא תלויות, וכוללות חוק ההטיה, חוזה ה-HTTP, מומנט המנוע, פער בין lux לבהירות, **כל תא** במכונת המצבים, תקציב תזמון/הספק/סוללה, תוכנית HIL שמוגדרת כ-never-run, וחולופות שנדחו [n].  
+הבדיקות היחידות שרוצות הן על המחשב, ללא תלויות, וכוללות חוק ההטיה, חוזה ה-HTTP, מומנט המנוע, פער בין lux לבהירות, **כל תא** במכונת המצבים, תקציב תזמון/הספק/סוללה, תוכנית HIL שמוגדרת כ-never-run, וחלופות שנדחו [n].  
 
 ## TARGET_USER_AND_PAID_PROBLEM  
 SmartMount מכוון למשתמשים שמתעניינים בפתרונות חכמים לניהול מסכים, במיוחד אלו שמתעניינים במערכות חיבור אוטומטיות עם חיישנים. עם זאת, אין מידע מוכח על קהל יעד ספציפי או על בעיות מוניציפליות או מסחריות שמשתמשים ב-SmartMount כדי לפתור [n].  
 
 ## COMPETITORS_WITH_SOURCES  
-ישנם מספר מתחרים בسوق המOUNTS למסכים, כולל:  
+ישנם מספר מתחרים בשוק המתקנים למסכים, כולל:  
 - **Pipishell Full Motion TV Wall Mount** - מתאים למסכים עד 43 אינץ', עם אפשרות סיבוב וטילט [1].  
-- **SANUS LMT15** - מOUNT מנועי מתאים למסכים 40" - 60" עם טילט אוטומטי [2].  
+- **SANUS LMT15** - מתקן מנועי מתאים למסכים 40" - 60" עם טילט אוטומטי [2].  
 - **Amazon Basics Full Motion Articulating Wall Mount** - מתאים למסכים עד 65 אינץ' [3].  
 - **USX MOUNT UL Listed Full Motion Mount** - מתאים למסכים עד 90 אינץ' [1].  
 
@@ -39,9 +39,8 @@ NO_VERIFIED_MATCH
 אין מידע מוכח על אפליקציות, תקינות או עיכובים ב-SmartMount [n].  
 
 ## QUESTIONS_FOR_OWNER  
-1. האם יש תוכניות להפקת מוצרי SmartMount ל시장?  
+1. האם יש תוכניות להפקת מוצרי SmartMount לשוק?  
 2. האם יש תקציבים או תקנות שמתאימים ל-SmartMount?  
-3. האם יש תקציבים או תקנות שמתאימים ל-SmartMount?
 
 ## SOURCES
 [1] 11 Best TV Mounts - Our Picks, Alternatives & Reviews - Alternative.me - https://alternative.me/tv-mounts
