@@ -87,3 +87,81 @@ test('disagreement labels are the four pedagogical cases', () => {
 test('disagreement returns unknown for non-finite highlight values', () => {
   assert.equal(O.disagreement({ luxTop: 40, luxBot: 80, highlight: NaN }), 'unknown');
 });
+
+// ── unknown, not a guess ───────────────────────────────────────────────────
+// Round-2 backlog item 4. Master already returned 'unknown' for a non-finite
+// highlight (commit 1cdee92). What it did not cover: the sensor half. A
+// failed BH1750 read is a negative lux, and sensorRatio() turns that into
+// null; the old code folded null into "the law is quiet", so an unreadable
+// sensor pair was reported as agreement between the law and the viewer.
+// These tests pin the whole domain, not just the half that was already fixed.
+
+test('a failed or out-of-domain sensor pair is unknown, not agreement', () => {
+  // Negative lux is the BH1750 failed-read signature.
+  assert.equal(O.disagreement({ luxTop: -1, luxBot: 80, highlight: 0 }), 'unknown');
+  assert.equal(O.disagreement({ luxTop: 40, luxBot: -2, highlight: 0 }), 'unknown');
+  // ...and it must not become 'blind-but-quiet' just because the eye is hit.
+  assert.equal(O.disagreement({ luxTop: -1, luxBot: 80, highlight: 1200 }), 'unknown');
+  for (const bad of [NaN, Infinity, -Infinity, undefined, null, 'x']) {
+    assert.equal(
+      O.disagreement({ luxTop: bad, luxBot: 80, highlight: 0 }), 'unknown',
+      'luxTop ' + String(bad)
+    );
+    assert.equal(
+      O.disagreement({ luxTop: 40, luxBot: bad, highlight: 0 }), 'unknown',
+      'luxBot ' + String(bad)
+    );
+  }
+});
+
+test('an out-of-domain threshold or content luminance is unknown too', () => {
+  // threshold <= 0 would make every reading glare; contentNits <= 0 would make
+  // every highlight infinitely dominant. Neither is a classification.
+  assert.equal(O.disagreement({ luxTop: 800, luxBot: 80, highlight: 0, threshold: 0 }), 'unknown');
+  assert.equal(O.disagreement({ luxTop: 800, luxBot: 80, highlight: 0, threshold: -1 }), 'unknown');
+  assert.equal(O.disagreement({ luxTop: 800, luxBot: 80, highlight: 0, threshold: NaN }), 'unknown');
+  assert.equal(O.disagreement({ luxTop: 800, luxBot: 80, highlight: 0, contentNits: 0 }), 'unknown');
+  assert.equal(O.disagreement({ luxTop: 800, luxBot: 80, highlight: 0, contentNits: NaN }), 'unknown');
+  // A negative luminance is not a dim highlight, it is a broken input.
+  assert.equal(O.disagreement({ luxTop: 40, luxBot: 80, highlight: -1 }), 'unknown');
+});
+
+test('the four real cases are untouched by the domain guards', () => {
+  assert.equal(O.disagreement({ luxTop: 40, luxBot: 80, highlight: 1200 }), 'blind-but-quiet');
+  assert.equal(O.disagreement({ luxTop: 800, luxBot: 80, highlight: 0 }), 'tilts-for-nothing');
+  assert.equal(O.disagreement({ luxTop: 800, luxBot: 80, highlight: 1200 }), 'agrees-glare');
+  assert.equal(O.disagreement({ luxTop: 40, luxBot: 80, highlight: 0 }), 'agrees-clear');
+  // luxBot 0 is in domain: the law clamps it to minLux rather than dividing
+  // by zero, so this is a real 40x ratio, not an unknown.
+  assert.equal(O.disagreement({ luxTop: 40, luxBot: 0, highlight: 0 }), 'tilts-for-nothing');
+});
+
+test('KINDS is the complete, frozen set every caller has to handle', () => {
+  assert.deepEqual(O.KINDS, [
+    'agrees-clear', 'agrees-glare', 'blind-but-quiet', 'tilts-for-nothing', 'unknown',
+  ]);
+  assert.equal(Object.isFrozen(O.KINDS), true);
+  const seen = new Set([
+    O.disagreement({ luxTop: 40, luxBot: 80, highlight: 0 }),
+    O.disagreement({ luxTop: 800, luxBot: 80, highlight: 1200 }),
+    O.disagreement({ luxTop: 40, luxBot: 80, highlight: 1200 }),
+    O.disagreement({ luxTop: 800, luxBot: 80, highlight: 0 }),
+    O.disagreement({ luxTop: -1, luxBot: 80, highlight: 0 }),
+  ]);
+  assert.deepEqual([...seen].sort(), [...O.KINDS]);
+});
+
+test('sampleScene rejects an out-of-domain scene instead of scoring it', () => {
+  assert.throws(() => O.sampleScene({
+    sourceNits: NaN, sourceAreaM2: 0.0004, distanceTopM: 2, distanceBotM: 2,
+    ambientTop: 40, ambientBot: 80, reflectance: 0.06, rayHitsEye: true,
+  }), /invalid source/);
+  assert.throws(() => O.sampleScene({
+    sourceNits: 20000, sourceAreaM2: 0.0004, distanceTopM: 0, distanceBotM: 2,
+    ambientTop: 40, ambientBot: 80, reflectance: 0.06, rayHitsEye: true,
+  }), /invalid illuminance inputs/);
+  assert.throws(() => O.sampleScene({
+    sourceNits: 20000, sourceAreaM2: 0.0004, distanceTopM: 2, distanceBotM: 2,
+    ambientTop: 40, ambientBot: 80, reflectance: 1.4, rayHitsEye: true,
+  }), /invalid highlight inputs/);
+});
