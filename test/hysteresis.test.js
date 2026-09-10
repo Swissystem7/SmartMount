@@ -100,6 +100,36 @@ test('without the filter the raw sequence commands motor moves', () => {
   assert.equal(c.noFilter.samples[4].moved, true);
 });
 
+// The deadband test is strict too: a correction that lands EXACTLY on the
+// 1 deg deadband is not worth the noise and wear. The module comment calls it
+// "the same deadband test the .ino applies in loop()", and the .ino line 255 is
+// `if (abs(next - currentAngle) > DEADBAND_DEG)`. Without this the comparison
+// could be relaxed to >= and the whole suite would stay green.
+test('a correction exactly equal to the deadband does not command a move', () => {
+  // Hand-derived: window 1 so filtered = 1.5; enter 0.5 so the state engages;
+  // gain 1 so target = (1.5 - 0.5) * 1 = 1 exactly; commanded starts at 0, so
+  // |1 - 0| = 1, which is not > the deadband of 1.
+  const r = H.computeTiltState([1.5], {
+    panel: 'LED', enter: 0.5, band: 0.1, gain: 1, deadband: 1, window: 1,
+  });
+  assert.equal(r.samples[0].filtered, 1.5);
+  assert.equal(r.samples[0].state, 'engaged');
+  assert.equal(r.samples[0].target, 1);
+  assert.equal(r.samples[0].commanded, 0);
+  assert.equal(r.samples[0].moved, false);
+  assert.equal(r.moves, 0);
+  assert.equal(r.finalAngle, 0);
+  // A hair over the deadband DOES move, so the assertion above is a boundary.
+  const over = H.computeTiltState([1.6], {
+    panel: 'LED', enter: 0.5, band: 0.1, gain: 1, deadband: 1, window: 1,
+  });
+  assert.equal(over.samples[0].moved, true);
+  assert.equal(over.moves, 1);
+  // ...and the mirror agrees at the same point.
+  assert.equal(C.shouldMove(0, 1), false);
+  assert.equal(C.shouldMove(0, 1.5), true);
+});
+
 test('a real glare step still engages and ramps to the panel cap', () => {
   const led = H.computeTiltState([1, 1, 1, 8, 8, 8, 8], { panel: 'LED' });
   assert.deepEqual(led.samples.map((s) => s.commanded), [
