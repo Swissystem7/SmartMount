@@ -200,6 +200,34 @@ test('bad parameters are rejected rather than silently defaulted', () => {
   assert.throws(() => H.computeTiltState([1], { gain: -1 }), /invalid hysteresis params/);
 });
 
+// DEFAULT_BAND is an absolute 0.5 ratio unit, not a fraction of `enter`, so a
+// caller who lowers `enter` to 0.5 or below without also passing `band` gets a
+// throw rather than a band that swallows its own threshold. That is the chosen
+// behaviour — see the reasoning above DEFAULT_BAND in the module — and this
+// pins it so it cannot drift in either direction unnoticed.
+test('the default band is absolute, so a low custom enter must bring its own band', () => {
+  assert.equal(H.DEFAULT_BAND, 0.5);
+  // Hand-derived: enter above the default band is fine, exit = enter - 0.5.
+  const ok = H.computeTiltState([1.5], { enter: 0.6, gain: 1, deadband: 1, window: 1 });
+  assert.equal(ok.band, 0.5);
+  assert.equal(ok.exit, 0.09999999999999998);   // 0.6 - 0.5 in IEEE-754
+  // enter equal to or below the default band is rejected, loudly and by name.
+  assert.throws(
+    () => H.computeTiltState([1.5], { enter: 0.5, gain: 1, deadband: 1, window: 1 }),
+    /invalid hysteresis band/
+  );
+  assert.throws(
+    () => H.computeTiltState([1.5], { enter: 0.4, gain: 1, deadband: 1, window: 1 }),
+    /invalid hysteresis band/
+  );
+  // ...and an explicit band makes the very same low enter work.
+  const withBand = H.computeTiltState([1.5], {
+    enter: 0.5, band: 0.1, gain: 1, deadband: 1, window: 1,
+  });
+  assert.equal(withBand.exit, 0.4);            // 0.5 - 0.1 in IEEE-754
+  assert.equal(withBand.samples[0].state, 'engaged');
+});
+
 test('an empty sequence is a legal, inert replay', () => {
   const r = H.computeTiltState([], { panel: 'LED' });
   assert.deepEqual(r.samples, []);

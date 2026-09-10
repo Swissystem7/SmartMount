@@ -27,8 +27,25 @@
     ? require('./control')
     : globalThis;
 
-  // Width of the band below the enter threshold. 0.5 of a ratio unit is
-  // 10% of the 3.0 threshold — chosen, not measured; nothing was calibrated.
+  // Width of the band below the enter threshold, in ratio units. It is
+  // ABSOLUTE, not a fraction of `enter`: 0.5 of a ratio unit is 0.5 / 3 =
+  // ~16.7% of the 3.0 default threshold — chosen, not measured; nothing was
+  // calibrated. (An earlier comment here said 10%; that was simply wrong
+  // arithmetic, and this repo would rather say the real number.)
+  //
+  // The consequence is deliberate and worth stating instead of papering over.
+  // Because the default is absolute, a caller who overrides `enter` to 0.5 or
+  // lower WITHOUT also passing `band` gets a throw: resolveParams rejects
+  // band >= enter, since a band that swallows its own threshold would mean
+  // "engaged forever" once engaged. No caller in this repo overrides `enter`,
+  // and the throw is loud and names the parameter. Making the default relative
+  // (enter / 6, say) would keep such a caller running, but it would silently
+  // rescale a constant this file calls "chosen, not measured", make the
+  // exported DEFAULT_BAND stop describing the band the module actually used,
+  // and quietly change what the study measures for anyone sweeping `enter`.
+  // A loud throw beats a silent rescale in a module whose whole point is that
+  // its numbers are honest, so the constraint is documented and pinned by
+  // test/hysteresis.test.js rather than engineered away.
   const DEFAULT_BAND = 0.5;
   // Samples in the moving average. At the firmware's 2 s poll, 3 samples is
   // a 6 s window: long enough to swallow a passing cloud shadow, short
