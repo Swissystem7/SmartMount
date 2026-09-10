@@ -152,7 +152,12 @@ test('the geometry page names every optics kind and says unknown for the rest', 
   // The out-of-domain path exists and is wired to both entry points: a scene
   // the library rejects (throw) and a pair it cannot classify (kind unknown).
   assert.match(g, /function paintOpticsUnknown\(\)/);
-  assert.match(g, /catch \(err\)/);
+  // The catch BODY, not just the keyword. This repo has no browser runner, so
+  // every page is verified as source text only — which means a token-level
+  // match is exactly as strong as the token it matches. `/catch \(err\)/`
+  // alone passes for a catch that rethrows, and a rethrow here would blow the
+  // page up on a rejected scene instead of blanking the four readouts.
+  assert.match(g, /catch \(err\) \{\s*s = null;/);
   assert.match(g, /s\.kind === 'unknown'/);
   assert.match(g, /לא ידוע/);
   // ...and it blanks the numbers instead of printing a value from a rejected
