@@ -253,3 +253,27 @@ test('the firmware still has none of this, and neither does the mirror', () => {
   assert.equal(spec.hysteresisBand, undefined);
   assert.equal(spec.filterWindow, undefined);
 });
+
+test('the release boundary is strict too: filtered exactly at exit stays engaged', () => {
+  // The engage side is `filtered > enter` and the release side is `filtered < exit`, both strict, both
+  // mirroring the .ino. The engage boundary is pinned above; this is the other half, and without it the
+  // release comparison can be flipped to `<=` with the whole suite still green.
+  //
+  // enter 3, band 0.5 -> exit 2.5, window 1 so `filtered` is the raw ratio.
+  // 4 engages (4 > 3). 2.5 is exactly exit: `2.5 < 2.5` is false, so it must STAY engaged.
+  // 2.4 is below exit and must release.
+  const cfg = { panel: 'LED', enter: 3, band: 0.5, window: 1, gain: 1, deadband: 0 };
+  const held = H.computeTiltState([4, 2.5], cfg);
+  assert.equal(held.samples[0].state, 'engaged');
+  assert.equal(held.samples[1].state, 'engaged', 'exactly at exit is not below it');
+  assert.equal(held.finalState, 'engaged');
+
+  const released = H.computeTiltState([4, 2.4], cfg);
+  assert.equal(released.samples[1].state, 'idle');
+  assert.equal(released.finalState, 'idle');
+
+  // and the target follows the state: engaged at exactly exit still commands
+  // clamp((2.5 - 3) * 1, 0, limit) = 0, so the angle is 0 either way - which is
+  // why only the state field can catch this flip.
+  assert.equal(held.samples[1].target, 0);
+});

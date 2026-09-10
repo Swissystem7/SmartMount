@@ -158,7 +158,10 @@ test('the geometry page names every optics kind and says unknown for the rest', 
   // alone passes for a catch that rethrows, and a rethrow here would blow the
   // page up on a rejected scene instead of blanking the four readouts.
   assert.match(g, /catch \(err\) \{\s*s = null;/);
-  assert.match(g, /s\.kind === 'unknown'/);
+  // The guard as a whole, not just the kind comparison: `if (s && s.kind === 'unknown')`
+  // would skip the blanking for a null scene, which is the same failure the catch
+  // body above exists to prevent - a rejected scene leaving stale numbers on screen.
+  assert.match(g, /if \(!s \|\| s\.kind === 'unknown'\)/);
   assert.match(g, /לא ידוע/);
   // ...and it blanks the numbers instead of printing a value from a rejected
   // input. Four readouts, four em dashes.
