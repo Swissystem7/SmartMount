@@ -141,3 +141,21 @@ test('package.json stays dependency-free', () => {
   assert.equal(pkg.devDependencies, undefined);
   assert.equal(pkg.scripts.test, 'node --test');
 });
+
+// ── geometry page: unknown is rendered, not swallowed ──────────────────────
+test('the geometry page names every optics kind and says unknown for the rest', () => {
+  const O = require('../src/lib/optics');
+  const g = read('geometry/index.html');
+  for (const kind of O.KINDS) {
+    assert.ok(g.includes("'" + kind + "'"), 'geometry page does not name ' + kind);
+  }
+  // The out-of-domain path exists and is wired to both entry points: a scene
+  // the library rejects (throw) and a pair it cannot classify (kind unknown).
+  assert.match(g, /function paintOpticsUnknown\(\)/);
+  assert.match(g, /catch \(err\)/);
+  assert.match(g, /s\.kind === 'unknown'/);
+  assert.match(g, /לא ידוע/);
+  // ...and it blanks the numbers instead of printing a value from a rejected
+  // input. Four readouts, four em dashes.
+  assert.equal((g.match(/textContent = '—'/g) || []).length, 4);
+});
