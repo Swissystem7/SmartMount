@@ -3,7 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const H = require('../src/lib/hysteresis');
-const { PANEL_LIMITS, GLARE_THRESHOLD, GAIN_DEG_PER_RATIO, DEADBAND_DEG } = require('../src/lib/control');
+const C = require('../src/lib/control');
+const { PANEL_LIMITS, GLARE_THRESHOLD, GAIN_DEG_PER_RATIO, DEADBAND_DEG } = C;
 
 // Every expected number below was computed by hand in a python3 scratch script
 // before this file existed, from the same arithmetic the module documents:
@@ -55,6 +56,27 @@ test('a sequence hovering on the threshold commands zero moves', () => {
   assert.equal(r.finalState, 'engaged');
   assert.equal(r.finalAngle, 0);
   for (const s of r.samples) assert.equal(s.moved, false);
+});
+
+// The threshold is strict, exactly as in the .ino and in control.js. A ratio
+// that lands ON 3.0 is not glare: firmware line 140 is
+// `if (glareRatio > GLARE_THRESHOLD)` and control.js returns 0 for
+// `ratio <= GLARE_THRESHOLD`. Without this the engage comparison could be
+// relaxed to >= and every other test in the suite would stay green.
+test('a ratio sitting exactly on the enter threshold does not engage', () => {
+  const r = H.computeTiltState([3, 3, 3], { panel: 'LED' });
+  // Hand-derived: mean([3,3,3]) = 3 exactly, and 3 > 3 is false three times.
+  assert.deepEqual(r.samples.map((s) => s.filtered), [3, 3, 3]);
+  assert.deepEqual(r.samples.map((s) => s.state), ['idle', 'idle', 'idle']);
+  assert.equal(r.finalState, 'idle');
+  assert.equal(r.finalAngle, 0);
+  assert.equal(r.moves, 0);
+  // One tick above the threshold DOES engage, so the assertion above is a
+  // boundary and not a claim that the module never engages.
+  const hot = H.computeTiltState([3.0000001], { panel: 'LED' });
+  assert.equal(hot.samples[0].state, 'engaged');
+  // ...and the mirror agrees at the same point: ratio 300/100 = 3.0 -> 0 deg.
+  assert.equal(C.calcOptimalAngle(300, 100, 'LED', 11.25), 0);
 });
 
 // The two mechanisms fix two different failures, and the numbers say so.
