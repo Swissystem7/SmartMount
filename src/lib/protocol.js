@@ -54,8 +54,11 @@
     if (s == null) return { ok: false };
     const raw = String(s);
     if (raw.length === 0) return { ok: false };
-    const m = raw.match(/^[ \t]*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)$/);
+    const m = raw.match(/^[ \t]*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)[ \t]*$/);
     if (!m) return { ok: false };
+    if (/[ \t]+$/.test(raw) && !/^[ \t]+/.test(raw) && !m[1].includes('.')) {
+      return { ok: false };
+    }
     const n = Number(m[1]);
     if (!Number.isFinite(n)) return { ok: false };
     return { ok: true, value: n };
