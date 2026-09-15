@@ -69,7 +69,7 @@
     const ratio = sensorRatio(luxTop, luxBot);
     const lawMoves = ratio != null && ratio > threshold;
     const eye = viewerGlare(highlight, contentNits);
-    if (!Number.isFinite(highlight)) return 'unknown';
+    if (!Number.isFinite(highlight) || !Number.isFinite(luxTop) || !Number.isFinite(luxBot)) return 'unknown';
     if (!lawMoves && eye) return 'blind-but-quiet';
     if (lawMoves && !eye) return 'tilts-for-nothing';
     if (lawMoves && eye) return 'agrees-glare';
