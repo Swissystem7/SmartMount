@@ -50,3 +50,7 @@ test('docs/HIL.md exists and refuses to claim a run', () => {
   assert.match(md, /להכריז/);
   assert.doesNotMatch(md, /all cases passed/i);
 });
+
+test('byId returns { status: "not-found" } for invalid id', () => {
+  assert.deepEqual(H.byId('invalid-id'), { status: 'not-found' });
+});
