@@ -87,3 +87,8 @@ test('disagreement labels are the four pedagogical cases', () => {
 test('disagreement returns unknown for non-finite highlight values', () => {
   assert.equal(O.disagreement({ luxTop: 40, luxBot: 80, highlight: NaN }), 'unknown');
 });
+
+test('disagreement returns unknown for non-finite luxTop or luxBot values', () => {
+  assert.equal(O.disagreement({ luxTop: NaN, luxBot: 10, highlight: 5 }), 'unknown');
+  assert.equal(O.disagreement({ luxTop: 10, luxBot: Infinity, highlight: 5 }), 'unknown');
+});
