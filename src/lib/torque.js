@@ -29,7 +29,7 @@
     const m = Number(massKg);
     const d = Number(cogOffsetM);
     const th = Number(tiltFromVerticalDeg);
-    if (![m, d, th].every(Number.isFinite) || m < 0 || d < 0) {
+    if (![m, d, th].every(Number.isFinite) || m < 0 || d <= 0) {
       throw new Error('invalid torque inputs');
     }
     return m * G * d * Math.cos((th * Math.PI) / 180);
