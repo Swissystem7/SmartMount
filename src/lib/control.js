@@ -35,21 +35,9 @@
     return luxTop / Math.max(luxBot, MIN_LUX);
   }
 
-  // PANEL_LIMITS is a plain object, so PANEL_LIMITS['toString'] is an inherited FUNCTION, not
-  // undefined: the guard below used to wave it through and the control law then returned NaN - a
-  // NaN angle is a NaN step count at the stepper. Look the key up on the object itself only.
-  function panelLimit(panel) {
-    const limit = Object.prototype.hasOwnProperty.call(PANEL_LIMITS, panel)
-      ? PANEL_LIMITS[panel]
-      : undefined;
-    if (typeof limit !== 'number' || !Number.isFinite(limit)) {
-      throw new Error('unknown panel type: ' + String(panel));
-    }
-    return limit;
-  }
-
   function calcOptimalAngle(luxTop, luxBot, panel = 'LED', currentAngle = 0) {
-    const limit = panelLimit(panel);
+    const limit = PANEL_LIMITS[panel];
+    if (limit === undefined) throw new Error('unknown panel type: ' + panel);
 
     const ratio = glareRatio(luxTop, luxBot);
     // Firmware returns currentAngle on a failed BH1750 read (hold, never slam).
@@ -65,7 +53,8 @@
   }
 
   function clampToPanel(angle, panel = 'LED') {
-    const limit = panelLimit(panel);
+    const limit = PANEL_LIMITS[panel];
+    if (limit === undefined) throw new Error('unknown panel type: ' + panel);
     return Math.min(Math.max(angle, -limit), limit);
   }
 
