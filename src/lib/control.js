@@ -89,5 +89,3 @@
     DEADBAND_DEG,
   };
 });
-
-module.exports.panelKindOf = () => null;
