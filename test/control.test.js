@@ -109,3 +109,9 @@ test('auto mode never returns a negative angle', () => {
     assert.ok(calcOptimalAngle(luxTop, 100) >= 0);
   }
 });
+
+test('clampToPanel rejects non-finite angle inputs', () => {
+  for (const bad of [NaN, Infinity, -Infinity]) {
+    assert.throws(() => clampToPanel(bad, 'LED'), new Error('invalid angle'));
+  }
+});
