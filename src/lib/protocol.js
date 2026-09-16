@@ -103,9 +103,16 @@
     if (args == null || !Object.prototype.hasOwnProperty.call(args, 'type')) {
       return { status: 400, body: errorBody('missing type') };
     }
-    const type = arduinoToInt(args.type);
-    if (!isValidPanel(type)) return { status: 400, body: errorBody('invalid panel type') };
-    return { status: 200, body: okBody(), effect: { panel: type } };
+    const type = args.type;
+    if (typeof type !== 'string') {
+      return { status: 400, body: errorBody('missing type') };
+    }
+    if (type.length === 0) {
+      return { status: 400, body: errorBody('missing type') };
+    }
+    const panelType = arduinoToInt(type);
+    if (!isValidPanel(panelType)) return { status: 400, body: errorBody('invalid panel type') };
+    return { status: 200, body: okBody(), effect: { panel: panelType } };
   }
 
   function handleSetMode(args) {

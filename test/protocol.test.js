@@ -85,3 +85,10 @@ test('Serial on boot matches the two strings the firmware actually prints', () =
   assert.equal(P.serialOnBoot(false), P.SERIAL_WIFI_TIMEOUT);
   assert.equal(P.serialOnBoot(true, '192.168.1.8'), 'IP: 192.168.1.8');
 });
+
+test('handleSetPanel rejects non-string type with 400 error', () => {
+  assert.deepEqual(P.handleSetPanel({ type: null }), { 
+    status: 400, 
+    body: { ok: false, error: 'missing type' } 
+  });
+});
