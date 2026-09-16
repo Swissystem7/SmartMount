@@ -70,3 +70,12 @@ test('MONETIZATION.md states the same verdict with check dates', () => {
   assert.match(md, /arxiv\.org\/abs\/2401\.02755/);
   assert.doesNotMatch(md, /לקנות עכשיו|הוסף לסל|ערכה זמינה למשלוח/);
 });
+
+test('openItem returns VERDICT for non-existent id, consistent with bug function behavior', () => {
+  assert.deepEqual(C.openItem('non-existent-id'), {
+    id: 'portfolio-only',
+    headline: 'אין נתיב הכנסה. זה פריט תיק עבודות.',
+    hardware: 'untested',
+    hardwareHe: 'הקושחה נכתבה ללוח אמיתי וטרם רצה מולו. אלגוריתם הבוהק לא כויל מול מדידה.',
+  });
+});
