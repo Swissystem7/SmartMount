@@ -49,7 +49,10 @@
     if (!Number.isFinite(availableNm) || !Number.isFinite(requiredNm)) {
       throw new Error('invalid safety-factor inputs');
     }
-    if (requiredNm <= 0) return Infinity;
+    if (requiredNm < 0) {
+      throw new Error('requiredNm must be non-negative');
+    }
+    if (requiredNm === 0) return Infinity;
     return availableNm / requiredNm;
   }
 

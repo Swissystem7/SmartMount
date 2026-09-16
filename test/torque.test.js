@@ -72,3 +72,11 @@ test('bad inputs are rejected rather than returning NaN', () => {
   assert.throws(() => T.gravityTorqueNm({ massKg: -1, cogOffsetM: 0.1, tiltFromVerticalDeg: 0 }));
   assert.throws(() => T.gearedHoldingNm({ motorHoldingNm: 0.4, gearRatio: 0, efficiency: 0.8 }));
 });
+
+test('safetyFactor returns Infinity for zero requiredNm and throws for negative values', () => {
+  // Test that zero requiredNm returns Infinity (the desired behavior)
+  assert.strictEqual(T.safetyFactor(1.0, 0), Infinity);
+  
+  // Test that negative requiredNm throws an error (the desired behavior)
+  assert.throws(() => T.safetyFactor(1.0, -1), Error);
+});
