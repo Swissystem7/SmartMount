@@ -72,3 +72,15 @@ test('bad inputs are rejected rather than returning NaN', () => {
   assert.throws(() => T.gravityTorqueNm({ massKg: -1, cogOffsetM: 0.1, tiltFromVerticalDeg: 0 }));
   assert.throws(() => T.gearedHoldingNm({ motorHoldingNm: 0.4, gearRatio: 0, efficiency: 0.8 }));
 });
+
+test('verdict returns holds when factor is Infinity regardless of unpowered flag', () => {
+  assert.equal(T.verdict({ factor: Infinity, selfLocking: false, unpowered: true }), 'holds');
+  assert.equal(T.verdict({ factor: Infinity, selfLocking: true, unpowered: true }), 'holds');
+  assert.equal(T.verdict({ factor: Infinity, selfLocking: false, unpowered: false }), 'holds');
+  assert.equal(T.verdict({ factor: Infinity, selfLocking: true, unpowered: false }), 'holds');
+});
+
+test('verdict throws error when factor is NaN', () => {
+  assert.throws(() => T.verdict({ factor: NaN, selfLocking: false, unpowered: true }));
+  assert.throws(() => T.verdict({ factor: NaN, selfLocking: true, unpowered: false }));
+});

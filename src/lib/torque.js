@@ -56,6 +56,12 @@
   // Unpowered stepper hold is treated as 0. Self-locking (worm / brake) keeps
   // the last angle without motor current — the commercial-mount reason to exist.
   function verdict({ factor, selfLocking, unpowered }) {
+    if (Number.isNaN(factor)) {
+      throw new Error('invalid safety-factor inputs');
+    }
+    if (!Number.isFinite(factor)) {
+      return 'holds';
+    }
     if (unpowered && !selfLocking) return 'drop-on-power-loss';
     if (factor < 1) return 'cannot-hold';
     if (factor < 2) return 'marginal';
