@@ -85,3 +85,49 @@ test('Serial on boot matches the two strings the firmware actually prints', () =
   assert.equal(P.serialOnBoot(false), P.SERIAL_WIFI_TIMEOUT);
   assert.equal(P.serialOnBoot(true, '192.168.1.8'), 'IP: 192.168.1.8');
 });
+
+test('handleSetMode rejects non-string inputs and invalid string values with 400 error "invalid auto"', () => {
+  // Test boolean true
+  assert.deepEqual(P.handleSetMode({ auto: true }), { 
+    status: 400, 
+    body: { ok: false, error: 'invalid auto' } 
+  });
+  
+  // Test boolean false
+  assert.deepEqual(P.handleSetMode({ auto: false }), { 
+    status: 400, 
+    body: { ok: false, error: 'invalid auto' } 
+  });
+  
+  // Test numeric values
+  assert.deepEqual(P.handleSetMode({ auto: 0 }), { 
+    status: 400, 
+    body: { ok: false, error: 'invalid auto' } 
+  });
+  
+  assert.deepEqual(P.handleSetMode({ auto: 1 }), { 
+    status: 400, 
+    body: { ok: false, error: 'invalid auto' } 
+  });
+  
+  // Test invalid string values
+  assert.deepEqual(P.handleSetMode({ auto: 'true' }), { 
+    status: 400, 
+    body: { ok: false, error: 'invalid auto' } 
+  });
+  
+  assert.deepEqual(P.handleSetMode({ auto: 'false' }), { 
+    status: 400, 
+    body: { ok: false, error: 'invalid auto' } 
+  });
+  
+  assert.deepEqual(P.handleSetMode({ auto: 'on' }), { 
+    status: 400, 
+    body: { ok: false, error: 'invalid auto' } 
+  });
+  
+  assert.deepEqual(P.handleSetMode({ auto: 'off' }), { 
+    status: 400, 
+    body: { ok: false, error: 'invalid auto' } 
+  });
+});

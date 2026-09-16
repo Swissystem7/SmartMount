@@ -113,6 +113,9 @@
       return { status: 400, body: errorBody('missing auto') };
     }
     const a = String(args.auto);
+    if (typeof args.auto !== 'string') {
+      return { status: 400, body: errorBody('invalid auto') };
+    }
     if (a !== '0' && a !== '1') return { status: 400, body: errorBody('invalid auto') };
     return { status: 200, body: okBody(), effect: { autoMode: a === '1' } };
   }
