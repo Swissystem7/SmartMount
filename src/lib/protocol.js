@@ -62,9 +62,18 @@
   }
 
   // Arduino String::toInt() ≈ atoi: garbage becomes 0, not an error.
+  // Clamps values to 32-bit signed integer range [-2147483648, 2147483647]
   function arduinoToInt(s) {
     const n = parseInt(String(s), 10);
-    return Number.isFinite(n) ? n : 0;
+    if (!Number.isFinite(n)) return 0;
+    
+    // Clamp to 32-bit signed integer range
+    const INT32_MIN = -2147483648;
+    const INT32_MAX = 2147483647;
+    
+    if (n < INT32_MIN) return INT32_MIN;
+    if (n > INT32_MAX) return INT32_MAX;
+    return n;
   }
 
   function isValidPanel(type) {

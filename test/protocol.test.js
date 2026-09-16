@@ -85,3 +85,17 @@ test('Serial on boot matches the two strings the firmware actually prints', () =
   assert.equal(P.serialOnBoot(false), P.SERIAL_WIFI_TIMEOUT);
   assert.equal(P.serialOnBoot(true, '192.168.1.8'), 'IP: 192.168.1.8');
 });
+
+test('arduinoToInt clamps values outside 32-bit signed integer range', () => {
+  // Test value exceeding maximum 32-bit signed integer
+  assert.equal(P.arduinoToInt('2147483648'), 2147483647);
+  
+  // Test value below minimum 32-bit signed integer
+  assert.equal(P.arduinoToInt('-2147483649'), -2147483648);
+  
+  // Test maximum valid value
+  assert.equal(P.arduinoToInt('2147483647'), 2147483647);
+  
+  // Test minimum valid value
+  assert.equal(P.arduinoToInt('-2147483648'), -2147483648);
+});
