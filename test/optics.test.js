@@ -87,3 +87,15 @@ test('disagreement labels are the four pedagogical cases', () => {
 test('disagreement returns unknown for non-finite highlight values', () => {
   assert.equal(O.disagreement({ luxTop: 40, luxBot: 80, highlight: NaN }), 'unknown');
 });
+
+test('sourceIntensityCd throws error for zero area', () => {
+  assert.throws(() => {
+    O.sourceIntensityCd(100, 0);
+  }, new Error('invalid source'));
+});
+
+test('sourceIntensityCd throws error for negative area', () => {
+  assert.throws(() => {
+    O.sourceIntensityCd(100, -0.1);
+  }, new Error('invalid source'));
+});
