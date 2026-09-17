@@ -109,3 +109,8 @@ test('auto mode never returns a negative angle', () => {
     assert.ok(calcOptimalAngle(luxTop, 100) >= 0);
   }
 });
+
+test('calcOptimalAngle returns 0 when currentAngle is NaN or negative', () => {
+  assert.equal(calcOptimalAngle(-1, 100, 'LED', NaN), 0);
+  assert.equal(calcOptimalAngle(-1, 100, 'LED', -5), 0);
+});
