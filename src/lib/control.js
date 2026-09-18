@@ -53,7 +53,9 @@
 
     const ratio = glareRatio(luxTop, luxBot);
     // Firmware returns currentAngle on a failed BH1750 read (hold, never slam).
-    if (ratio === null) return currentAngle;
+    if (ratio === null) {
+      return Number.isFinite(currentAngle) && currentAngle >= 0 ? currentAngle : 0;
+    }
     if (ratio <= GLARE_THRESHOLD) return 0;
 
     return Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
