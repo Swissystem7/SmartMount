@@ -85,3 +85,7 @@ test('Serial on boot matches the two strings the firmware actually prints', () =
   assert.equal(P.serialOnBoot(false), P.SERIAL_WIFI_TIMEOUT);
   assert.equal(P.serialOnBoot(true, '192.168.1.8'), 'IP: 192.168.1.8');
 });
+
+test('parseFloatArg handles leading and trailing whitespace correctly', () => {
+  assert.deepEqual(P.parseFloatArg(' 123.45 '), { ok: true, value: 123.45 });
+});
