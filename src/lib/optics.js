@@ -21,7 +21,7 @@
   function sourceIntensityCd(luminanceNits, areaM2) {
     const L = Number(luminanceNits);
     const A = Number(areaM2);
-    if (![L, A].every(Number.isFinite) || L < 0 || A < 0) {
+    if (![L, A].every(Number.isFinite) || L < 0 || A <= 0) {
       throw new Error('invalid source');
     }
     // Lambertian toward the sensor: I ≈ L · A
