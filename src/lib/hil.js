@@ -134,7 +134,7 @@
       id: 'HIL-11',
       fixture: 'sensors',
       title: 'יחס lux מול כתם השתקפות אמיתי',
-      inject: 'מנורה קטנה בזווית שפוגעת בעין ולא בחיישן העליון.',
+      inject: 'מנורה קטנה בזווית שפוגעת בעין ולא החיישן העליון.',
       expect: 'החוק לא זז (blind-but-quiet) — כמו geometry/.',
       instruments: Object.freeze(['BH1750', 'עין / מד בהירות אם יש']),
       hazard: 'none',
@@ -158,7 +158,7 @@
     for (let i = 0; i < CASES.length; i++) {
       if (CASES[i].id === id) return CASES[i];
     }
-    return null;
+    return { status: 'not-found' };
   }
 
   function byFixture(fixture) {
