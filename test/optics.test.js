@@ -15,9 +15,11 @@ test('a tiny bright source barely moves lux but blinds if the ray hits the eye',
     rayHitsEye: true,
     botCoupling: 0.05,
   });
-  assert.ok(scene.luxTop < 50, 'sensors stay near ambient');
+  assert.equal(scene.intensityCd, 8);
+  assert.equal(scene.luxTop, 42);           // 40 + 8/4
+  assert.equal(scene.luxBot, 80.1);         // 80 + (8*0.05)/4
+  assert.equal(scene.highlight, 1200);      // 20000 × 0.06
   assert.ok(scene.ratio < O.DEFAULT_THRESHOLD, 'ratio stays under the firmware threshold');
-  assert.ok(scene.highlight > 1000);
   assert.equal(scene.kind, 'blind-but-quiet');
 });
 
@@ -48,8 +50,13 @@ test('a large window raises both sensors and the law may tilt without a hot spot
     rayHitsEye: false,
     botCoupling: 0.02,
   });
-  assert.ok(scene.luxTop > 1500);
+  assert.equal(scene.intensityCd, 4800);
+  // 80 + 4800 / 1.4²
+  assert.ok(Math.abs(scene.luxTop - (80 + 4800 / (1.4 * 1.4))) < 1e-9);
+  // 90 + (4800*0.02) / 1.6²
+  assert.ok(Math.abs(scene.luxBot - (90 + 96 / (1.6 * 1.6))) < 1e-9);
   assert.equal(scene.highlight, 0);
+  assert.ok(scene.ratio > O.DEFAULT_THRESHOLD);
   assert.equal(scene.kind, 'tilts-for-nothing');
 });
 
@@ -86,4 +93,16 @@ test('disagreement labels are the four pedagogical cases', () => {
 
 test('disagreement returns unknown for non-finite highlight values', () => {
   assert.equal(O.disagreement({ luxTop: 40, luxBot: 80, highlight: NaN }), 'unknown');
+  assert.equal(O.disagreement({ luxTop: 40, luxBot: 80, highlight: Infinity }), 'unknown');
+});
+
+test('disagreement returns unknown when lux is not a usable sensor pair', () => {
+  // Failed BH1750 (negative) or non-finite lux must not be labeled as a
+  // pedagogical agrees-* / blind-but-quiet case — ratio is unknown.
+  assert.equal(O.disagreement({ luxTop: -1, luxBot: 80, highlight: 1200 }), 'unknown');
+  assert.equal(O.disagreement({ luxTop: 40, luxBot: -1, highlight: 0 }), 'unknown');
+  assert.equal(O.disagreement({ luxTop: NaN, luxBot: 80, highlight: 1200 }), 'unknown');
+  assert.equal(O.disagreement({ luxTop: 40, luxBot: Infinity, highlight: 0 }), 'unknown');
+  assert.equal(O.sensorRatio(-1, 80), null);
+  assert.equal(O.sensorRatio(40, NaN), null);
 });
