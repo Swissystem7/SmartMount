@@ -57,7 +57,12 @@ test('moveToAngle is absolute moveTo from tracked zero, not relative move', () =
   assert.doesNotMatch(ino, /currentAngle\s*=\s*clamped/);
   const led = moveToAngle(99, 'LED');
   assert.equal(led.clamped, spec.panels.find((p) => p.id === 'LED').limitDeg);
-  assert.equal(led.steps, Math.round(led.clamped * spec.stepper.stepsPerRev * spec.stepper.gearRatio / 360));
+  const k = spec.stepper.stepsPerRev * spec.stepper.gearRatio / 360;
+  // Positive non-half: Math.round === lroundf. Negative half-step must follow C.
+  assert.equal(led.steps, Math.round(led.clamped * k));
+  const negHalfDeg = -110.5 / k;
+  assert.equal(moveToAngle(negHalfDeg, 'OLED').steps, -111);
+  assert.notEqual(Math.round(-110.5), -111);
 });
 
 test('WiFi setup times out and continues local auto; no schedule or cloud in the .ino', () => {
@@ -88,8 +93,8 @@ test('deadband and clamp in JS are the firmware numbers', () => {
   assert.equal(GLARE_THRESHOLD, spec.glareThreshold);
   assert.equal(GAIN_DEG_PER_RATIO, spec.gainDegPerRatio);
   assert.equal(DEADBAND_DEG, spec.deadbandDeg);
-  assert.equal(shouldMove(10, 10 + spec.deadbandDeg), false);
-  assert.ok(shouldMove(10, 10 + spec.deadbandDeg + 0.01));
+  assert.equal(shouldMove(0, spec.deadbandDeg), false);
+  assert.ok(shouldMove(0, spec.deadbandDeg + 0.01));
   for (const p of spec.panels) {
     assert.equal(clampToPanel(999, p.id), p.limitDeg);
     assert.equal(clampToPanel(-999, p.id), -p.limitDeg);

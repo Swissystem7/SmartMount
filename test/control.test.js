@@ -1,9 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  calcOptimalAngle, glareRatio, shouldMove, clampToPanel,
+  calcOptimalAngle, glareRatio, shouldMove, liveAngleFromCommand, clampToPanel, moveToAngle,
   PANEL_LIMITS, GLARE_THRESHOLD, DEADBAND_DEG,
 } = require('../src/lib/control');
+const PARAMS = require('../src/lib/control-params');
 
 test('an evenly lit room produces no tilt', () => {
   assert.equal(calcOptimalAngle(300, 300), 0);
@@ -72,21 +73,48 @@ test('the response is monotonic across the whole glare range', () => {
 // ── deadband ───────────────────────────────────────────────────────────────
 
 test('a correction smaller than the deadband is ignored', () => {
-  assert.equal(shouldMove(10, 10 + DEADBAND_DEG), false);
-  assert.equal(shouldMove(10, 10 - DEADBAND_DEG), false);
+  // Use step-aligned 0° so ±DEADBAND lands exactly on the firmware boundary.
+  assert.equal(shouldMove(0, DEADBAND_DEG), false);
+  assert.equal(shouldMove(0, -DEADBAND_DEG), false);
 });
 
 test('a correction larger than the deadband moves the mount', () => {
-  assert.ok(shouldMove(10, 10 + DEADBAND_DEG + 0.01));
-  assert.ok(shouldMove(10, 10 - DEADBAND_DEG - 0.01));
+  assert.ok(shouldMove(0, DEADBAND_DEG + 0.01));
+  assert.ok(shouldMove(0, -DEADBAND_DEG - 0.01));
 });
 
 test('sensor jitter around a steady target never commands a move', () => {
   const settled = calcOptimalAngle(500, 100, 'LED');
-  for (let noise = -20; noise <= 20; noise += 2) {
+  // After lroundf, live angle is slightly off the commanded float; ±18 lux
+  // stays inside the firmware deadband of that live angle (±20 does not).
+  for (let noise = -18; noise <= 18; noise += 2) {
     const jittered = calcOptimalAngle(500 + noise, 100, 'LED');
     assert.equal(shouldMove(settled, jittered), false, `noise ${noise} lux caused a move`);
   }
+});
+
+// Firmware: currentAngle = currentPosition/STEPS_PER_DEGREE after moveTo(lroundf).
+// Commanded 20° → 56 steps → live ≈ 20.16°. Deadband against 20° desyncs.
+test('shouldMove uses step-quantized live angle like syncAngleFromStepper', () => {
+  const commanded = 20;
+  const steps = moveToAngle(commanded, 'LED').steps;
+  assert.equal(steps, 56);
+  const live = liveAngleFromCommand(commanded);
+  assert.equal(live, steps / PARAMS.stepsPerDegree);
+  assert.ok(Math.abs(live - commanded) > 0.1, 'lround residual must be visible');
+
+  // next=21.1: host-against-20 would move; board-against-20.16 holds.
+  assert.equal(Math.abs(21.1 - commanded) > DEADBAND_DEG, true, 'naive float desync');
+  assert.equal(Math.abs(21.1 - live) > DEADBAND_DEG, false, 'board holds');
+  assert.equal(shouldMove(commanded, 21.1), false);
+
+  // next=21.2: both move.
+  assert.equal(shouldMove(commanded, 21.2), true);
+
+  // next=19: host-against-20 holds (|Δ|=1); board-against-20.16 moves.
+  assert.equal(Math.abs(19 - commanded) > DEADBAND_DEG, false, 'naive float desync');
+  assert.equal(Math.abs(19 - live) > DEADBAND_DEG, true, 'board moves');
+  assert.equal(shouldMove(commanded, 19), true);
 });
 
 // ── clamping ───────────────────────────────────────────────────────────────
@@ -108,4 +136,28 @@ test('auto mode never returns a negative angle', () => {
   for (let luxTop = 0; luxTop <= 10_000; luxTop += 250) {
     assert.ok(calcOptimalAngle(luxTop, 100) >= 0);
   }
+});
+
+// ── moveToAngle / lroundf ──────────────────────────────────────────────────
+
+// Firmware: long steps = lroundf(clamped * STEPS_PER_DEGREE). Halfway cases
+// go away from zero. Math.round(-n.5) goes toward +∞, so the host used to
+// queue one fewer negative pulse than AccelStepper on the board.
+test('moveToAngle matches firmware lroundf on negative half-steps', () => {
+  // -110.5 steps at STEPS_PER_DEGREE = 200*5/360 → deg = -39.78 (within OLED).
+  const deg = -110.5 / PARAMS.stepsPerDegree;
+  assert.equal(deg * PARAMS.stepsPerDegree, -110.5);
+  assert.equal(Math.round(-110.5), -110, 'Math.round alone is the wrong contract');
+  const r = moveToAngle(deg, 'OLED');
+  assert.equal(r.clamped, deg);
+  assert.equal(r.steps, -111);
+});
+
+test('moveToAngle still matches Math.round on positive half-steps and known caps', () => {
+  const pos = 110.5 / PARAMS.stepsPerDegree;
+  assert.equal(moveToAngle(pos, 'OLED').steps, 111);
+  assert.equal(moveToAngle(20, 'LED').steps, 56);
+  assert.equal(moveToAngle(-20, 'LED').steps, -56);
+  assert.equal(moveToAngle(99, 'LED').clamped, 20);
+  assert.equal(moveToAngle(99, 'LED').steps, 56);
 });
