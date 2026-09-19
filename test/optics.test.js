@@ -106,3 +106,15 @@ test('disagreement returns unknown when lux is not a usable sensor pair', () => 
   assert.equal(O.sensorRatio(-1, 80), null);
   assert.equal(O.sensorRatio(40, NaN), null);
 });
+
+test('sourceIntensityCd throws error for zero area', () => {
+  assert.throws(() => {
+    O.sourceIntensityCd(100, 0);
+  }, new Error('invalid source'));
+});
+
+test('sourceIntensityCd throws error for negative area', () => {
+  assert.throws(() => {
+    O.sourceIntensityCd(100, -0.1);
+  }, new Error('invalid source'));
+});
