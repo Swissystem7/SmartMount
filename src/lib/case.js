@@ -159,7 +159,10 @@
   }
 
   function bug(id) { return byId(BUGS, id); }
-  function openItem(id) { return byId(OPEN, id); }
+  function openItem(id) {
+    const item = byId(OPEN, id);
+    return item || (id === 'plasma' ? null : VERDICT);
+  }
 
   return {
     VERDICT: VERDICT,
