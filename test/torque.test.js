@@ -72,3 +72,17 @@ test('bad inputs are rejected rather than returning NaN', () => {
   assert.throws(() => T.gravityTorqueNm({ massKg: -1, cogOffsetM: 0.1, tiltFromVerticalDeg: 0 }));
   assert.throws(() => T.gearedHoldingNm({ motorHoldingNm: 0.4, gearRatio: 0, efficiency: 0.8 }));
 });
+
+test('sizeMount rejects tiltFromVerticalDeg outside -90 to 90 degree range', () => {
+  assert.throws(() => T.sizeMount({
+    massKg: 1,
+    cogOffsetM: 0.1,
+    tiltFromVerticalDeg: -100
+  }), new TypeError('invalid torque inputs'));
+
+  assert.throws(() => T.sizeMount({
+    massKg: 1,
+    cogOffsetM: 0.1,
+    tiltFromVerticalDeg: 100
+  }), new TypeError('invalid torque inputs'));
+});
