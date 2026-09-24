@@ -141,3 +141,29 @@ test('package.json stays dependency-free', () => {
   assert.equal(pkg.devDependencies, undefined);
   assert.equal(pkg.scripts.test, 'node --test');
 });
+
+// ── geometry page: unknown is rendered, not swallowed ──────────────────────
+test('the geometry page names every optics kind and says unknown for the rest', () => {
+  const O = require('../src/lib/optics');
+  const g = read('geometry/index.html');
+  for (const kind of O.KINDS) {
+    assert.ok(g.includes("'" + kind + "'"), 'geometry page does not name ' + kind);
+  }
+  // The out-of-domain path exists and is wired to both entry points: a scene
+  // the library rejects (throw) and a pair it cannot classify (kind unknown).
+  assert.match(g, /function paintOpticsUnknown\(\)/);
+  // The catch BODY, not just the keyword. This repo has no browser runner, so
+  // every page is verified as source text only — which means a token-level
+  // match is exactly as strong as the token it matches. `/catch \(err\)/`
+  // alone passes for a catch that rethrows, and a rethrow here would blow the
+  // page up on a rejected scene instead of blanking the four readouts.
+  assert.match(g, /catch \(err\) \{\s*s = null;/);
+  // The guard as a whole, not just the kind comparison: `if (s && s.kind === 'unknown')`
+  // would skip the blanking for a null scene, which is the same failure the catch
+  // body above exists to prevent - a rejected scene leaving stale numbers on screen.
+  assert.match(g, /if \(!s \|\| s\.kind === 'unknown'\)/);
+  assert.match(g, /לא ידוע/);
+  // ...and it blanks the numbers instead of printing a value from a rejected
+  // input. Four readouts, four em dashes.
+  assert.equal((g.match(/textContent = '—'/g) || []).length, 4);
+});

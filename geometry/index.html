@@ -391,6 +391,18 @@ document.getElementById('scOver').onclick = () => applyScene('over');
 document.getElementById('scFace').onclick = () => applyScene('face');
 document.getElementById('scLow').onclick = () => applyScene('low');
 
+// An explicit "unknown" beats a wrong label. Blank the readouts rather than
+// print a number that came from an input the optics library rejected.
+function paintOpticsUnknown() {
+  document.getElementById('oLuxT').textContent = '—';
+  document.getElementById('oLuxB').textContent = '—';
+  document.getElementById('oRatio').textContent = '—';
+  document.getElementById('oHigh').textContent = '—';
+  const ov = document.getElementById('optVerdict');
+  ov.className = 'verdict meh';
+  ov.textContent = 'לא ידוע — קלט מחוץ לתחום (ערך לא סופי, שלילי, או קריאת חיישן שנכשלה). אין סיווג, כי אין מדידה לסווג.';
+}
+
 function paintOptics(rayHitsEye) {
   const sourceNits = Number(document.getElementById('srcNits').value);
   const areaCm2 = Number(document.getElementById('srcArea').value);
@@ -400,17 +412,29 @@ function paintOptics(rayHitsEye) {
   document.getElementById('srcAreaVal').textContent = String(areaCm2);
   document.getElementById('srcDistVal').textContent = dist.toFixed(1);
   document.getElementById('reflVal').textContent = reflectance.toFixed(3);
-  const s = SM_OPTICS.sampleScene({
-    sourceNits,
-    sourceAreaM2: areaCm2 / 10000,
-    distanceTopM: dist,
-    distanceBotM: dist + 0.2,
-    ambientTop: 40,
-    ambientBot: 80,
-    reflectance,
-    rayHitsEye: !!rayHitsEye,
-    botCoupling: 0.05,
-  });
+  // sampleScene throws on an out-of-domain input and returns kind 'unknown'
+  // when the pair cannot be classified. Neither is a reason to print a
+  // confident verdict, so both land in the same place.
+  let s = null;
+  try {
+    s = SM_OPTICS.sampleScene({
+      sourceNits,
+      sourceAreaM2: areaCm2 / 10000,
+      distanceTopM: dist,
+      distanceBotM: dist + 0.2,
+      ambientTop: 40,
+      ambientBot: 80,
+      reflectance,
+      rayHitsEye: !!rayHitsEye,
+      botCoupling: 0.05,
+    });
+  } catch (err) {
+    s = null;
+  }
+  if (!s || s.kind === 'unknown') {
+    paintOpticsUnknown();
+    return;
+  }
   document.getElementById('oLuxT').textContent = s.luxTop.toFixed(0) + ' lx';
   document.getElementById('oLuxB').textContent = s.luxBot.toFixed(0) + ' lx';
   document.getElementById('oRatio').textContent = s.ratio == null ? '—' : s.ratio.toFixed(2) + '×';
@@ -426,11 +450,13 @@ function paintOptics(rayHitsEye) {
   } else if (s.kind === 'agrees-glare') {
     ov.className = 'verdict hit';
     ov.textContent = 'הפעם שני המדדים מסכימים שיש בוהק. גם אז הטיה רק מזיזה את הכתם אם המקור מורחב.';
-  } else {
+  } else if (s.kind === 'agrees-clear') {
     ov.className = 'verdict miss';
     ov.textContent = law
       ? 'יחס מעל הסף אבל הכתם לא פוגע בעין.'
       : 'אין כתם בעין והיחס מתחת לסף. החוק והצופה מסכימים שהחדר נקי.';
+  } else {
+    paintOpticsUnknown();
   }
 }
 

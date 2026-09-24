@@ -59,6 +59,17 @@
     return highlight > contentNits * 0.3;
   }
 
+  // Every label below is a claim about BOTH halves of the comparison: what
+  // the sensor pair told the control law, and what the viewer's eye got. If
+  // either half is outside its domain the honest answer is 'unknown'.
+  //
+  // Non-finite highlight already returned 'unknown'. What did not: an
+  // unreadable or out-of-domain SENSOR pair. sensorRatio() returns null for a
+  // negative or non-finite lux — the BH1750's failed-read signature — and the
+  // old code folded that null into "the law is quiet", so a dead sensor next
+  // to a calm room came back 'agrees-clear' and a dead sensor next to a
+  // blinding highlight came back 'blind-but-quiet'. Both read as a verdict
+  // about the control law when in fact there was no reading to judge it on.
   function disagreement({
     luxTop,
     luxBot,
@@ -66,10 +77,16 @@
     highlight,
     contentNits = SDR_CONTENT_NITS,
   }) {
+    // A highlight is a luminance: finite and non-negative or we know nothing.
+    if (!Number.isFinite(highlight) || highlight < 0) return 'unknown';
+    // A ratio threshold of 0 or below would make every reading "glare", and a
+    // content luminance of 0 would make every highlight infinitely dominant.
+    if (!Number.isFinite(threshold) || threshold <= 0) return 'unknown';
+    if (!Number.isFinite(contentNits) || contentNits <= 0) return 'unknown';
     const ratio = sensorRatio(luxTop, luxBot);
-    const lawMoves = ratio != null && ratio > threshold;
+    if (ratio === null) return 'unknown';
+    const lawMoves = ratio > threshold;
     const eye = viewerGlare(highlight, contentNits);
-    if (!Number.isFinite(highlight)) return 'unknown';
     if (!lawMoves && eye) return 'blind-but-quiet';
     if (lawMoves && !eye) return 'tilts-for-nothing';
     if (lawMoves && eye) return 'agrees-glare';
@@ -108,7 +125,17 @@
     return { intensityCd: I, luxTop, luxBot, ratio, highlight, kind, threshold, contentNits };
   }
 
+  // The complete set a caller — including geometry/index.html — has to handle.
+  const KINDS = Object.freeze([
+    'agrees-clear',
+    'agrees-glare',
+    'blind-but-quiet',
+    'tilts-for-nothing',
+    'unknown',
+  ]);
+
   return {
+    KINDS,
     DEFAULT_THRESHOLD,
     SDR_CONTENT_NITS,
     GLOSSY_R,

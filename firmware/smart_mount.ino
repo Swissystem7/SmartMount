@@ -95,6 +95,34 @@ bool parseFloatArg(const String& s, float& out) {
 
 // ── Algorithm ────────────────────────────────────────────────────────────
 // Mirrored by src/lib/control.js, which is covered by tests. Keep both in sync.
+//
+// >>> BEGIN EQUIVALENCE TABLE
+// Hand-derived from the constants above (GLARE_THRESHOLD 3.0,
+// GAIN_DEG_PER_RATIO 5.0, MIN_LUX 1.0, PANEL_LIMITS 40 / 30 / 20) — not read
+// back out of any implementation. Nothing compiles this table; it is the
+// written contract between this file and src/lib/control.js.
+// test/firmware-mirror.test.js parses the rows out of this file and asserts,
+// row by row, that the host law returns exactly these degrees. "hold" means
+// calcOptimalAngle() returns currentAngle unchanged — a failed BH1750 read is
+// never a reason to slam the panel.
+//   lux_top | lux_bot |   OLED |   QLED |    LED
+// |     300 |     300 |      0 |      0 |      0 |
+// |     100 |     900 |      0 |      0 |      0 |
+// |     300 |     100 |      0 |      0 |      0 |
+// |     325 |     100 |   1.25 |   1.25 |   1.25 |
+// |     350 |     100 |    2.5 |    2.5 |    2.5 |
+// |     400 |     100 |      5 |      5 |      5 |
+// |     450 |     100 |    7.5 |    7.5 |    7.5 |
+// |     600 |     100 |     15 |     15 |     15 |
+// |     700 |     100 |     20 |     20 |     20 |
+// |     900 |     100 |     30 |     30 |     20 |
+// |    1200 |     100 |     40 |     30 |     20 |
+// |     500 |       0 |     40 |     30 |     20 |
+// |      -1 |     100 |   hold |   hold |   hold |
+// |     500 |      -2 |   hold |   hold |   hold |
+// |     nan |     100 |   hold |   hold |   hold |
+// |     inf |     100 |   hold |   hold |   hold |
+// <<< END EQUIVALENCE TABLE
 float calcOptimalAngle(float luxTop, float luxBot) {
   // A BH1750 reports a negative value when a read fails. Feeding that through
   // as if it were a lux reading produces a huge glare ratio and slams the panel
