@@ -94,7 +94,12 @@ test('each sandbox is a fresh private directory, so concurrent suite runs cannot
   const a = sandbox();
   let b;
   try {
+    // A file only the first run wrote: a shared, wiped-per-call path loses it.
+    const marker = path.join(a, 'first-sandbox.marker');
+    fs.writeFileSync(marker, 'first');
     b = sandbox();
+    assert.ok(fs.existsSync(marker), 'building the second sandbox deleted the first one');
+    assert.equal(fs.readFileSync(marker, 'utf8'), 'first');
     assert.notEqual(a, b, 'two sandboxes share one directory');
     // Building the second sandbox must leave the first one's files in place.
     for (const rel of [
