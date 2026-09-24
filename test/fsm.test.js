@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const F = require('../src/lib/fsm');
-const { PANEL_LIMITS } = require('../src/lib/control');
+const { PANEL_LIMITS, shouldMove } = require('../src/lib/control');
 
 const ino = fs.readFileSync(path.join(__dirname, '../firmware/smart_mount.ino'), 'utf8');
 
@@ -59,6 +59,33 @@ test('firmware SAMPLE retargets from the lagging believed angle, even mid-move',
   s = F.step(s, { type: 'SAMPLE', luxTop: 100, luxBot: 100 });
   assert.equal(s.targetAngle, 0, 'a clear room mid-move retargets back to 0');
   assert.notEqual(s.targetAngle, firstTarget);
+});
+
+test('a SAMPLE that takes the move branch reports moving — startMove uses shouldMove', () => {
+  // Commanded 20° is 56 steps, so the board's live angle is ≈ 20.16°. A 19°
+  // target is 1.16° from that: shouldMove says move, while the raw
+  // |19 - 20| = 1 does not clear the deadband. The branch and the flag must agree.
+  assert.equal(shouldMove(20, 19), true);
+  const toTwenty = [
+    { type: 'SET_ANGLE', deg: 20 },
+    { type: 'ARRIVE' },
+    { type: 'SET_MODE', auto: true },
+  ];
+  const sample = { type: 'SAMPLE', luxTop: 680, luxBot: 100 };
+
+  let fw = F.applyAll(F.firmwareBoot(true), toTwenty);
+  assert.equal(fw.believedAngle, 20);
+  fw = F.step(fw, sample);
+  assert.equal(fw.targetAngle, 19);
+  assert.equal(fw.moving, true);
+
+  let safe = F.applyAll(F.safeBoot(true, true),
+    [{ type: 'HOME_START' }, { type: 'HOME_FOUND' }].concat(toTwenty));
+  assert.equal(safe.state, 'IDLE_AUTO');
+  safe = F.step(safe, sample);
+  assert.equal(safe.targetAngle, 19);
+  assert.equal(safe.state, 'MOVING');
+  assert.equal(safe.moving, true);
 });
 
 test('firmware set-angle turns auto off and clamps to the panel', () => {
@@ -200,4 +227,28 @@ test('the same SAMPLE after an unhomed boot is accepted by firmware and rejected
 test('unknown events throw rather than being swallowed', () => {
   assert.throws(() => F.step(F.firmwareBoot(true), { type: 'EXPLODE' }), /unknown event/);
   assert.throws(() => F.step(F.firmwareBoot(true), {}), /event.type/);
+});
+
+test('SET_ANGLE keeps the raw deadband — only the SAMPLE move branch uses shouldMove', () => {
+  // The firmware set-angle handler calls moveTo() with no deadband check at
+  // all, so these two paths must not inherit the step-quantized SAMPLE rule. Grid over
+  // believed/target pairs; at least one pair must be one where the two rules disagree,
+  // otherwise this test would prove nothing.
+  const { DEADBAND_DEG } = require('../src/lib/control');
+  let disagreements = 0;
+  for (let b = -15; b <= 15; b += 0.35) {
+    for (let d = -1.4; d <= 1.4; d += 0.05) {
+      const target = Math.round((b + d) * 100) / 100;
+      for (const boot of [F.firmwareBoot(true), F.safeBoot ? F.safeBoot(true) : null].filter(Boolean)) {
+        const at = F.applyAll(boot, [{ type: 'SET_ANGLE', deg: b }, { type: 'ARRIVE' }]);
+        if (at.moving || at.reject) continue;
+        const s = F.step(at, { type: 'SET_ANGLE', deg: target });
+        if (s.reject) continue;
+        const raw = Math.abs(s.targetAngle - at.believedAngle) > DEADBAND_DEG;
+        if (raw !== shouldMove(at.believedAngle, s.targetAngle)) disagreements++;
+        assert.equal(s.moving, raw, `believed ${at.believedAngle} -> SET_ANGLE ${target}`);
+      }
+    }
+  }
+  assert.ok(disagreements > 0, 'grid never hit a pair where the two rules differ');
 });

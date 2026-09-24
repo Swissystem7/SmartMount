@@ -364,7 +364,7 @@ function tick() {
   const next = decision.angle;
   let moved = false;
   if (autoMode) {
-    if (Math.abs(next - currentAngle) > DEADBAND_DEG) {
+    if (shouldMove(currentAngle, next)) {
       commandMoveTo(next, panel);
       moved = true;
     } else if (!decision.hold) {

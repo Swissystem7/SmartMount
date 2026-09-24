@@ -48,8 +48,18 @@
   }
 
   // The mount only moves when the correction is worth the noise and wear.
+  // Firmware deadband (loop): abs(next - currentAngle) > DEADBAND_DEG where
+  // currentAngle = stepper.currentPosition() / STEPS_PER_DEGREE after lroundf
+  // moveTo. Comparing against the commanded float (e.g. 20) desyncs from the
+  // board's live angle (56/SPD ≈ 20.16) and can flip the move/hold decision.
+  function liveAngleFromCommand(deg) {
+    const steps = lroundf(Number(deg) * P.stepsPerDegree);
+    return steps / P.stepsPerDegree;
+  }
+
   function shouldMove(currentAngle, targetAngle) {
-    return Math.abs(targetAngle - currentAngle) > DEADBAND_DEG;
+    const live = liveAngleFromCommand(currentAngle);
+    return Math.abs(Number(targetAngle) - live) > DEADBAND_DEG;
   }
 
   function clampToPanel(angle, panel = 'LED') {
@@ -59,10 +69,16 @@
   }
 
   // moveToAngle — ino: constrain then lroundf(deg * STEPS_PER_DEGREE).
-  // JS Math.round matches lroundf for the half-away-from-zero cases we hit.
+  // C lroundf rounds halfway *away from zero*. ES Math.round is half-toward-+∞
+  // (Math.round(-0.5) === 0), so a naive Math.round desyncs negative half-steps
+  // from the AccelStepper pulse count the board actually queues.
+  function lroundf(x) {
+    return x < 0 ? -Math.round(-x) : Math.round(x);
+  }
+
   function moveToAngle(deg, panel = 'LED') {
     const clamped = clampToPanel(deg, panel);
-    return { clamped: clamped, steps: Math.round(clamped * P.stepsPerDegree) };
+    return { clamped: clamped, steps: lroundf(clamped * P.stepsPerDegree) };
   }
 
   // No schedule, cloud, or calibration — those are not in the .ino.
@@ -70,6 +86,7 @@
     calcOptimalAngle,
     glareRatio,
     shouldMove,
+    liveAngleFromCommand,
     clampToPanel,
     moveToAngle,
     PANEL_LIMITS,
