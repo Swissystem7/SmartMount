@@ -77,6 +77,12 @@ test('dashboard and lab run the shared control law, not a private copy', () => {
   assert.doesNotMatch(lab, /function calcOptimalAngle/);
 });
 
+test('lab loop takes its move/hold decision from shared shouldMove, not an inline deadband', () => {
+  const lab = read('lab/index.html');
+  assert.match(lab, /shouldMove\(currentAngle, next\)/);
+  assert.doesNotMatch(lab, /Math\.abs\([^)]*\)\s*>\s*DEADBAND_DEG/);
+});
+
 test('new pages load the host modules they claim to run', () => {
   const fsm = read('fsm/index.html');
   assert.match(fsm, /src\/lib\/fsm\.js/);

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const F = require('../src/lib/fsm');
-const { PANEL_LIMITS } = require('../src/lib/control');
+const { PANEL_LIMITS, shouldMove } = require('../src/lib/control');
 
 const ino = fs.readFileSync(path.join(__dirname, '../firmware/smart_mount.ino'), 'utf8');
 
@@ -59,6 +59,33 @@ test('firmware SAMPLE retargets from the lagging believed angle, even mid-move',
   s = F.step(s, { type: 'SAMPLE', luxTop: 100, luxBot: 100 });
   assert.equal(s.targetAngle, 0, 'a clear room mid-move retargets back to 0');
   assert.notEqual(s.targetAngle, firstTarget);
+});
+
+test('a SAMPLE that takes the move branch reports moving — startMove uses shouldMove', () => {
+  // Commanded 20° is 56 steps, so the board's live angle is ≈ 20.16°. A 19°
+  // target is 1.16° from that: shouldMove says move, while the raw
+  // |19 - 20| = 1 does not clear the deadband. The branch and the flag must agree.
+  assert.equal(shouldMove(20, 19), true);
+  const toTwenty = [
+    { type: 'SET_ANGLE', deg: 20 },
+    { type: 'ARRIVE' },
+    { type: 'SET_MODE', auto: true },
+  ];
+  const sample = { type: 'SAMPLE', luxTop: 680, luxBot: 100 };
+
+  let fw = F.applyAll(F.firmwareBoot(true), toTwenty);
+  assert.equal(fw.believedAngle, 20);
+  fw = F.step(fw, sample);
+  assert.equal(fw.targetAngle, 19);
+  assert.equal(fw.moving, true);
+
+  let safe = F.applyAll(F.safeBoot(true, true),
+    [{ type: 'HOME_START' }, { type: 'HOME_FOUND' }].concat(toTwenty));
+  assert.equal(safe.state, 'IDLE_AUTO');
+  safe = F.step(safe, sample);
+  assert.equal(safe.targetAngle, 19);
+  assert.equal(safe.state, 'MOVING');
+  assert.equal(safe.moving, true);
 });
 
 test('firmware set-angle turns auto off and clamps to the panel', () => {

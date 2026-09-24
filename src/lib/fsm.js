@@ -107,7 +107,7 @@
   function startMove(s, deg, reason) {
     const clamped = clamp(deg, s.panel);
     s.targetAngle = clamped;
-    s.moving = Math.abs(clamped - s.believedAngle) > control.DEADBAND_DEG;
+    s.moving = control.shouldMove(s.believedAngle, clamped);
     s.moveElapsedMs = 0;
     if (reason) s.reason = reason;
     return s;
