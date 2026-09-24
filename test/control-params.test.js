@@ -40,45 +40,76 @@ test('firmware marked block matches the JSON limits', () => {
 // so a hand-edited generated file cannot drift away from the JSON.
 //
 // The generator writes in place, so it runs against a copy of the repo in a
-// fixed temp directory: no clock, no randomness, no network.
+// fresh private temp directory (fs.mkdtempSync) per call: no clock, no network.
+// A fixed /tmp path would let two suite runs at once delete each other's copy
+// mid-run, and would execute whatever script sat at a predictable path.
 const { execFileSync } = require('node:child_process');
 const os = require('node:os');
 
 const REPO = path.join(__dirname, '..');
-const SANDBOX = path.join(os.tmpdir(), 'smartmount-sync-check');
 
 function sandbox() {
-  fs.rmSync(SANDBOX, { recursive: true, force: true });
-  for (const rel of ['config', 'scripts', 'firmware', path.join('src', 'lib')]) {
-    fs.mkdirSync(path.join(SANDBOX, rel), { recursive: true });
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'smartmount-sync-check-'));
+  try {
+    for (const rel of ['config', 'scripts', 'firmware', path.join('src', 'lib')]) {
+      fs.mkdirSync(path.join(dir, rel), { recursive: true });
+    }
+    for (const rel of [
+      path.join('config', 'control-params.json'),
+      path.join('scripts', 'sync-control-params.js'),
+      path.join('firmware', 'smart_mount.ino'),
+      path.join('src', 'lib', 'control-params.js'),
+    ]) {
+      fs.copyFileSync(path.join(REPO, rel), path.join(dir, rel));
+    }
+    execFileSync(process.execPath, [path.join(dir, 'scripts', 'sync-control-params.js')], {
+      stdio: 'ignore',
+    });
+  } catch (err) {
+    fs.rmSync(dir, { recursive: true, force: true });
+    throw err;
   }
-  for (const rel of [
-    path.join('config', 'control-params.json'),
-    path.join('scripts', 'sync-control-params.js'),
-    path.join('firmware', 'smart_mount.ino'),
-    path.join('src', 'lib', 'control-params.js'),
-  ]) {
-    fs.copyFileSync(path.join(REPO, rel), path.join(SANDBOX, rel));
-  }
-  execFileSync(process.execPath, [path.join(SANDBOX, 'scripts', 'sync-control-params.js')], {
-    stdio: 'ignore',
-  });
-  return SANDBOX;
+  return dir;
 }
 
 test('re-running sync-control-params.js reproduces the committed files byte for byte', () => {
   const out = sandbox();
-  for (const rel of [
-    path.join('src', 'lib', 'control-params.js'),
-    path.join('firmware', 'smart_mount.ino'),
-  ]) {
-    assert.equal(
-      fs.readFileSync(path.join(out, rel), 'utf8'),
-      fs.readFileSync(path.join(REPO, rel), 'utf8'),
-      rel + ' is stale — run npm run sync-params'
-    );
+  try {
+    for (const rel of [
+      path.join('src', 'lib', 'control-params.js'),
+      path.join('firmware', 'smart_mount.ino'),
+    ]) {
+      assert.equal(
+        fs.readFileSync(path.join(out, rel), 'utf8'),
+        fs.readFileSync(path.join(REPO, rel), 'utf8'),
+        rel + ' is stale — run npm run sync-params'
+      );
+    }
+  } finally {
+    fs.rmSync(out, { recursive: true, force: true });
   }
-  fs.rmSync(out, { recursive: true, force: true });
+});
+
+test('each sandbox is a fresh private directory, so concurrent suite runs cannot collide', () => {
+  const a = sandbox();
+  let b;
+  try {
+    b = sandbox();
+    assert.notEqual(a, b, 'two sandboxes share one directory');
+    // Building the second sandbox must leave the first one's files in place.
+    for (const rel of [
+      path.join('scripts', 'sync-control-params.js'),
+      path.join('src', 'lib', 'control-params.js'),
+    ]) {
+      assert.equal(
+        fs.readFileSync(path.join(a, rel), 'utf8'),
+        fs.readFileSync(path.join(REPO, rel), 'utf8')
+      );
+    }
+  } finally {
+    fs.rmSync(a, { recursive: true, force: true });
+    if (b) fs.rmSync(b, { recursive: true, force: true });
+  }
 });
 
 test('the generated module exposes exactly the derived key set, values from the JSON', () => {
