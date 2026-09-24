@@ -28,7 +28,9 @@
     const d = Number(deg);
     const k = Number(stepsPerDegree != null ? stepsPerDegree : STEPS_PER_DEGREE);
     if (![d, k].every(Number.isFinite) || k <= 0) throw new Error('invalid stepsForDeg');
-    return Math.abs(d) * k;
+    // From-zero absolute magnitude: matches control.moveToAngle / lroundf(deg*k).
+    // AccelStepper never sees a fractional pulse count.
+    return Math.abs(Math.round(d * k));
   }
 
   function profile({ distanceSteps, vmax, accel }) {
@@ -84,13 +86,20 @@
   }
 
   function moveProfile({ fromDeg, toDeg, stepsPerDegree, vmax, accel }) {
-    const delta = Number(toDeg) - Number(fromDeg);
-    if (![Number(fromDeg), Number(toDeg)].every(Number.isFinite)) {
+    const from = Number(fromDeg);
+    const to = Number(toDeg);
+    const delta = to - from;
+    if (![from, to].every(Number.isFinite)) {
       throw new Error('invalid angles');
     }
-    const steps = stepsForDeg(delta, stepsPerDegree);
+    const k = Number(stepsPerDegree != null ? stepsPerDegree : STEPS_PER_DEGREE);
+    if (!Number.isFinite(k) || k <= 0) throw new Error('invalid angles');
+    // Firmware moveToAngle is absolute: stepper.moveTo(lroundf(deg*k)).
+    // Distance is |lround(to)-lround(from)| — NOT round(|Δ|·k).
+    // Counterexample: 20°→21° → |58-56|=2, but round(1·k)=3.
+    const steps = Math.abs(Math.round(to * k) - Math.round(from * k));
     const p = profile({ distanceSteps: steps, vmax, accel });
-    return Object.assign({ fromDeg: Number(fromDeg), toDeg: Number(toDeg), deltaDeg: delta }, p);
+    return Object.assign({ fromDeg: from, toDeg: to, deltaDeg: delta }, p);
   }
 
   // Glare appears at a random phase of the 2 s poll. Best case: sample is due.
