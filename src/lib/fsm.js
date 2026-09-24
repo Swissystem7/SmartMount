@@ -104,10 +104,14 @@
     return s;
   }
 
-  function startMove(s, deg, reason) {
+  // quantized: the caller already took the SAMPLE move branch via control.shouldMove, so the flag must
+  // use the same step-quantized live angle. SET_ANGLE / SET_PANEL keep the raw deadband.
+  function startMove(s, deg, reason, quantized) {
     const clamped = clamp(deg, s.panel);
     s.targetAngle = clamped;
-    s.moving = control.shouldMove(s.believedAngle, clamped);
+    s.moving = quantized
+      ? control.shouldMove(s.believedAngle, clamped)
+      : Math.abs(clamped - s.believedAngle) > control.DEADBAND_DEG;
     s.moveElapsedMs = 0;
     if (reason) s.reason = reason;
     return s;
@@ -200,7 +204,7 @@
         return s;
       }
       if (control.shouldMove(s.believedAngle, next)) {
-        startMove(s, next, 'SAMPLE באמצע מהלך עלול לשנות יעד (currentAngle מפגר)');
+        startMove(s, next, 'SAMPLE באמצע מהלך עלול לשנות יעד (currentAngle מפגר)', true);
       } else {
         s.targetAngle = next;
         s.reason = 'מתחת לדד-בנד — בלי צעד';
@@ -431,7 +435,7 @@
         }
         if (control.shouldMove(s.believedAngle, next)) {
           s.lastIdle = 'IDLE_AUTO';
-          startMove(s, next, 'יעד חדש מהחוק');
+          startMove(s, next, 'יעד חדש מהחוק', true);
           return go(s, 'MOVING', s.reason);
         }
         s.targetAngle = next;

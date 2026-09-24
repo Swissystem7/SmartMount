@@ -228,3 +228,27 @@ test('unknown events throw rather than being swallowed', () => {
   assert.throws(() => F.step(F.firmwareBoot(true), { type: 'EXPLODE' }), /unknown event/);
   assert.throws(() => F.step(F.firmwareBoot(true), {}), /event.type/);
 });
+
+test('SET_ANGLE keeps the raw deadband — only the SAMPLE move branch uses shouldMove', () => {
+  // The firmware set-angle handler calls moveTo() with no deadband check at
+  // all, so these two paths must not inherit the step-quantized SAMPLE rule. Grid over
+  // believed/target pairs; at least one pair must be one where the two rules disagree,
+  // otherwise this test would prove nothing.
+  const { DEADBAND_DEG } = require('../src/lib/control');
+  let disagreements = 0;
+  for (let b = -15; b <= 15; b += 0.35) {
+    for (let d = -1.4; d <= 1.4; d += 0.05) {
+      const target = Math.round((b + d) * 100) / 100;
+      for (const boot of [F.firmwareBoot(true), F.safeBoot ? F.safeBoot(true) : null].filter(Boolean)) {
+        const at = F.applyAll(boot, [{ type: 'SET_ANGLE', deg: b }, { type: 'ARRIVE' }]);
+        if (at.moving || at.reject) continue;
+        const s = F.step(at, { type: 'SET_ANGLE', deg: target });
+        if (s.reject) continue;
+        const raw = Math.abs(s.targetAngle - at.believedAngle) > DEADBAND_DEG;
+        if (raw !== shouldMove(at.believedAngle, s.targetAngle)) disagreements++;
+        assert.equal(s.moving, raw, `believed ${at.believedAngle} -> SET_ANGLE ${target}`);
+      }
+    }
+  }
+  assert.ok(disagreements > 0, 'grid never hit a pair where the two rules differ');
+});
