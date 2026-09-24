@@ -141,3 +141,11 @@ test('package.json stays dependency-free', () => {
   assert.equal(pkg.devDependencies, undefined);
   assert.equal(pkg.scripts.test, 'node --test');
 });
+
+test('runtime page shows the latency chain as one Hebrew sentence from latencyChain().summaryHe', () => {
+  const rt = read('runtime/index.html');
+  assert.match(rt, /<p class="sum" id="cSummary" role="status"[^>]*>/);
+  assert.match(rt, /\$\('cSummary'\)\.textContent = chain\.summaryHe;/);
+  // the sentence sits at the top of the chain card, before the separate number rows
+  assert.ok(rt.indexOf('id="cSummary"') < rt.indexOf('id="kChain"'));
+});
