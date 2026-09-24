@@ -23,6 +23,11 @@
   const GEAR_RATIO = 5;
   const STEPS_PER_DEGREE = (STEPS_PER_REV * GEAR_RATIO) / 360;
   const DEFAULT_WDT_MS = 5000;
+  const NECK_HE = Object.freeze({
+    sample: 'המתנה לדגימה',
+    motor: 'מעטפת מנוע',
+    compute: 'חישוב',
+  });
 
   function stepsForDeg(deg, stepsPerDegree) {
     const d = Number(deg);
@@ -225,6 +230,7 @@
     let bottleneck = 'motor';
     if (waitSampleMs >= motorMs && waitSampleMs >= computeMs) bottleneck = 'sample';
     else if (computeMs >= motorMs && computeMs >= waitSampleMs) bottleneck = 'compute';
+    const summaryHe = (totalMs / 1000).toFixed(1) + ' שניות · הכי מעכב: ' + NECK_HE[bottleneck];
     return {
       stages,
       totalMs,
@@ -232,6 +238,7 @@
       computeMs,
       motorMs,
       bottleneck,
+      summaryHe,
       move,
       samplePeriodMs,
     };
@@ -277,6 +284,7 @@
     WIFI_POLL_MS,
     STEPS_PER_DEGREE,
     DEFAULT_WDT_MS,
+    NECK_HE,
     stepsForDeg,
     profile,
     moveProfile,
