@@ -94,8 +94,10 @@ test('tilt law: minLux floor and failed-read hold use SSOT values', () => {
 
 test('tilt law: deadband and stepsPerDegree match measured SSOT math', () => {
   assert.equal(params.deadbandDeg, 1);
-  assert.equal(shouldMove(10, 11), false); // |Δ| == deadband → stay
-  assert.equal(shouldMove(10, 11.01), true);
+  // From 0°, which is a whole step, so the deadband reads the same whether
+  // shouldMove compares against the commanded angle or the step-quantized one.
+  assert.equal(shouldMove(0, 1), false); // |Δ| == deadband → stay
+  assert.equal(shouldMove(0, 1.01), true);
 
   // 20° · (200·5/360) = 55.555… → Math.round → 56 (mirrors firmware lroundf)
   assert.equal(params.stepsPerDegree, (200 * 5) / 360);
