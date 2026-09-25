@@ -141,3 +141,31 @@ test('package.json stays dependency-free', () => {
   assert.equal(pkg.devDependencies, undefined);
   assert.equal(pkg.scripts.test, 'node --test');
 });
+
+test('runtime page shows the latency chain as one Hebrew sentence from latencyChain().summaryHe', () => {
+  const rt = read('runtime/index.html');
+  assert.match(rt, /<p class="sum" id="cSummary" role="status"[^>]*>/);
+  assert.match(rt, /\$\('cSummary'\)\.textContent = chain\.summaryHe;/);
+  // the sentence sits at the top of the chain card, before the separate number rows
+  assert.ok(rt.indexOf('id="cSummary"') < rt.indexOf('id="kChain"'));
+});
+
+test('runtime chain card: kChain and kNeck agree with the summaryHe sentence (same rounding, same term)', () => {
+  const rt = read('runtime/index.html');
+  const { latencyChain, NECK_HE } = require('../src/lib/timing');
+  const m = rt.match(/\$\('kChain'\)\.textContent = \(chain\.totalMs \/ 1000\)\.toFixed\((\d)\)/);
+  assert.ok(m, 'kChain is formatted from chain.totalMs');
+  const digits = Number(m[1]);
+  for (const opts of [
+    { fromDeg: 0, toDeg: 20, samplePhase01: 1 },
+    { fromDeg: 0, toDeg: 20, samplePhase01: 0 },
+    { fromDeg: 0, toDeg: 0, samplePhase01: 1, handleClientMs: 3000, i2cReadMs: 0 },
+  ]) {
+    const chain = latencyChain(opts);
+    const shown = (chain.totalMs / 1000).toFixed(digits);
+    assert.ok(chain.summaryHe.startsWith(shown + ' '), `kChain "${shown}" vs sentence "${chain.summaryHe}"`);
+  }
+  // the bottleneck label uses the lib's frozen NECK_HE, the same words as the sentence
+  assert.match(rt, /\$\('kNeck'\)\.textContent = SM_TIMING\.NECK_HE\[chain\.bottleneck\];/);
+  assert.equal(NECK_HE.motor, 'מעטפת מנוע');
+});

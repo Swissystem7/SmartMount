@@ -25,6 +25,7 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
 .verdict.bad{background:#3a1010;border-color:#f85149;color:#ffb4b0}
 .verdict.meh{background:#2d1f00;border-color:#9e6a03;color:#e3b341}
 .verdict.ok{background:#1a3a2a;border-color:#238636;color:#7ee787}
+.sum{font-size:1.05rem;font-weight:600;line-height:1.5;margin:4px 0 12px;color:#e6edf3}
 .fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
 #plot,#bars,#gantt{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d}
 .check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.85rem;color:var(--muted)}
@@ -165,6 +166,7 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
     </div>
     <div class="card">
       <h2>שרשרת השהיה + הבזק שמתפספס</h2>
+      <p class="sum" id="cSummary" role="status" aria-live="polite">—</p>
       <label class="sl" for="phase">פאזת דגימה (1 = מגיע עכשיו): <span id="phaseLbl">0</span></label>
       <input type="range" id="phase" min="0" max="100" step="1" value="0">
       <label class="sl" for="flash">משך הבזק שמש (ms): <span id="flashLbl">400</span></label>
@@ -395,9 +397,10 @@ function ganttAndChain() {
     fromDeg, toDeg, samplePhase01: phase, handleClientMs: http, i2cReadMs: i2c,
   });
   const miss = SM_TIMING.missProbability({ flashMs: flash });
-  $('kChain').textContent = (chain.totalMs / 1000).toFixed(2) + ' s';
+  $('cSummary').textContent = chain.summaryHe;
+  $('kChain').textContent = (chain.totalMs / 1000).toFixed(1) + ' s';
   $('kMiss').textContent = (miss.miss * 100).toFixed(0) + '%';
-  $('kNeck').textContent = chain.bottleneck === 'sample' ? 'דגימה' : chain.bottleneck === 'motor' ? 'מנוע' : 'חישוב';
+  $('kNeck').textContent = SM_TIMING.NECK_HE[chain.bottleneck];
   $('kWait').textContent = (chain.waitSampleMs / 1000).toFixed(2) + ' s';
   const v = $('cVerdict');
   if (miss.miss >= 0.5) {
