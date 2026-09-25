@@ -398,9 +398,9 @@ function ganttAndChain() {
   });
   const miss = SM_TIMING.missProbability({ flashMs: flash });
   $('cSummary').textContent = chain.summaryHe;
-  $('kChain').textContent = (chain.totalMs / 1000).toFixed(2) + ' s';
+  $('kChain').textContent = (chain.totalMs / 1000).toFixed(1) + ' s';
   $('kMiss').textContent = (miss.miss * 100).toFixed(0) + '%';
-  $('kNeck').textContent = chain.bottleneck === 'sample' ? 'דגימה' : chain.bottleneck === 'motor' ? 'מנוע' : 'חישוב';
+  $('kNeck').textContent = SM_TIMING.NECK_HE[chain.bottleneck];
   $('kWait').textContent = (chain.waitSampleMs / 1000).toFixed(2) + ' s';
   const v = $('cVerdict');
   if (miss.miss >= 0.5) {
