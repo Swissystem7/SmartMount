@@ -6,7 +6,9 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   return Object.freeze({
     comment: "OLED ~178° viewing angle; VA/LED wash out off-axis so they get a tighter tilt cap.",
-    panels: Object.freeze([{"id":"OLED","limitDeg":40},{"id":"QLED","limitDeg":30},{"id":"LED","limitDeg":20}]),
+    // Deep-freeze each panel entry: a shallow freeze on the array alone still
+    // lets callers mutate limitDeg and desync panels[] from limits{}.
+    panels: Object.freeze([Object.freeze({"id":"OLED","limitDeg":40}), Object.freeze({"id":"QLED","limitDeg":30}), Object.freeze({"id":"LED","limitDeg":20})]),
     limits: Object.freeze({"OLED":40,"QLED":30,"LED":20}),
     limitsArray: Object.freeze([40,30,20]),
     panelNames: Object.freeze(["OLED","QLED","LED"]),
