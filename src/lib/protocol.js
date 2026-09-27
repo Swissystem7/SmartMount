@@ -117,6 +117,10 @@
     return { status: 200, body: okBody(), effect: { autoMode: a === '1' } };
   }
 
+  function handleStop() {
+    return { status: 200, body: okBody() };
+  }
+
   function dispatch(method, path, args, state) {
     const m = String(method || '').toUpperCase();
     const p = String(path || '');
@@ -124,6 +128,7 @@
     if (m === 'POST' && p === '/set-angle') return handleSetAngle(args || {});
     if (m === 'POST' && p === '/set-panel') return handleSetPanel(args || {});
     if (m === 'POST' && p === '/set-mode') return handleSetMode(args || {});
+    if (m === 'POST' && p === '/stop') return handleStop();
     return { status: 404, body: errorBody('not found') };
   }
 
@@ -153,6 +158,7 @@
     handleSetAngle,
     handleSetPanel,
     handleSetMode,
+    handleStop,
     dispatch,
     requestLine,
     serialOnBoot,
