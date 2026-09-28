@@ -96,3 +96,17 @@ test('landing states the measured compile, with the BUILD date, and still says n
   assert.match(fact, /href="\.\/case\/#buildBox"/);
   assert.doesNotMatch(fact, /רץ על|נבדק על חומרה/);
 });
+
+test('README has a short English summary for non-Hebrew reviewers that keeps the same honesty', () => {
+  const md = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
+  const en = (md.match(/## In English\n([\s\S]*?)(\n## |$)/) || [])[1];
+  assert.ok(en, 'README needs an "## In English" section');
+  assert.match(en, /compiles for ESP32/i);
+  assert.match(en, /never been flashed|not been flashed/i);
+  assert.match(en, /not calibrated/i);
+  assert.match(en, /PARK|not a product/i);
+  assert.match(en, /swissystem7\.github\.io\/SmartMount\/case\//);
+  assert.match(en, /issues\/new\?template=recruiter\.yml/);
+  assert.doesNotMatch(en, /tested on hardware|production[- ]ready|buy now/i);
+  assert.ok(en.split(/\s+/).length < 220, 'keep it short');
+});

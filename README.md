@@ -6,6 +6,15 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 
 זה **לא** מוצר, לא תושבת שנבדקה על הקיר, ולא שירות. הקושחה ב־`firmware/smart_mount.ino` נכתבה ללוח אמיתי **אך טרם רצה מול חומרה**. אלגוריתם הבוהק **לא כויל מול מדידה**. אין ענן, אין חשבונות ואין סליקה.
 
+## In English
+
+SmartMount is a **portfolio piece, not a product** (market verdict: PARK). It is ESP32 firmware (`firmware/smart_mount.ino`) that reads two BH1750 light sensors and tilts a screen with a stepper when their ratio suggests glare, plus a static Hebrew site that runs the same control law in the browser.
+
+- **What is measured:** the firmware compiles for ESP32 (arduino-cli, esp32 core 3.3.12 and 2.0.17, 27.9.2026). Before that fix it did not compile at all. 140+ host tests pin the control law, the HTTP contract and every cell of the state machine.
+- **What is not:** it has never been flashed to a board. The glare threshold is not calibrated. There is no homing switch, so position zero is a guess. The 12-case bench plan (HIL) has not run.
+- **Start here (90 seconds):** https://swissystem7.github.io/SmartMount/case/ (Hebrew).
+- **Contact:** a public GitHub issue form, https://github.com/Swissystem7/SmartMount/issues/new?template=recruiter.yml. Please do not post a phone number or email there.
+
 ## דפים
 
 | עמוד | מה יש בו |
