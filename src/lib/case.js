@@ -136,7 +136,26 @@
     }),
   ]);
 
+  // Measured 2026-09-27 with scripts/compile-firmware.sh. Compile only: no
+  // board, no flash, no STEP pulse. inoSha256 is locked by
+  // test/firmware-build.test.js — edit the .ino and the claim goes stale.
+  const BUILD = Object.freeze({
+    status: 'compiled-not-flashed',
+    date: '2026-09-27',
+    cli: 'arduino-cli 1.3.1',
+    core: 'esp32:esp32@3.3.12',
+    alsoCore: 'esp32:esp32@2.0.17',
+    fqbn: 'esp32:esp32:esp32',
+    libs: Object.freeze(['BH1750 1.3.0', 'AccelStepper 1.64', 'ArduinoJson 7.4.3']),
+    flashBytes: 964756,
+    ramBytes: 48888,
+    inoSha256: '3ef9a110a6bf7b1e65869473f1677ebd43ef18ff3e633106473899a18e717775',
+    before: "smart_mount.ino:114: error: no matching function for call to 'min(float, double)'",
+    he: 'הקושחה מתקמפלת ל-ESP32 (נמדד 27.9.2026). לפני התיקון היא לא התקמפלה: min(float, double) בשורה 114. זה הידור בלבד. היא לא הועלתה ללוח.',
+  });
+
   const SHOWN = Object.freeze([
+    'הקושחה מתקמפלת ל-ESP32 — core 3.3.12 ו-2.0.17 (הידור בלבד, 27.9.2026)',
     'סקירת קושחת ESP32 עם באגי בטיחות שננעלו בבדיקות מארח',
     'חוזה HTTP מפורש (ארבעה נתיבים, דחיית קלט רע)',
     'מכונת מצבים כפולה: מה שכתוב מול מה שחסר — 30 + 165 תאים',
@@ -163,6 +182,7 @@
 
   return {
     VERDICT: VERDICT,
+    BUILD: BUILD,
     BUGS: BUGS,
     OPEN: OPEN,
     FSM: FSM,

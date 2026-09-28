@@ -111,7 +111,7 @@ float calcOptimalAngle(float luxTop, float luxBot) {
   float angle = 0.0;
   if (glareRatio > GLARE_THRESHOLD) {
     // Map glare intensity to tilt (max = panel limit)
-    angle = min((glareRatio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, (double)limit);
+    angle = min((glareRatio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
   }
   return angle;
 }

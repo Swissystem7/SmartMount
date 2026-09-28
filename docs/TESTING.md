@@ -17,9 +17,24 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 | הספק | `test/power.test.js` | I²R החזקה > USB 5 V; סלילים 24 שעות הם מחמם; פאוורבנק לא מזין 12 V; תולעת הופכת 3S ל־UPS |
 | HIL | `test/hil.test.js` | 12 מקרים, `STATUS=never-run`, HIL-10 אוסר טלוויזיה |
 | חלופות | `test/alts.test.js` | הדמו בחר צעד+יחס+מסגרת+החזקה+שקר אפס; מפעיל קווי+תולעת+מפסק הם «למוצר» |
+| הידור | `test/firmware-build.test.js` | אין `min(float, double)`; רשומת ההידור תואמת ל-sha256 של ה-`.ino` |
 | מקרה הנדסי | `test/case.test.js` | פסק דין portfolio-only; באגים «תוקנו במקור» לא «אומתו על חומרה»; HIL נשאר never-run |
 
 הבדיקות של ה־FSM והתזמון **קוראות את ה־`.ino`**. אם מישהו יוסיף הומינג או ישנה את 500/200/2000 בלי לעדכן את המודל — `npm test` ייכשל.
+
+## הידור ל-ESP32 (בלי לוח)
+
+נמדד ב־27.9.2026 עם `scripts/compile-firmware.sh` (arduino-cli 1.3.1, FQBN `esp32:esp32:esp32`, ‏BH1750 1.3.0, ‏AccelStepper 1.64, ‏ArduinoJson 7.4.3).
+
+| | core 3.3.12 | core 2.0.17 |
+|---|---|---|
+| לפני (master ‏1cdee92) | **נכשל**: `smart_mount.ino:114: no matching function for call to 'min(float, double)'` | **נכשל**: אותה שגיאה |
+| אחרי (הסרת `(double)` בשורה 114) | עובר. Flash ‏964,756 בתים (73%), RAM ‏48,888 בתים (14%) | עובר. Flash ‏786,933 בתים (60%), RAM ‏45,516 בתים (13%) |
+
+השגיאה נכנסה בקומיט התיקון `bd675fd` (13.8.2026). כלומר, עד 27.9.2026 הקושחה לא התקמפלה בכלל.
+`test/firmware-build.test.js` נועל את זה בשתי דרכים: אין `min`/`max` עם `(double)`, וה-sha256 של ה-`.ino` שווה למה שנרשם ב-`BUILD` ב-`src/lib/case.js`. משנים את הקושחה? צריך להדר מחדש ולעדכן את הרשומה, או להוריד את הטענה.
+
+הידור הוא לא ריצה. אזהרה שנשארה ב-`--warnings all`: ‏`StaticJsonDocument` מסומן deprecated ב-ArduinoJson 7.
 
 ## מה אי אפשר לבדוק בלי לוח
 
