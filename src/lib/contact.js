@@ -23,7 +23,9 @@
     if (/^mailto:[^\s<>"']+$/i.test(v)) return { kind: 'direct', href: v, label: 'מייל' };
     if (/^tel:\+?[0-9\-() ]{6,}$/i.test(v)) return { kind: 'direct', href: v, label: 'טלפון' };
     if (/^https:\/\/[^\s<>"']+$/i.test(v)) {
-      const label = /^https:\/\/([a-z]+\.)?linkedin\.com\//i.test(v) ? 'LinkedIn' : 'קורות חיים / פרופיל';
+      const label = /^https:\/\/([a-z]+\.)?linkedin\.com\//i.test(v) ? 'LinkedIn'
+        : /^https:\/\/(docs\.google\.com\/forms\/|forms\.gle\/)/i.test(v) ? 'טופס Google'
+        : 'קורות חיים / פרופיל';
       return { kind: 'direct', href: v, label: label };
     }
     return { kind: 'issue', href: issueForm };

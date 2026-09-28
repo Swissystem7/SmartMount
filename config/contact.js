@@ -1,13 +1,14 @@
 // SmartMount — the ONE place for a direct contact link.
 //
-// CONTACT is empty on purpose: nobody invents contact details here.
-// The owner fills exactly this one value, for example
+// CONTACT: the owner decided on 28.9 that it is his Google Form
+// "משוב על האפליקציות", with the app field pre-filled as SmartMount.
+// Nobody invents contact details here. Other valid forms, for example
 //   'mailto:<address>'  or  'https://www.linkedin.com/in/<profile>'  or  'tel:<number>'.
 // Only mailto:, https: and tel: are accepted; anything else is ignored.
-// While it is empty, every page shows the Hebrew GitHub issue form instead.
+// If it is emptied, every page shows the Hebrew GitHub issue form instead.
 (function (root) {
   const cfg = Object.freeze({
-    CONTACT: '',
+    CONTACT: 'https://docs.google.com/forms/d/e/1FAIpQLSdT8YduNx-VWKM3bWGUJdiSj4Sw9D-EA6R6c-oYVYCQmOVXxQ/viewform?usp=pp_url&entry.368039752=SmartMount',
     ISSUE_FORM: 'https://github.com/Swissystem7/SmartMount/issues/new?template=recruiter.yml',
   });
   if (typeof module === 'object' && module.exports) module.exports = cfg;
