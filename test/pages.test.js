@@ -51,9 +51,35 @@ test('site nav names the engineering pages from every surface', () => {
     assert.match(html, /מקרה הנדסי/, rel);
     assert.match(html, /מכונת מצבים/, rel);
     assert.match(html, /תזמון והספק/, rel);
-    assert.match(html, /תקציב הספק/, rel);
     assert.match(html, /תוכנית HIL/, rel);
-    assert.match(html, /חלופות/, rel);
+  }
+});
+
+// CUT 28.9.2026: power/, alts/ and dashboard/ repeat runtime/, case/ and lab/.
+// Twelve pages is too many for a 90-second recruiter read. The pages stay
+// online (deep links keep working); they leave the nav and the landing list.
+const CUT = { power: 'runtime', alts: 'case', dashboard: 'lab' };
+
+test('cut pages are out of every nav and out of the landing list', () => {
+  for (const rel of pages) {
+    const html = read(rel);
+    const nav = (html.match(/<nav class="site-nav"[\s\S]*?<\/nav>/) || [''])[0];
+    for (const cut of Object.keys(CUT)) {
+      assert.doesNotMatch(nav, new RegExp('href="[./]*' + cut + '/"'), rel + ' nav still lists ' + cut);
+    }
+  }
+  const more = (read('index.html').match(/<p class="more">[\s\S]*?<\/p>/) || [''])[0];
+  for (const cut of Object.keys(CUT)) {
+    assert.doesNotMatch(more, new RegExp('\\./' + cut + '/'), 'landing list still has ' + cut);
+  }
+});
+
+test('each cut page stays online and points to the page that now carries it', () => {
+  for (const [cut, home] of Object.entries(CUT)) {
+    const html = read(cut + '/index.html');
+    assert.match(html, /class="cut-note"/, cut);
+    assert.match(html, /הוצא מהניווט/, cut);
+    assert.match(html, new RegExp('href="\\.\\./' + home + '/"'), cut + ' must link ../' + home + '/');
   }
 });
 
