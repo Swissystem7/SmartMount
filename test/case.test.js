@@ -70,3 +70,15 @@ test('MONETIZATION.md states the same verdict with check dates', () => {
   assert.match(md, /arxiv\.org\/abs\/2401\.02755/);
   assert.doesNotMatch(md, /לקנות עכשיו|הוסף לסל|ערכה זמינה למשלוח/);
 });
+
+test('landing states the measured compile, with the BUILD date, and still says not flashed', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const [y, m, d] = C.BUILD.date.split('-').map(Number);
+  const heDate = d + '.' + m + '.' + y;
+  const fact = (html.match(/<div><b>מתקמפל[\s\S]*?<\/div>/) || [''])[0];
+  assert.ok(fact, 'landing needs a "מתקמפל" fact box');
+  assert.ok(fact.includes(heDate), 'landing compile fact must carry the BUILD date ' + heDate);
+  assert.match(fact, /לא הועלה ללוח/);
+  assert.match(fact, /href="\.\/case\/#buildBox"/);
+  assert.doesNotMatch(fact, /רץ על|נבדק על חומרה/);
+});
