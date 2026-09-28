@@ -28,6 +28,7 @@ h1 em{font-style:normal;background:linear-gradient(135deg,#38bdf8,#8b5cf6);-webk
 a.btn{text-decoration:none;font-weight:700;font-size:.9rem;border-radius:10px;padding:11px 20px;display:inline-block;min-height:44px}
 a.primary{background:linear-gradient(135deg,#38bdf8,#8b5cf6);color:#fff;border:0}
 a.ghost{border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
+.contact{font-size:.86rem;line-height:1.6;margin:-6px 0 18px;color:#c9d1d9}
 .more{font-size:.8rem;color:var(--muted);line-height:1.7}
 .more a{white-space:nowrap}
 .note{margin-top:20px;font-size:.76rem;color:var(--muted);line-height:1.6;border-top:1px solid rgba(255,255,255,.07);padding-top:14px}
@@ -74,6 +75,10 @@ a.ghost{border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
     <a class="btn ghost" href="./lab/">מעבדה: הזרקת תקלות</a>
     <a class="btn ghost" href="https://github.com/Swissystem7/SmartMount">קוד ב-GitHub</a>
   </div>
+  <p class="contact" id="contactBox">
+    <a data-contact-direct hidden>יצירת קשר</a>
+    <span data-contact-issue>מגייסים ל-embedded? <a href="https://github.com/Swissystem7/SmartMount/issues/new?template=recruiter.yml">פנייה בטופס GitHub בעברית</a> (ציבורי, בלי טלפון ומייל).</span>
+  </p>
   <p class="more">
     שאר העמודים:
     <a href="./spec/">מפרט</a> ·
@@ -93,6 +98,8 @@ a.ghost{border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
   </p>
 </main>
 <script src="./src/lib/control-params.js"></script>
+<script src="./config/contact.js"></script>
+<script src="./src/lib/contact.js"></script>
 <script>
   if (window.CONTROL_PARAMS) {
     document.getElementById('panelLimitsText').textContent =

@@ -1,0 +1,34 @@
+name: פנייה ממגייס/ת או ממראיין/ת
+description: שאלה על SmartMount או בקשה לשיחה על משרת embedded / firmware. אין כאן מוצר למכירה.
+title: "פנייה ממגייס/ת: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **שימו לב: ה-issue הזה ציבורי.** כל אחד יכול לקרוא אותו.
+        אל תכתבו טלפון, מייל או כתובת, ואל תצרפו קבצים עם פרטים אישיים.
+        התשובה תגיע כאן, כתגובה ב-issue. אם יש התאמה, נתאם ערוץ פרטי.
+        לפני שפונים: SmartMount הוא פריט תיק עבודות. הקושחה מתקמפלת ל-ESP32 אבל לא רצה על לוח. [המקרה ההנדסי](https://swissystem7.github.io/SmartMount/case/).
+  - type: dropdown
+    id: kind
+    attributes:
+      label: מה הסיבה לפנייה?
+      options:
+        - יש משרה פתוחה שעשויה להתאים
+        - שאלה טכנית על הקושחה או על מכונת המצבים
+        - בקשה לקורות חיים
+        - אחר
+    validations:
+      required: true
+  - type: input
+    id: role
+    attributes:
+      label: תפקיד ותחום (לא חובה)
+      description: למשל "firmware ג'וניור, IoT, צפון". בלי שם איש קשר ובלי פרטים מזהים.
+  - type: textarea
+    id: message
+    attributes:
+      label: ההודעה
+      description: בלי טלפון ובלי מייל. ערוץ פרטי נתאם בתגובה.
+    validations:
+      required: true
