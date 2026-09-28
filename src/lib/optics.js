@@ -67,9 +67,12 @@
     contentNits = SDR_CONTENT_NITS,
   }) {
     const ratio = sensorRatio(luxTop, luxBot);
-    const lawMoves = ratio != null && ratio > threshold;
+    // No valid lux pair (failed BH1750 / non-finite) is not "quiet sensors" —
+    // same unknown bucket as a non-finite highlight. Otherwise a dead top
+    // sensor with a hot spot would be mislabeled blind-but-quiet.
+    if (ratio == null || !Number.isFinite(highlight)) return 'unknown';
+    const lawMoves = ratio > threshold;
     const eye = viewerGlare(highlight, contentNits);
-    if (!Number.isFinite(highlight)) return 'unknown';
     if (!lawMoves && eye) return 'blind-but-quiet';
     if (lawMoves && !eye) return 'tilts-for-nothing';
     if (lawMoves && eye) return 'agrees-glare';
