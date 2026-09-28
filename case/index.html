@@ -38,6 +38,7 @@ h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;
 .tag.contract{background:#1f4068;color:#79c0ff}
 .tag.availability{background:#2d1f00;color:#e3b341}
 .tag.honesty{background:#1a3a2a;color:#3fb950}
+.tag.build{background:#2a1f3a;color:#d2a8ff}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:700px){.grid2{grid-template-columns:1fr}}
 .st{display:inline-block;font:700 .72rem ui-monospace,Menlo,Consolas,monospace;padding:2px 7px;border-radius:5px;background:#21262d;margin:2px}
@@ -222,7 +223,7 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
       ' בתים. עבר גם על ' + B.alsoCore + '. הפקודה: <code>scripts/compile-firmware.sh</code></div>';
   }
 
-  const sevHe = { safety: 'בטיחות', contract: 'חוזה', availability: 'זמינות', honesty: 'כנות' };
+  const sevHe = { safety: 'בטיחות', contract: 'חוזה', availability: 'זמינות', honesty: 'כנות', build: 'הידור' };
 
   const bugs = document.getElementById('bugsList');
   C.BUGS.forEach(function (b) {

@@ -66,6 +66,16 @@
       where: 'dashboard/index.html',
       provenBy: 'test/pages.test.js (אין Cloud / ₪9.90)',
     }),
+    Object.freeze({
+      id: 'build-break',
+      title: 'תיקון הבטיחות שבר את ההידור, ואף אחד לא הידר',
+      severity: 'build',
+      status: 'fixed-in-source',
+      was: 'קומיט התיקון bd675fd (13.8.2026) הוסיף min(..., (double)limit). ‏min(float, double) לא מתקמפל ב-ESP32, כך שהקושחה לא התקמפלה במשך כשישה שבועות (עד 27.9.2026). הבדיקות על המחשב עברו, כי הן לא מהדרות C++.',
+      now: 'תו אחד: min(..., limit). הידור אמיתי ב-arduino-cli על core 3.3.12 ו-2.0.17. בדיקה סטטית נועלת את השגיאה, ו-sha256 של ה-.ino מונע טענת «מתקמפל» שהתיישנה.',
+      where: 'firmware/smart_mount.ino:114 — calcOptimalAngle',
+      provenBy: 'test/firmware-build.test.js, scripts/compile-firmware.sh',
+    }),
   ]);
 
   const OPEN = Object.freeze([

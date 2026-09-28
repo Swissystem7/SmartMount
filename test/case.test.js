@@ -12,13 +12,14 @@ test('verdict is portfolio-only and hardware is untested', () => {
   assert.doesNotMatch(C.VERDICT.hardwareHe, /נבדק על חומרה|רץ על הלוח|כויל מול מדידה הושלם/);
 });
 
-test('five reviewed bugs stay fixed-in-source or fixed-in-ui, never hardware-verified', () => {
+test('six reviewed bugs stay fixed-in-source or fixed-in-ui, never hardware-verified', () => {
   assert.deepEqual(C.BUGS.map((b) => b.id), [
     'sensor-fail-hold',
     'absolute-moveTo',
     'api-reject',
     'wifi-timeout',
     'dashboard-honesty',
+    'build-break',
   ]);
   for (const b of C.BUGS) {
     assert.match(b.status, /^fixed-in-(source|ui)$/);
@@ -30,6 +31,19 @@ test('five reviewed bugs stay fixed-in-source or fixed-in-ui, never hardware-ver
   assert.equal(C.bug('sensor-fail-hold').severity, 'safety');
   assert.match(C.bug('sensor-fail-hold').now, /HOLD/);
   assert.match(C.bug('api-reject').now, /toInt|foo|OLED/);
+});
+
+test('the case admits that a safety fix broke the build, and shows how it was caught', () => {
+  const b = C.bug('build-break');
+  assert.ok(b, 'missing build-break');
+  assert.equal(b.severity, 'build');
+  assert.match(b.was, /min\(float, double\)/);
+  assert.match(b.was, /bd675fd/);
+  assert.match(b.now, /arduino-cli/);
+  assert.match(b.provenBy, /firmware-build\.test\.js/);
+  const html = fs.readFileSync(path.join(__dirname, '..', 'case', 'index.html'), 'utf8');
+  assert.match(html, /build: 'הידור'/);
+  assert.match(html, /\.tag\.build\{/);
 });
 
 test('open hazards include never-flashed and no homing', () => {
