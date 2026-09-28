@@ -167,3 +167,14 @@ test('package.json stays dependency-free', () => {
   assert.equal(pkg.devDependencies, undefined);
   assert.equal(pkg.scripts.test, 'node --test');
 });
+
+test('375px: wide tables scroll inside their box and grid columns may shrink (Chromium measured 512px / 410px before)', () => {
+  const spec = read('spec/index.html');
+  assert.match(spec, /\.table-scroll\{overflow-x:auto/);
+  const tables = (spec.match(/<table>/g) || []).length;
+  const wrapped = (spec.match(/<div class="table-scroll">\s*<table>/g) || []).length;
+  assert.equal(wrapped, tables, 'every spec table sits in .table-scroll');
+  const proto = read('protocol/index.html');
+  assert.match(proto, /\.grid\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
+  assert.match(proto, /\.grid\{grid-template-columns:minmax\(0,1fr\)\}/);
+});

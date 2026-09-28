@@ -9,8 +9,8 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
 .card{margin-bottom:0}
 table{width:100%;border-collapse:collapse;font-size:.84rem}
 th,td{text-align:right;padding:8px 10px;border-bottom:1px solid #21262d;vertical-align:top}
