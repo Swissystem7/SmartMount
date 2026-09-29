@@ -32,6 +32,9 @@
     if (![m, d, th].every(Number.isFinite) || m < 0 || d < 0) {
       throw new Error('invalid torque inputs');
     }
+    if (th < -90 || th > 90) {
+      throw new TypeError('invalid torque inputs');
+    }
     return m * G * d * Math.cos((th * Math.PI) / 180);
   }
 
@@ -70,6 +73,10 @@
     const gearRatio = Number(input.gearRatio != null ? input.gearRatio : DEFAULT_GEAR);
     const efficiency = Number(input.efficiency != null ? input.efficiency : DEFAULT_EFFICIENCY);
     const selfLocking = Boolean(input.selfLocking);
+
+    if (tiltFromVerticalDeg < -90 || tiltFromVerticalDeg > 90) {
+      throw new TypeError('invalid torque inputs');
+    }
 
     const requiredNm = gravityTorqueNm({ massKg, cogOffsetM, tiltFromVerticalDeg });
     const availableNm = gearedHoldingNm({ motorHoldingNm, gearRatio, efficiency });
