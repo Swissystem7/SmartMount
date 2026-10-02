@@ -35,9 +35,29 @@
     return luxTop / Math.max(luxBot, MIN_LUX);
   }
 
-  function calcOptimalAngle(luxTop, luxBot, panel = 'LED', currentAngle = 0) {
-    const limit = PANEL_LIMITS[panel];
-    if (limit === undefined) throw new Error('unknown panel type: ' + panel);
+  function getPanelLimit(panel, customLimit) {
+    if (typeof panel === 'object' && panel !== null) {
+      if (customLimit === undefined) {
+        customLimit = panel.limit ?? panel.maxAngle ?? panel.max;
+      }
+      panel = panel.type ?? panel.panel ?? panel.name ?? 'CUSTOM';
+    }
+    if (typeof customLimit === 'object' && customLimit !== null) {
+      customLimit = customLimit.limit ?? customLimit.maxAngle ?? customLimit.max;
+    }
+    if (typeof customLimit === 'number' && Number.isFinite(customLimit)) {
+      return { panel, limit: customLimit };
+    }
+    if (panel === 'CUSTOM' && customLimit !== undefined) {
+      return { panel, limit: customLimit };
+    }
+    const limit = PANEL_LIMITS ? PANEL_LIMITS[panel] : undefined;
+    return { panel, limit };
+  }
+
+  function calcOptimalAngle(luxTop, luxBot, panel = 'LED', currentAngle = 0, customLimit) {
+    const { panel: panelType, limit } = getPanelLimit(panel, customLimit);
+    if (limit === undefined) throw new Error('unknown panel type: ' + panelType);
 
     const ratio = glareRatio(luxTop, luxBot);
     // Firmware returns currentAngle on a failed BH1750 read (hold, never slam).
@@ -52,16 +72,16 @@
     return Math.abs(targetAngle - currentAngle) > DEADBAND_DEG;
   }
 
-  function clampToPanel(angle, panel = 'LED') {
-    const limit = PANEL_LIMITS[panel];
-    if (limit === undefined) throw new Error('unknown panel type: ' + panel);
+  function clampToPanel(angle, panel = 'LED', customLimit) {
+    const { panel: panelType, limit } = getPanelLimit(panel, customLimit);
+    if (limit === undefined) throw new Error('unknown panel type: ' + panelType);
     return Math.min(Math.max(angle, -limit), limit);
   }
 
   // moveToAngle — ino: constrain then lroundf(deg * STEPS_PER_DEGREE).
   // JS Math.round matches lroundf for the half-away-from-zero cases we hit.
-  function moveToAngle(deg, panel = 'LED') {
-    const clamped = clampToPanel(deg, panel);
+  function moveToAngle(deg, panel = 'LED', customLimit) {
+    const clamped = clampToPanel(deg, panel, customLimit);
     return { clamped: clamped, steps: Math.round(clamped * P.stepsPerDegree) };
   }
 
