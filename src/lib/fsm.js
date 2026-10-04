@@ -67,7 +67,7 @@
   }
 
   function fresh(kind, extra) {
-    return Object.assign({
+    const state = Object.assign({
       kind: kind,
       state: 'BOOT',
       autoMode: true,
@@ -92,15 +92,24 @@
       stallMargin: DEFAULT_STALL_MARGIN,
       reason: 'setup() טרם הסתיים',
     }, extra || {});
+    
+    // Calculate and set angleErrorDeg for fresh state
+    state.angleErrorDeg = state.mechanicalAngle - state.believedAngle;
+    return state;
   }
 
   function copy(s) {
-    return Object.assign({}, s, { reject: null });
+    const newState = Object.assign({}, s, { reject: null });
+    // Ensure angleErrorDeg is carried over in copies
+    newState.angleErrorDeg = newState.mechanicalAngle - newState.believedAngle;
+    return newState;
   }
 
   function go(s, state, reason) {
     s.state = state;
     s.reason = reason;
+    // Update angleErrorDeg when state changes
+    s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
     return s;
   }
 
@@ -110,6 +119,8 @@
     s.moving = Math.abs(clamped - s.believedAngle) > control.DEADBAND_DEG;
     s.moveElapsedMs = 0;
     if (reason) s.reason = reason;
+    // Update angleErrorDeg when starting a move
+    s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
     return s;
   }
 
@@ -144,6 +155,8 @@
         // The mechanical angle is whatever the arm was. Firmware does not know.
         s.homed = false;
         s.autoMode = true;
+        // Update angleErrorDeg after boot
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, 'RUN',
           'setCurrentPosition(0) — מיקום משוער, לא הומינג. ' +
           (s.wifiUp ? 'WiFi עלה' : 'WiFi timeout, אוטו מקומי ממשיך'));
@@ -214,6 +227,8 @@
       s.believedAngle = s.targetAngle;
       s.currentAngle = s.targetAngle;
       s.moving = false;
+      // Update angleErrorDeg after arrival
+      s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
       s.reason = 'המנוע הגיע — אין מצב IDLE נפרד, נשארים ב-RUN';
       return s;
     }
@@ -221,6 +236,8 @@
     if (t === 'TICK') {
       if (s.moving) s.moveElapsedMs += Number(event.dtMs) || 0;
       s.currentAngle = s.believedAngle;
+      // Update angleErrorDeg on tick
+      s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
       s.reason = 'loop: handleClient + stepper.run — אין WDT ייעודי, אין סטול';
       return s;
     }
@@ -281,6 +298,8 @@
         s.wifiUp = event.wifiOk !== false;
         s.homed = false;
         s.autoMode = true;
+        // Update angleErrorDeg after boot
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, 'UNHOMED',
           'מיקום לא ידוע. אסור moveTo עד הומינג. ' +
           (s.wifiUp ? 'WiFi עלה' : 'WiFi timeout — אוטו מקומי אחרי הומינג'));
@@ -317,6 +336,8 @@
         s.moving = false;
         s.autoMode = true;
         s.lastIdle = 'IDLE_AUTO';
+        // Update angleErrorDeg after homing
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, 'IDLE_AUTO', 'מפסק קצה — אפס אמיתי');
       }
       if (t === 'TICK') {
@@ -342,6 +363,8 @@
       if (t === 'CLEAR') {
         s.moving = false;
         s.homed = false;
+        // Update angleErrorDeg after clear
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, 'UNHOMED', 'אופרטור אישר — חובה הומינג מחדש');
       }
       if (t === 'HOME_START' && s.state === 'FAULT_HOME' && s.hasEndstop) {
@@ -357,6 +380,8 @@
         s.sensorFail = false;
         const back = s.lastIdle || 'IDLE_AUTO';
         s.autoMode = back === 'IDLE_AUTO';
+        // Update angleErrorDeg after sensor recovery
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, back, 'חיישן חזר');
       }
       if (t === 'SET_ANGLE') {
@@ -378,6 +403,8 @@
         s.dropped = false;
         s.homed = false;
         s.moving = false;
+        // Update angleErrorDeg after clear
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, 'UNHOMED', 'מתח חזר — מיקום לא ידוע');
       }
       return s;
@@ -395,6 +422,8 @@
     if (t === 'SENSOR_OK') {
       s.sensorFail = false;
       s.reason = 'חיישן תקין';
+      // Update angleErrorDeg after sensor recovery
+      s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
       return s;
     }
 
@@ -418,6 +447,8 @@
         s.autoMode = Boolean(event.auto);
         const next = s.autoMode ? 'IDLE_AUTO' : 'IDLE_MANUAL';
         s.lastIdle = next;
+        // Update angleErrorDeg after mode change
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, next, 'החלפת מצב');
       }
       if (t === 'SAMPLE' && s.state === 'IDLE_AUTO') {
@@ -436,6 +467,8 @@
         }
         s.targetAngle = next;
         s.reason = 'שקט — דד-בנד';
+        // Update angleErrorDeg after sample
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return s;
       }
       if (t === 'HOME_START') {
@@ -453,6 +486,8 @@
         s.mechanicalAngle = s.targetAngle;
         s.moving = false;
         const back = s.lastIdle || (s.autoMode ? 'IDLE_AUTO' : 'IDLE_MANUAL');
+        // Update angleErrorDeg after arrival
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, back, 'הגיע ליעד');
       }
       if (t === 'SET_ANGLE') {
@@ -479,12 +514,16 @@
             Math.round(s.moveBudgetMs * s.stallMargin) + ' ms)');
         }
         s.reason = 'בתנועה… ' + s.moveElapsedMs + ' ms';
+        // Update angleErrorDeg on tick
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return s;
       }
       if (t === 'SET_MODE') {
         s.autoMode = Boolean(event.auto);
         s.lastIdle = s.autoMode ? 'IDLE_AUTO' : 'IDLE_MANUAL';
         s.reason = 'מצב אחרי ההגעה ישתנה ל-' + s.lastIdle;
+        // Update angleErrorDeg after mode change
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return s;
       }
       return s;

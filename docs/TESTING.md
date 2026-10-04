@@ -34,4 +34,4 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 
 שנים-עשר מקרים, אפס רצו. המסמך: [HIL.md](HIL.md). העמוד: [`hil/`](../hil/). הנתונים: `src/lib/hil.js`.
 
-אין כאן `.github/workflows`. הבדיקות רצות במכונה המקומית.
+ה-GitHub Actions היחיד כאן הוא `.github/workflows/validate.yml`: מריץ את אותה חבילת בדיקות (`npm test`) על כל push ו-pull request. הוא לא ממזג, לא דוחף בכוח ולא פורס. הבדיקות רצות גם במכונה המקומית.
