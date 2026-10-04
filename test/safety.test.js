@@ -1,7 +1,7 @@
-'use strict';
-
 const test = require('node:test');
-const assert = require('node:assert');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 let safety;
 try {
@@ -11,8 +11,9 @@ try {
 }
 
 test('getSafetyGuidelines returns grouped guidelines (electrical, mechanical) with actionable mitigations', () => {
-  assert.notStrictEqual(safety, null, 'safety module must be loadable');
+  assert.notEqual(safety, null, 'safety module must be loadable');
   assert.strictEqual(typeof safety.getSafetyGuidelines, 'function', 'getSafetyGuidelines must be a function');
+  assert.ok(safety.SAFETY_GUIDELINES, 'SAFETY_GUIDELINES must be exported');
 
   const guidelines = safety.getSafetyGuidelines();
   assert.ok(guidelines && typeof guidelines === 'object', 'guidelines must be an object');
@@ -34,4 +35,33 @@ test('getSafetyGuidelines returns grouped guidelines (electrical, mechanical) wi
     assert.strictEqual(typeof item.mitigation, 'string', 'mechanical item must have an actionable mitigation step');
     assert.ok(item.mitigation.trim().length > 0, 'mechanical mitigation step must not be empty');
   }
+});
+
+test('every guideline has a stable id and matching category', () => {
+  assert.notEqual(safety, null, 'safety module must be loadable');
+  const guidelines = safety.getSafetyGuidelines();
+  for (const [group, items] of Object.entries(guidelines)) {
+    const ids = new Set();
+    const idPattern = group === 'electrical' ? /^ELEC-\d{2}$/ : /^MECH-\d{2}$/;
+    for (const item of items) {
+      assert.match(item.id, idPattern, item.id);
+      assert.equal(item.category, group);
+      assert.equal(ids.has(item.id), false, item.id);
+      ids.add(item.id);
+    }
+  }
+});
+
+test('getSafetyGuidelines returns copies that do not mutate canonical data', () => {
+  assert.notEqual(safety, null, 'safety module must be loadable');
+  const guidelines = safety.getSafetyGuidelines();
+  const canonical = safety.SAFETY_GUIDELINES.electrical[0].hazard;
+  guidelines.electrical[0].hazard = 'mutated hazard';
+  assert.equal(safety.SAFETY_GUIDELINES.electrical[0].hazard, canonical);
+});
+
+test('safety.js follows the host module pattern (UMD + SM_SAFETY)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '../src/lib/safety.js'), 'utf8');
+  assert.match(src, /function \(root, factory\)/);
+  assert.match(src, /root\.SM_SAFETY = api/);
 });
