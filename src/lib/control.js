@@ -75,6 +75,7 @@
   function clampToPanel(angle, panel = 'LED', customLimit) {
     const { panel: panelType, limit } = getPanelLimit(panel, customLimit);
     if (limit === undefined) throw new Error('unknown panel type: ' + panelType);
+    if (Number.isNaN(angle)) return 0;
     return Math.min(Math.max(angle, -limit), limit);
   }
 

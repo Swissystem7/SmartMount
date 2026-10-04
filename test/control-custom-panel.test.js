@@ -10,4 +10,5 @@ test('calls clampToPanel with a requested angle of 50 for a CUSTOM panel constra
     result = err;
   }
   assert.strictEqual(result, 45);
+  assert.strictEqual(clampToPanel(NaN, 'CUSTOM', 45), 0);
 });
