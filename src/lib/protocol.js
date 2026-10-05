@@ -3,7 +3,7 @@
 // The board is Arduino WebServer: handlers read query/form args (server.arg),
 // not a JSON body. Status is JSON. Errors are {"ok":false,"error":"..."}.
 // Keep this file in lockstep with handleStatus / handleSetAngle /
-// handleSetPanel / handleSetMode and parseFloatArg / isValidPanel.
+// handleSetPanel / handleSetMode / handleStop and parseFloatArg / isValidPanel.
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -34,6 +34,12 @@
       args: Object.freeze(['auto']),
       summary: 'auto חייב להיות המחרוזת "0" או "1" בדיוק',
     }),
+    Object.freeze({
+      method: 'POST',
+      path: '/stop',
+      args: Object.freeze([]),
+      summary: 'עצירת חירום: כיבוי אוטו + stepper.stop() — האטה עד עצירה, לא קפיצה',
+    }),
   ]);
 
   const SERIAL_BAUD = 115200;
@@ -49,15 +55,44 @@
     return { ok: true };
   }
 
-  // parseFloatArg — ino:83-91. strtof then *end=='\0'; reject NaN/Inf.
+  // parseFloatArg — ino: strtof then *end=='\0'; reject NaN/Inf.
+  //
+  // strtof is newlib's, so the board takes exactly what newlib takes and the
+  // mirror must not be tidier than the board:
+  //   * any leading C isspace (space \t \n \v \f \r) — WebServer url-decodes,
+  //     so deg=%0A12 reaches strtof as "\n12" and is 12°;
+  //   * hex floats: "0x10" is 16°, "-0x1.8p1" is -3°, binary exponent optional;
+  //   * the result is a 32-bit float, so anything that rounds past FLT_MAX
+  //     ("1e39", "0x1p128") comes back as inf and is rejected, while a
+  //     double would have been happy to keep it.
+  // Trailing anything (even a space) is still a reject: *end != '\0'.
+  const C_SPACE = /^[ \t\n\v\f\r]+/;
+  const DEC = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+  const HEX = /^([+-]?)0[xX](?:([0-9a-fA-F]+)(?:\.([0-9a-fA-F]*))?|\.([0-9a-fA-F]+))(?:[pP]([+-]?\d+))?$/;
+
+  function hexFloatValue(m) {
+    const sign = m[1] === '-' ? -1 : 1;
+    const intDigits = m[2] || '';
+    const fracDigits = m[3] || m[4] || '';
+    let mant = intDigits ? parseInt(intDigits, 16) : 0;
+    if (fracDigits) mant += parseInt(fracDigits, 16) / Math.pow(16, fracDigits.length);
+    const exp = m[5] ? parseInt(m[5], 10) : 0;
+    return sign * mant * Math.pow(2, exp);
+  }
+
   function parseFloatArg(s) {
     if (s == null) return { ok: false };
     const raw = String(s);
     if (raw.length === 0) return { ok: false };
-    const m = raw.match(/^[ \t]*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)$/);
-    if (!m) return { ok: false };
-    const n = Number(m[1]);
-    if (!Number.isFinite(n)) return { ok: false };
+    const body = raw.replace(C_SPACE, '');
+    let n;
+    const hex = body.match(HEX);
+    if (hex) n = hexFloatValue(hex);
+    else if (DEC.test(body)) n = Number(body);
+    else return { ok: false };
+    // strtof overflow → HUGE_VALF → isinf → reject. Math.fround rounds the
+    // same way the board's float conversion does.
+    if (!Number.isFinite(n) || !Number.isFinite(Math.fround(n))) return { ok: false };
     return { ok: true, value: n };
   }
 
@@ -118,6 +153,8 @@
     return { status: 200, body: okBody(), effect: { autoMode: a === '1' } };
   }
 
+  // handleStop — ino: autoMode=false; stepper.stop(); targetAngle follows the
+  // deceleration endpoint. No args, cannot fail.
   function handleStop() {
     return {
       status: 200,

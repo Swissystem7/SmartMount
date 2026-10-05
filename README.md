@@ -15,7 +15,7 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 | [מעבדה הנדסית](https://swissystem7.github.io/SmartMount/lab/) | חדר וירטואלי + קונסולת תקלות (חיישן / WiFi / גבול פאנל) על חוק `smart_mount.ino` |
 | [מפרט בנייה](https://swissystem7.github.io/SmartMount/spec/) | BOM כנה, מחשבון מומנט מול NEMA17, חיווט SVG |
 | [גאומטריית בוהק](https://swissystem7.github.io/SmartMount/geometry/) | חוק ההחזרה + למה יחס lux אינו בהירות לצופה |
-| [חוזה API](https://swissystem7.github.io/SmartMount/protocol/) | ארבעה נתיבי HTTP + Serial 115200 — בדיוק מה שבקושחה |
+| [חוזה API](https://swissystem7.github.io/SmartMount/protocol/) | חמישה נתיבי HTTP + Serial 115200 — בדיוק מה שבקושחה |
 | [מכונת מצבים](https://swissystem7.github.io/SmartMount/fsm/) | מה שה־`.ino` עושה (auto + moveTo) מול FSM בטוח מוצע — 30 + 165 תאים מ־`step()` |
 | [תזמון והספק](https://swissystem7.github.io/SmartMount/runtime/) | פרופיל AccelStepper, גנט של `loop()`, הבזק שמש שמתפספס בין דגימות |
 | [תקציב הספק](https://swissystem7.github.io/SmartMount/power/) | זרם idle / תנועה / WiFi וחישוב סוללה — דפי נתונים, לא מד-זרם |
@@ -33,7 +33,7 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 
 - **קריאת חיישן כושלת** (BH1750 מחזיר ערך שלילי) מחזיקה זווית — לא מטה למקסימום.
 - **מנוע:** `stepper.moveTo` ממיקום מוחלט; `currentAngle` לא מתעדכן לפני שהמנוע מגיע.
-- **API:** `set-angle` / `set-mode` דוחים ארגומנט חסר/לא תקין; סוג פאנל 0..2. `type=foo` עדיין הופך ל־OLED (`toInt`).
+- **API:** `set-angle` / `set-mode` דוחים ארגומנט חסר/לא תקין; סוג פאנל 0..2. `type=foo` עדיין הופך ל־OLED (`toInt`). `POST /stop` מכבה אוטו ומאט עד עצירה (`stepper.stop()`), לא קופץ למיקום הנוכחי.
 - **WiFi:** timeout — המצב האוטומטי המקומי ממשיך גם בלי רשת.
 - **דשבורד:** סימולציית חוק בקרה בלבד (`control.js`). אין Cloud, אין התחברות, אין לוח זמנים — אלה לא קיימים בקושחה.
 - **גבולות צפייה:** OLED 40° (הרחב ביותר), QLED 30°, LED/VA 20°.
