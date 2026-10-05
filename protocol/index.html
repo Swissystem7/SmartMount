@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SmartMount — חוזה HTTP / Serial</title>
-<meta name="description" content="החוזה המדויק של הקושחה: ארבעה נתיבי WebServer, ארגומנטים ב־query, ומה ש־Serial באמת מדפיס.">
+<meta name="description" content="החוזה המדויק של הקושחה: חמישה נתיבי WebServer, ארגומנטים ב־query, ומה ש־Serial באמת מדפיס.">
 <meta name="theme-color" content="#0f1420">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
@@ -66,7 +66,7 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
 
   <div class="grid">
     <div class="card">
-      <h2>ארבעה נתיבים</h2>
+      <h2>חמישה נתיבים</h2>
       <table>
         <thead>
           <tr><th>שיטה</th><th>נתיב</th><th>ארגומנט</th><th>כישלון</th></tr>
@@ -96,6 +96,12 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
             <td class="mono">auto</td>
             <td>חייב המחרוזת <code>"0"</code> או <code>"1"</code></td>
           </tr>
+          <tr>
+            <td class="mono">POST</td>
+            <td class="mono">/stop</td>
+            <td>—</td>
+            <td>אין. עצירת חירום: <code>autoMode = false</code> ואז <code>stepper.stop()</code> — האטה עד עצירה</td>
+          </tr>
         </tbody>
       </table>
       <div class="note-warn">
@@ -106,6 +112,15 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
         <code>set-angle</code> מכבה אוטו (<code>autoMode = false</code>) ואז קורא <code>moveToAngle</code>,
         שמצמיד ל־<code>±PANEL_LIMITS[panel]</code>. תשובת 200 אומרת «הפקודה התקבלה», לא «המסך ב־99°».
       </p>
+      <p class="fine">
+        <code>deg</code> עובר דרך <code>strtof</code> של newlib, לא דרך regex עשרוני: רווח לבן מוביל
+        (<code>%0A12</code> → 12°) ו־hex (<code>0x10</code> → 16°) מתקבלים; <code>1e39</code> גולש
+        מ־float של 32 ביט ונדחה כ־<code>invalid deg</code>. המראה ב־JS משקף את זה, לא מייפה.
+      </p>
+      <p class="fine">
+        <code>stop</code> לא מנתק זרם: <code>AccelStepper::stop()</code> מחשב יעד חדש בסוף רמפת ההאטה,
+        והסלילים ממשיכים להחזיק. אוטו כבוי אחרת הלולאה הייתה חוזרת לנוע תוך 2 שניות.
+      </p>
     </div>
 
     <div class="card">
@@ -115,6 +130,7 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
         <button type="button" class="btn" data-route="angle" id="rAngle">POST /set-angle</button>
         <button type="button" class="btn" data-route="panel" id="rPanel">POST /set-panel</button>
         <button type="button" class="btn" data-route="mode" id="rMode">POST /set-mode</button>
+        <button type="button" class="btn" data-route="stop" id="rStop">POST /stop</button>
       </div>
       <div id="argBox">
         <label class="sl" for="argVal">ערך ארגומנט</label>
@@ -184,6 +200,7 @@ const ARG = {
   angle:  { method: 'POST', path: '/set-angle', key: 'deg', sample: '12.5' },
   panel:  { method: 'POST', path: '/set-panel', key: 'type', sample: '2' },
   mode:   { method: 'POST', path: '/set-mode', key: 'auto', sample: '1' },
+  stop:   { method: 'POST', path: '/stop', key: null, sample: '' },
 };
 
 function argsOf() {
@@ -196,7 +213,7 @@ function paintRequest() {
   const spec = ARG[route];
   document.getElementById('reqLine').textContent = SM_PROTOCOL.requestLine(spec.method, spec.path, argsOf());
   document.getElementById('argVal').disabled = !spec.key;
-  document.getElementById('argVal').placeholder = spec.key ? spec.key : 'אין ארגומנט ל־/status';
+  document.getElementById('argVal').placeholder = spec.key ? spec.key : 'אין ארגומנט ל־' + spec.path;
 }
 
 function show(res, extra) {
@@ -225,6 +242,11 @@ function send() {
       state.auto = false;
       state.target = res.effect.requestedDeg;
       note = 'התקבל deg=' + res.effect.requestedDeg + '. moveToAngle יצמיד לגבול הפאנל; 200 ≠ זווית סופית.';
+    }
+    if (res.effect.stop) {
+      state.auto = false;
+      state.target = state.angle;
+      note = 'עצירת חירום: autoMode = false, stepper.stop() מאט לעצירה. הסלילים עדיין מוזנים — זו לא נפילת מתח.';
     }
   }
   show(res, note);

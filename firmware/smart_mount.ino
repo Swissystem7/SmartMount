@@ -188,6 +188,17 @@ void handleSetMode() {
   sendOk();
 }
 
+// Emergency stop. Leaves auto mode so the 2 s loop does not re-arm the move,
+// then asks AccelStepper to decelerate from the current speed. stop() sets a
+// new absolute target at the end of that ramp; targetAngle tracks it so
+// /status shows where the arm will settle. Coils stay energised (hold).
+void handleStop() {
+  autoMode = false;
+  stepper.stop();
+  targetAngle = stepper.targetPosition() / STEPS_PER_DEGREE;
+  sendOk();
+}
+
 // ── Setup & Loop ─────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
@@ -215,6 +226,7 @@ void setup() {
   server.on("/set-angle", HTTP_POST, handleSetAngle);
   server.on("/set-panel", HTTP_POST, handleSetPanel);
   server.on("/set-mode",  HTTP_POST, handleSetMode);
+  server.on("/stop",      HTTP_POST, handleStop);
   server.begin();
 }
 
