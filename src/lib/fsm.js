@@ -196,7 +196,9 @@
         return s;
       }
       s.panel = panel;
-      startMove(s, clamp(s.believedAngle, panel), 'החלפת פאנל מצמידה לגבול החדש');
+      // ino: moveToAngle(targetAngle) — the target is re-clamped, the move
+      // in flight is not cancelled. startMove clamps to the new s.panel.
+      startMove(s, s.targetAngle, 'החלפת פאנל מצמידה את היעד לגבול החדש — תנועה פעילה ממשיכה');
       return s;
     }
 

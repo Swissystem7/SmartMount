@@ -165,8 +165,12 @@ void handleSetPanel() {
     return;
   }
   currentPanel = (PanelType)type;
-  float limit = panelLimit();
-  moveToAngle(constrain(currentAngle, -limit, limit));
+  // Re-clamp the commanded target, not the lagging currentAngle. Mid-move,
+  // moveTo(currentAngle) would abandon the move and turn the stepper around
+  // under load; a panel change is only a new ceiling. moveToAngle() clamps
+  // to the new PANEL_LIMITS, so a target that still fits continues
+  // untouched and one that does not shortens to the new limit.
+  moveToAngle(targetAngle);
   sendOk();
 }
 
