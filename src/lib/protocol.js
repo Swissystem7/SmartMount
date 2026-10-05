@@ -90,10 +90,12 @@
     if (hex) n = hexFloatValue(hex);
     else if (DEC.test(body)) n = Number(body);
     else return { ok: false };
-    // strtof overflow → HUGE_VALF → isinf → reject. Math.fround rounds the
-    // same way the board's float conversion does.
-    if (!Number.isFinite(n) || !Number.isFinite(Math.fround(n))) return { ok: false };
-    return { ok: true, value: n };
+    if (!Number.isFinite(n)) return { ok: false };
+    // strtof stores a float; overflow → inf → reject. Return the rounded float
+    // so the host mirror does not keep double precision the board never sees.
+    const value = Math.fround(n);
+    if (!Number.isFinite(value)) return { ok: false };
+    return { ok: true, value };
   }
 
   // Arduino String::toInt() ≈ atoi: garbage becomes 0, not an error.

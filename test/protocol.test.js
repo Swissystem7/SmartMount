@@ -66,16 +66,18 @@ test('parseFloatArg takes what strtof takes: C whitespace and hex floats', () =>
 
 test('parseFloatArg rejects what overflows a 32-bit float, like strtof → inf', () => {
   assert.match(ino, /isnan\(out\) \|\| isinf\(out\)/);
-  // FLT_MAX itself survives; the next decimal order of magnitude does not.
+  // Rounds to FLT_MAX in float32; the next decimal order of magnitude does not.
   assert.equal(P.parseFloatArg('3.4028235e38').ok, true);
+  assert.equal(P.parseFloatArg('3.4028235e38').value, Math.fround(3.4028235e38));
   assert.equal(P.parseFloatArg('1e39').ok, false);
   assert.equal(P.parseFloatArg('-1e39').ok, false);
   assert.equal(P.parseFloatArg('0x1p127').ok, true);
   assert.equal(P.parseFloatArg('0x1p128').ok, false);
   assert.equal(P.handleSetAngle({ deg: '1e39' }).status, 400);
   assert.equal(P.handleSetAngle({ deg: '1e39' }).body.error, 'invalid deg');
-  // Underflow is not an error for strtof: the value is just (nearly) zero.
+  // Underflow is not an error for strtof: the value flushes to float32 zero.
   assert.equal(P.parseFloatArg('1e-50').ok, true);
+  assert.equal(P.parseFloatArg('1e-50').value, 0);
   // Plain decimals still work exactly as before.
   assert.deepEqual(P.parseFloatArg('+.5'), { ok: true, value: 0.5 });
   assert.deepEqual(P.parseFloatArg('5.'), { ok: true, value: 5 });
