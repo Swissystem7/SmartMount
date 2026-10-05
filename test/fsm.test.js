@@ -49,7 +49,7 @@ test('firmware SAMPLE on a failed read holds instead of slamming', () => {
   assert.match(s.reason, /HOLD/);
 });
 
-test('firmware SAMPLE retargets from the lagging believed angle, even mid-move', () => {
+test('firmware SAMPLE retargets mid-move once the law leaves the deadband around the target', () => {
   let s = F.firmwareBoot(true);
   s = F.step(s, { type: 'SAMPLE', luxTop: 800, luxBot: 80 });
   assert.equal(s.state, 'RUN');

@@ -22,7 +22,7 @@
       severity: 'safety',
       status: 'fixed-in-source',
       was: 'ערך שלילי מהספרייה זרם ליחס בוהק ענק והמסך הלך לגבול הפאנל.',
-      now: 'NaN / שלילי → מחזירים את הזווית הנוכחית. HOLD, לא slam.',
+      now: 'NaN / שלילי → מחזירים את היעד המצווה (targetAngle). HOLD, לא slam ולא היפוך כיוון באמצע מהלך.',
       where: 'firmware/smart_mount.ino — calcOptimalAngle',
       provenBy: 'test/control.test.js, test/firmware-mirror.test.js',
     }),
