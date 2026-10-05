@@ -33,3 +33,26 @@ test('getBomItems returns vendor-independent BOM items conforming to specificati
     }
   }
 });
+
+test('getBomItems hands out a fresh copy that callers cannot use to corrupt the BOM', () => {
+  const first = getBomItems();
+  const second = getBomItems();
+
+  assert.notStrictEqual(first, second, 'each call must return a new array, not a shared reference');
+  assert.notStrictEqual(first[0], second[0], 'each call must return new item objects');
+  assert.notStrictEqual(first[0].suppliers, second[0].suppliers, 'each call must return new suppliers arrays');
+
+  const originalLength = first.length;
+  const originalName = first[0].name;
+  const originalSupplierCount = first[0].suppliers.length;
+
+  first[0].name = 'MUTATED BY CALLER';
+  first[0].suppliers.push('Injected Supplier');
+  first.length = 0;
+
+  const third = getBomItems();
+  assert.strictEqual(third.length, originalLength, 'truncating a returned array must not shrink the canonical BOM');
+  assert.strictEqual(third[0].name, originalName, 'rewriting a returned item must not rewrite the canonical BOM');
+  assert.strictEqual(third[0].suppliers.length, originalSupplierCount, 'appending to a returned suppliers array must not grow the canonical BOM');
+  assert.ok(!third[0].suppliers.includes('Injected Supplier'), 'an injected supplier must not leak into the canonical BOM');
+});
