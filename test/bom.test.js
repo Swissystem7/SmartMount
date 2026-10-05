@@ -34,6 +34,23 @@ test('getBomItems returns vendor-independent BOM items conforming to specificati
   }
 });
 
+test('every BOM item carries a non-empty, unique id and a non-empty name', () => {
+  const items = getBomItems();
+  const seenIds = new Set();
+
+  for (const part of items) {
+    assert.strictEqual(typeof part.id, 'string', 'each part must expose a string id');
+    assert.ok(part.id.trim().length > 0, 'id must not be empty');
+    assert.ok(!seenIds.has(part.id), `id must be unique across the BOM, saw "${part.id}" twice`);
+    seenIds.add(part.id);
+
+    assert.strictEqual(typeof part.name, 'string', 'each part must expose a string name');
+    assert.ok(part.name.trim().length > 0, 'name must not be empty');
+  }
+
+  assert.strictEqual(seenIds.size, items.length, 'every item must have its own id');
+});
+
 test('getBomItems hands out a fresh copy that callers cannot use to corrupt the BOM', () => {
   const first = getBomItems();
   const second = getBomItems();
