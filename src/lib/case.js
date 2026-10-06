@@ -22,7 +22,7 @@
       severity: 'safety',
       status: 'fixed-in-source',
       was: 'ערך שלילי מהספרייה זרם ליחס בוהק ענק והמסך הלך לגבול הפאנל.',
-      now: 'NaN / שלילי → מחזירים את הזווית הנוכחית. HOLD, לא slam.',
+      now: 'NaN / שלילי → מחזירים את היעד המצווה (targetAngle). HOLD, לא slam ולא היפוך כיוון באמצע מהלך.',
       where: 'firmware/smart_mount.ino — calcOptimalAngle',
       provenBy: 'test/control.test.js, test/firmware-mirror.test.js',
     }),
@@ -42,7 +42,7 @@
       severity: 'contract',
       status: 'fixed-in-source',
       was: 'type / deg / auto יכלו להיכנס ריקים או כזבל ולהפוך לברירת מחדל שקטה.',
-      now: 'set-angle ו-set-mode מחזירים 400 על חסר / לא מספר / auto≠0|1. type מחוץ ל-0..2 נדחה. חור שנשאר: toInt("foo")=0 → OLED, לא 400.',
+      now: 'set-angle ו-set-mode מחזירים 400 על חסר / לא מספר / auto≠0|1. type נפרס ב-strtol עם צריכה מלאה: מחוץ ל-0..2, "foo", "1.9" או "2 " → 400. לפני כן toInt("foo")=0 בחר OLED (המכסה הרחב ביותר) בשקט.',
       where: 'firmware/smart_mount.ino — handleSetAngle, handleSetPanel, handleSetMode',
       provenBy: 'test/protocol.test.js',
     }),
@@ -138,7 +138,7 @@
 
   const SHOWN = Object.freeze([
     'סקירת קושחת ESP32 עם באגי בטיחות שננעלו בבדיקות מארח',
-    'חוזה HTTP מפורש (ארבעה נתיבים, דחיית קלט רע)',
+    'חוזה HTTP מפורש (חמישה נתיבים, דחיית קלט רע)',
     'מכונת מצבים כפולה: מה שכתוב מול מה שחסר — 30 + 165 תאים',
     'תקציב תזמון והספק מדפי נתונים, לא ממד-זרם',
     'כנות: באנר, HIL never-run, PARK, אין נתיב הכנסה',
