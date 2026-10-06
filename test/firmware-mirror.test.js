@@ -37,9 +37,9 @@ test('firmware still contains the generated control-params block', () => {
   assert.match(ino, new RegExp('DEADBAND_DEG = ' + spec.deadbandDeg));
 });
 
-test('failed BH1750 read returns currentAngle — the hold, not a slam', () => {
+test('failed BH1750 read returns targetAngle — the hold, not a slam, not a reversal', () => {
   assert.match(ino, /luxTop < 0\.0f \|\| luxBot < 0\.0f/);
-  assert.match(ino, /return currentAngle/);
+  assert.match(ino, /return targetAngle/);
   assert.match(ino, /isnan\(luxTop\) \|\| isnan\(luxBot\)/);
   assert.match(ino, /isinf\(luxTop\) \|\| isinf\(luxBot\)/);
   const held = 12.5;

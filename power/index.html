@@ -110,6 +110,7 @@ td.num{font-variant-numeric:tabular-nums}
         <div><b id="bNeed">—</b><span>Wh דרושים ליעד</span></div>
         <div><b id="bC">—</b><span>C-rate בשיא</span></div>
         <div><b id="bRail">—</b><span>פס 12 V</span></div>
+        <div><b id="bBest">—</b><span>הקטנה מהרשימה שעומדת ביעד</span></div>
       </div>
       <div class="verdict meh" id="bVerdict" role="status">—</div>
       <p class="fine" id="packNote">—</p>
@@ -228,6 +229,8 @@ function battery() {
   $('bNeed').textContent = r.requiredWh.toFixed(1) + ' Wh';
   $('bC').textContent = r.cRate.toFixed(2) + ' C';
   $('bRail').textContent = r.canFeedMotorRail ? 'יכול להזין VMOT' : 'לא 12 V';
+  const best = r.bestPackId ? SM_POWER.packById(r.bestPackId) : null;
+  $('bBest').textContent = best ? best.label : 'אף אחת מהארבע';
   $('packNote').textContent = r.pack.note;
   const text = {
     'pack-cannot-motor-rail': 'החבילה לא מזינה 12 V, וסלילים דלוקים מרוקנים אותה בכל מקרה. זה לא פס המנוע.',

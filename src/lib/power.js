@@ -231,6 +231,22 @@
     return null;
   }
 
+  // «איזו סוללה לקנות» — the smallest pack on the list that covers requiredWh
+  // and is still allowed to feed the rail. requiredWh is already grossed up for
+  // DoD and converter loss, so the honest comparison is against full cellWh.
+  // Energy + rail only: C-rate and weight are the buyer's call, not ours.
+  // Ties on cellWh resolve to the first pack in PACKS order.
+  function smallestPackFor(requiredWh, needsMotorRail) {
+    let best = null;
+    for (let i = 0; i < PACKS.length; i++) {
+      const p = PACKS[i];
+      if (needsMotorRail && !p.canMotor12v) continue;
+      if (p.cellWh < requiredWh) continue;
+      if (best === null || p.cellWh < best.cellWh) best = p;
+    }
+    return best;
+  }
+
   function sizeBattery(input) {
     const src = input || {};
     const day = dailyEnergy(src);
@@ -251,6 +267,9 @@
     const packAh = pack.cellWh / pack.railV;
     const cRate = packAh > 0 ? peakA / packAh : Infinity;
     const motorNeeded = day.holdW > 0 || (src.movesPerDay || 0) > 0;
+    // Hold and the move pulse are both 12 V; either one disqualifies a 5 V bank.
+    const needsMotorRail = motorNeeded && day.holdW > 0;
+    const bestPack = smallestPackFor(requiredWh, needsMotorRail);
 
     let kind = 'hours-ok';
     if (!pack.canMotor12v && motorNeeded && day.holdW > 0) kind = 'pack-cannot-motor-rail';
@@ -272,6 +291,7 @@
       cRate,
       motorNeeded,
       canFeedMotorRail: pack.canMotor12v,
+      bestPackId: bestPack ? bestPack.id : null,
       kind,
       daily: day,
     };
