@@ -176,6 +176,9 @@ input[type=range]{width:100%;accent-color:#58a6ff}
     modeBtn.classList.toggle('on', auto);
     modeBtn.setAttribute('aria-pressed', auto ? 'true' : 'false');
     manEl.disabled = auto;
+    if (!auto) {
+      manEl.value = String(Math.round(current));
+    }
     paint();
   });
 
