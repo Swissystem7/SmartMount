@@ -59,15 +59,34 @@
     return Math.min(Math.max(angle, -limit), limit);
   }
 
-  // moveToAngle — ino: constrain then lroundf(deg * STEPS_PER_DEGREE).
-  // JS Math.round matches lroundf for the half-away-from-zero cases we hit.
+  // The board does this arithmetic in float, not double: clamped is a float,
+  // STEPS_PER_DEGREE is `const float`, so the product is a float32 before
+  // lroundf sees it. Math.fround on both operands and on the product is the
+  // same arithmetic. 0.9° is 2.5 steps in double but 2.4999998 on the board,
+  // so the board commands 2 steps where a double would have rounded to 3.
+  const STEPS_PER_DEGREE_F32 = Math.fround(P.stepsPerDegree);
+
+  // lroundf rounds half away from zero: -4.5 → -5. Math.round rounds half
+  // toward +∞: Math.round(-4.5) is -4. Every negative half-step (−1.62° is
+  // −4.5 steps) landed one step short of the board until this was spelled out.
+  function lroundf(x) {
+    return Math.sign(x) * Math.floor(Math.abs(x) + 0.5);
+  }
+
+  // stepsFor — ino: (long)lroundf(clamped * STEPS_PER_DEGREE), float math.
+  function stepsFor(deg) {
+    return lroundf(Math.fround(Math.fround(deg) * STEPS_PER_DEGREE_F32));
+  }
+
+  // moveToAngle — ino: constrain then stepsFor, then read the target back.
   // target is what the board stores in targetAngle and reports in /status:
-  // the rounded step converted back to degrees, so a request of 12.3° on a
-  // 1000-step rev reports 12.24 and equals the angle once the move ends.
+  // the commanded step divided by the float STEPS_PER_DEGREE (long / float is
+  // a float), so a request of 12.3° on a 1000-step rev reports 12.24 (as a
+  // float32) and equals currentAngle, computed the same way, once the move ends.
   function moveToAngle(deg, panel = 'LED') {
     const clamped = clampToPanel(deg, panel);
-    const steps = Math.round(clamped * P.stepsPerDegree);
-    return { clamped: clamped, steps: steps, target: steps / P.stepsPerDegree };
+    const steps = stepsFor(clamped);
+    return { clamped: clamped, steps: steps, target: Math.fround(steps / STEPS_PER_DEGREE_F32) };
   }
 
   // No schedule, cloud, or calibration — those are not in the .ino.
@@ -76,7 +95,10 @@
     glareRatio,
     shouldMove,
     clampToPanel,
+    lroundf,
+    stepsFor,
     moveToAngle,
+    STEPS_PER_DEGREE_F32,
     PANEL_LIMITS,
     GLARE_THRESHOLD,
     GAIN_DEG_PER_RATIO,

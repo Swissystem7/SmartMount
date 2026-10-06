@@ -9,6 +9,7 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 |---|---|---|
 | חוק בקרה | `test/control.test.js`, `firmware-mirror.test.js` | יחס בוהק, דד-בנד, גבול פאנל, HOLD על כשל חיישן. המראה **קורא את ה־`.ino`** ומשווה נוסחה ל־JS |
 | קבועים | `test/control-params.test.js` | JSON = JS שנוצר = בלוק ב־`.ino` |
+| קוונטיזציה | `test/target-quantised.test.js`, `lroundf-float32.test.js` | `moveToAngle` ב־JS מחשב כמו הלוח: מכפלה ב־float32 ואז `lroundf` (חצי **מתרחק מאפס**, לא `Math.round`); `target` הוא float32 כמו `targetAngle` |
 | חוזה HTTP | `test/protocol.test.js`, `emergency-stop.test.js` | חמישה נתיבים (כל נתיב ב־`ROUTES` רשום ב־`.ino`), `parseFloatArg` = `strtof` (רווח לבן מוביל, hex, גלישת float32), `type` = `strtol` בצריכה מלאה (`type=foo` → 400), `/stop` = אוטו כבוי ואז `stepper.stop()` |
 | מומנט | `test/torque.test.js` | `τ=mgd cosθ`, נפילה בלי תולעת |
 | אופטיקה | `test/optics.test.js` | lux ≠ nits, ארבעת מקרי אי-הסכמה |
