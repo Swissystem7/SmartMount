@@ -1,10 +1,13 @@
 // SmartMount — AccelStepper timing + cooperative-loop budget.
 //
 // Firmware (smart_mount.ino):
-//   stepper.setMaxSpeed(500);        // steps / s
-//   stepper.setAcceleration(200);    // steps / s²
-//   sample every 2000 ms
+//   stepper.setMaxSpeed(MAX_SPEED_SPS);      // steps / s
+//   stepper.setAcceleration(ACCEL_SPS2);     // steps / s²
+//   sample every SAMPLE_PERIOD_MS
 //   WiFi connect blocks with delay(200) up to 10 s — before loop()
+// Those three, and the step geometry, come from config/control-params.json
+// through the generated control-params.js — the same file control.js reads —
+// so a retune of the board cannot leave this model describing the old motor.
 //
 // Host model of a trapezoid / triangle. AccelStepper is discrete; this is
 // the continuous envelope an interviewer can compute on a whiteboard.
@@ -14,14 +17,15 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SM_TIMING = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  const MAX_SPEED_SPS = 500;
-  const ACCEL_SPS2 = 200;
-  const SAMPLE_PERIOD_MS = 2000;
+  const P = (typeof module === 'object' && module.exports)
+    ? require('./control-params')
+    : globalThis.CONTROL_PARAMS;
+  const MAX_SPEED_SPS = P.maxSpeedSps;
+  const ACCEL_SPS2 = P.accelSps2;
+  const SAMPLE_PERIOD_MS = P.samplePeriodMs;
   const WIFI_CONNECT_TIMEOUT_MS = 10000;
   const WIFI_POLL_MS = 200;
-  const STEPS_PER_REV = 200;
-  const GEAR_RATIO = 5;
-  const STEPS_PER_DEGREE = (STEPS_PER_REV * GEAR_RATIO) / 360;
+  const STEPS_PER_DEGREE = P.stepsPerDegree;
   const DEFAULT_WDT_MS = 5000;
   const NECK_HE = Object.freeze({
     sample: 'המתנה לדגימה',

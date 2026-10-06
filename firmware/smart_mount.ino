@@ -29,6 +29,10 @@ const float DEADBAND_DEG = 1.0f;
 const float STEPS_PER_REV = 200.0f;
 const float GEAR_RATIO = 5.0f;
 const float STEPS_PER_DEGREE = (STEPS_PER_REV * GEAR_RATIO) / 360.0f;
+// AccelStepper envelope + auto-mode sample period. Mirrored by src/lib/timing.js.
+const float MAX_SPEED_SPS = 500.0f;  // steps / s
+const float ACCEL_SPS2    = 200.0f;  // steps / s^2
+const unsigned long SAMPLE_PERIOD_MS = 2000;
 // <<< END GENERATED control-params
 enum PanelType { OLED = 0, QLED = 1, LED = 2 };
 PanelType currentPanel = LED;
@@ -233,8 +237,8 @@ void setup() {
   sensorTop.begin();
   sensorBot.begin();
 
-  stepper.setMaxSpeed(500);
-  stepper.setAcceleration(200);
+  stepper.setMaxSpeed(MAX_SPEED_SPS);
+  stepper.setAcceleration(ACCEL_SPS2);
   stepper.setCurrentPosition(0);
 
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -262,7 +266,7 @@ void loop() {
   stepper.run();
   syncAngleFromStepper();
 
-  if (autoMode && millis() - lastRead > 2000) {
+  if (autoMode && millis() - lastRead > SAMPLE_PERIOD_MS) {
     lastRead = millis();
     float luxTop = sensorTop.readLightLevel();
     float luxBot = sensorBot.readLightLevel();

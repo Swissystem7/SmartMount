@@ -13,7 +13,7 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 | מומנט | `test/torque.test.js` | `τ=mgd cosθ`, נפילה בלי תולעת |
 | אופטיקה | `test/optics.test.js` | lux ≠ nits, ארבעת מקרי אי-הסכמה |
 | מכונת מצבים | `test/fsm.test.js`, `fsm-matrix.test.js` | `.ino` בלי enum/הומינג/WDT; **כל** תא 2×15 ו־11×15 מול הטבלה; וריאנטים (אין מפסק, תקציב סטול) |
-| תזמון | `test/timing.test.js` | `setMaxSpeed(500)` / `2000` ms עדיין בקושחה; 20–40° הם משולש; HTTP 20 ms מרעיב פולסים; הבזק 400 ms מתפספס ב־80% |
+| תזמון | `test/timing.test.js` | `setMaxSpeed(MAX_SPEED_SPS)` / `SAMPLE_PERIOD_MS` בקושחה, הערכים מ־`config/control-params.json` (500 / 2000 ms) ו־`timing.js` קורא אותם משם; 20–40° הם משולש; HTTP 20 ms מרעיב פולסים; הבזק 400 ms מתפספס ב־80% |
 | הספק | `test/power.test.js` | I²R החזקה > USB 5 V; סלילים 24 שעות הם מחמם; פאוורבנק לא מזין 12 V; תולעת הופכת 3S ל־UPS |
 | HIL | `test/hil.test.js` | 12 מקרים, `STATUS=never-run`, HIL-10 אוסר טלוויזיה |
 | חלופות | `test/alts.test.js` | הדמו בחר צעד+יחס+מסגרת+החזקה+שקר אפס; מפעיל קווי+תולעת+מפסק הם «למוצר» |
