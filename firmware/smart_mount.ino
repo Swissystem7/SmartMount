@@ -130,7 +130,11 @@ float calcOptimalAngle(float luxTop, float luxBot) {
   float angle = 0.0;
   if (glareRatio > GLARE_THRESHOLD) {
     // Map glare intensity to tilt (max = panel limit)
-    angle = min((glareRatio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, (double)limit);
+    // Both operands float: on ESP32 min is std::min (Arduino.h does
+    // using std::min, no macro), so min(float, double) does not deduce T and
+    // the sketch fails to compile. The old double cast on limit matched the
+    // 3.0 / 5.0 double literals that the generated f-suffixed constants replaced.
+    angle = min((glareRatio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
   }
   return angle;
 }
