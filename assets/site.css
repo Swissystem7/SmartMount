@@ -137,3 +137,7 @@ a { color: var(--accent); }
     scroll-behavior: auto !important;
   }
 }
+
+input[type="range"] {
+  direction: ltr;
+}
