@@ -2,9 +2,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const A = require('../src/lib/alts');
 
-test('five decisions cover actuator, sensing, placement, hold, and zero', () => {
+test('six decisions start at glare, then actuator, sensing, placement, hold, and zero', () => {
   assert.deepEqual(A.DECISIONS.map((d) => d.id), [
-    'actuator', 'sensing', 'placement', 'hold', 'zero',
+    'glare', 'actuator', 'sensing', 'placement', 'hold', 'zero',
   ]);
 });
 
