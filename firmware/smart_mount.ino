@@ -226,6 +226,16 @@ void handleStop() {
   sendOk();
 }
 
+// Anything not registered below: a typo'd path, or a real path with the wrong
+// method (GET /stop, POST /status). WebServer's built-in reply is 404
+// text/plain "Not found" — the one body this board could send that is not
+// JSON, so a client that parses every response throws on exactly the request
+// it most wants to log. Same envelope as every 400; dispatch() in
+// src/lib/protocol.js already answered this way, the board did not.
+void handleNotFound() {
+  sendError(404, "not found");
+}
+
 // ── Setup & Loop ─────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
@@ -254,6 +264,7 @@ void setup() {
   server.on("/set-panel", HTTP_POST, handleSetPanel);
   server.on("/set-mode",  HTTP_POST, handleSetMode);
   server.on("/stop",      HTTP_POST, handleStop);
+  server.onNotFound(handleNotFound);
   server.begin();
 }
 
