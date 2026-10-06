@@ -11,6 +11,37 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const DECISIONS = Object.freeze([
     Object.freeze({
+      id: 'glare',
+      question: 'האם בכלל להזיז את המסך',
+      chosen: 'tilt',
+      options: Object.freeze([
+        Object.freeze({
+          id: 'tilt',
+          label: 'הטיית המסך במנוע (SmartMount)',
+          verdict: 'chosen-for-demo',
+          why: 'מזיז את ההחזרה מהעין בלי לגעת בחלון ובלי יד על המסך. זה הפרויקט. המחיר הוא מנוע, זרם החזקה ושקר אפס — שלושת החובות שמתועדים בהחלטות שמתחת.',
+        }),
+        Object.freeze({
+          id: 'smart-blind',
+          label: 'תריס חכם על החלון',
+          verdict: 'out-of-scope',
+          why: 'תריס חכם חוסם את הבוהק במקור, בלי מנוע שתלוי על 15 ק״ג, ובפחות כסף. תריסים חכמים הם מוצר של חלון ולא של תושבת: בשכירות אין מה לקדוח, ובחלון אחד מול שני מסכים סגירה מחשיכה גם את מי שלא סובל. מחוץ להיקף כי זו חומרה אחרת — לא כי זה פתרון גרוע.',
+        }),
+        Object.freeze({
+          id: 'monitor-arm',
+          label: 'זרוע מוניטור ידנית (VESA, קפיץ גז)',
+          verdict: 'rejected',
+          why: 'זרוע מוניטור פותרת בדיוק את אותה גיאומטריה ב-0 W, בלי קושחה ובלי מכונת מצבים — זרועות מוניטור הן התשובה הנכונה לשולחן עבודה. נדחתה כאן כי היא דורשת יד בכל פעם שהשמש זזה, וכל ההנחה של הדמו היא שאף אחד לא קם.',
+        }),
+        Object.freeze({
+          id: 'coating',
+          label: 'ציפוי מאט / פילטר אנטי-רפלקטיבי',
+          verdict: 'better-for-a-real-mount',
+          why: 'זה מה ש-Samsung מוכרת, והיא צודקת: ציפוי מפזר את הכתם בלי חלקים נעים ובלי הספק. לא מתקינים אותו על פאנל קיים, והוא מוריד ניגודיות בחדר חשוך. אם יש בחירה של פאנל — לבחור ציפוי, לא מנוע.',
+        }),
+      ]),
+    }),
+    Object.freeze({
       id: 'actuator',
       question: 'מה מזיז את המסך',
       chosen: 'stepper',
@@ -167,10 +198,72 @@
     });
   }
 
+  // The option fields a keyword search is allowed to look at. The parent
+  // question is deliberately *not* searched: a hit has to be in the option's
+  // own attributes, otherwise one keyword in a question would return four
+  // options that never mention it.
+  const SEARCHABLE = Object.freeze(['id', 'label', 'verdict', 'why']);
+
+  function normalize(value) {
+    return String(value).toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  // Accepts a single string or a list, drops blanks and duplicates.
+  function toKeywords(input) {
+    const raw = Array.isArray(input) ? input : [input];
+    const out = [];
+    for (let i = 0; i < raw.length; i++) {
+      if (typeof raw[i] !== 'string') continue;
+      const k = normalize(raw[i]);
+      if (k && out.indexOf(k) === -1) out.push(k);
+    }
+    return out;
+  }
+
+  function haystackOf(option) {
+    const parts = [];
+    for (let i = 0; i < SEARCHABLE.length; i++) {
+      parts.push(normalize(option[SEARCHABLE[i]]));
+    }
+    return parts.join(' | ');
+  }
+
+  // Keyword search over every option of every decision. OR semantics: an
+  // option comes back if it matches at least one keyword, and it reports
+  // which keywords hit so a UI can say *why* it is on the list. Results are
+  // detached copies in DECISIONS order — callers cannot edit the source data.
+  function searchSolutions(keywords) {
+    const needles = toKeywords(keywords);
+    const hits = [];
+    if (!needles.length) return hits;
+    for (let i = 0; i < DECISIONS.length; i++) {
+      const d = DECISIONS[i];
+      for (let j = 0; j < d.options.length; j++) {
+        const o = d.options[j];
+        const hay = haystackOf(o);
+        const matched = needles.filter(function (k) {
+          return hay.indexOf(k) !== -1;
+        });
+        if (!matched.length) continue;
+        hits.push(Object.freeze({
+          decision: d.id,
+          question: d.question,
+          id: o.id,
+          label: o.label,
+          verdict: o.verdict,
+          why: o.why,
+          matched: Object.freeze(matched),
+        }));
+      }
+    }
+    return hits;
+  }
+
   return {
     DECISIONS,
     byId,
     chosenOf,
     rejectedOf,
+    searchSolutions,
   };
 });

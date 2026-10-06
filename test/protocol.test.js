@@ -6,12 +6,20 @@ const P = require('../src/lib/protocol');
 
 const ino = fs.readFileSync(path.join(__dirname, '../firmware/smart_mount.ino'), 'utf8');
 
-test('firmware still serves the four documented routes', () => {
+test('firmware still serves the five documented routes', () => {
   assert.match(ino, /server\.on\("\/status"/);
   assert.match(ino, /server\.on\("\/set-angle"/);
   assert.match(ino, /server\.on\("\/set-panel"/);
   assert.match(ino, /server\.on\("\/set-mode"/);
-  assert.deepEqual(P.ROUTES.map((r) => r.path), ['/status', '/set-angle', '/set-panel', '/set-mode']);
+  assert.match(ino, /server\.on\("\/stop"/);
+  assert.deepEqual(
+    P.ROUTES.map((r) => r.path),
+    ['/status', '/set-angle', '/set-panel', '/set-mode', '/stop']
+  );
+  // Every route the host mirror dispatches is one the board registers.
+  for (const r of P.ROUTES) {
+    assert.match(ino, new RegExp('server\\.on\\("' + r.path + '",\\s*HTTP_' + r.method), r.path);
+  }
 });
 
 test('missing deg is 400, not a silent 0° move', () => {
@@ -29,6 +37,54 @@ test('junk deg is 400 — same reject as parseFloatArg / strtof', () => {
   assert.equal(P.parseFloatArg('12 ').ok, false);
 });
 
+// The board parses with newlib strtof, not with a tidy decimal regex. The
+// mirror has to say 200 exactly where the board says 200, including the
+// inputs nobody would type on purpose — otherwise the host "contract" lies.
+test('parseFloatArg takes what strtof takes: C whitespace and hex floats', () => {
+  assert.match(ino, /strtof\(start, &end\)/);
+  assert.match(ino, /end == start \|\| \*end != '\\0'/);
+  // Leading C isspace is skipped; WebServer url-decodes %0A / %0D / %09.
+  for (const ws of [' ', '\t', '\n', '\r', '\v', '\f', ' \r\n ']) {
+    const r = P.parseFloatArg(ws + '12.5');
+    assert.equal(r.ok, true, JSON.stringify(ws));
+    assert.equal(r.value, 12.5);
+  }
+  assert.equal(P.handleSetAngle({ deg: '\n12' }).status, 200);
+  // Hex floats are a strtof feature, binary exponent optional.
+  assert.deepEqual(P.parseFloatArg('0x10'), { ok: true, value: 16 });
+  assert.deepEqual(P.parseFloatArg('-0X10'), { ok: true, value: -16 });
+  assert.deepEqual(P.parseFloatArg('0x1.8p1'), { ok: true, value: 3 });
+  assert.deepEqual(P.parseFloatArg('0x.8'), { ok: true, value: 0.5 });
+  assert.deepEqual(P.parseFloatArg('0x1.'), { ok: true, value: 1 });
+  assert.deepEqual(P.parseFloatArg('0xAp-1'), { ok: true, value: 5 });
+  assert.equal(P.handleSetAngle({ deg: '0x10' }).effect.requestedDeg, 16);
+  // Still rejected: nothing parsed, or a trailing byte after the number.
+  for (const bad of ['0x', '0xg', '0x1p', '1e', '0x10 ', ' ', '\n', '12\n', '+', '-', '.', 'e5']) {
+    assert.equal(P.parseFloatArg(bad).ok, false, JSON.stringify(bad));
+  }
+});
+
+test('parseFloatArg rejects what overflows a 32-bit float, like strtof → inf', () => {
+  assert.match(ino, /isnan\(out\) \|\| isinf\(out\)/);
+  // Rounds to FLT_MAX in float32; the next decimal order of magnitude does not.
+  assert.equal(P.parseFloatArg('3.4028235e38').ok, true);
+  assert.equal(P.parseFloatArg('3.4028235e38').value, Math.fround(3.4028235e38));
+  assert.equal(P.parseFloatArg('1e39').ok, false);
+  assert.equal(P.parseFloatArg('-1e39').ok, false);
+  assert.equal(P.parseFloatArg('0x1p127').ok, true);
+  assert.equal(P.parseFloatArg('0x1p128').ok, false);
+  assert.equal(P.handleSetAngle({ deg: '1e39' }).status, 400);
+  assert.equal(P.handleSetAngle({ deg: '1e39' }).body.error, 'invalid deg');
+  // Underflow is not an error for strtof: the value flushes to float32 zero.
+  assert.equal(P.parseFloatArg('1e-50').ok, true);
+  assert.equal(P.parseFloatArg('1e-50').value, 0);
+  // Plain decimals still work exactly as before.
+  assert.deepEqual(P.parseFloatArg('+.5'), { ok: true, value: 0.5 });
+  assert.deepEqual(P.parseFloatArg('5.'), { ok: true, value: 5 });
+  assert.deepEqual(P.parseFloatArg('1E+1'), { ok: true, value: 10 });
+  assert.deepEqual(P.parseFloatArg('-0'), { ok: true, value: -0 });
+});
+
 test('a valid set-angle turns auto off and keeps the requested number', () => {
   const r = P.handleSetAngle({ deg: '50' });
   assert.equal(r.status, 200);
@@ -44,11 +100,33 @@ test('panel type 0..2 is accepted; 3 and -1 are not', () => {
   assert.equal(P.handleSetPanel({}).body.error, 'missing type');
 });
 
-test('Arduino toInt("foo") is 0 — type=foo becomes OLED, not 400', () => {
-  assert.equal(P.arduinoToInt('foo'), 0);
-  const r = P.handleSetPanel({ type: 'foo' });
-  assert.equal(r.status, 200);
-  assert.equal(r.effect.panel, 0);
+// toInt() was atoi: "foo" → 0 → OLED, the loosest tilt cap, with a 200. The
+// board now parses type= with strtol and demands full consumption, exactly
+// the parseFloatArg contract for deg=.
+test('type is strtol base 10, fully consumed — type=foo is 400, not OLED', () => {
+  assert.match(ino, /bool parseIntArg\(const String& s, long& out\)/);
+  assert.match(ino, /strtol\(start, &end, 10\)/);
+  assert.match(ino, /parseIntArg\(server\.arg\("type"\), type\) \|\| !isValidPanel\(type\)/);
+  assert.doesNotMatch(ino, /\.toInt\(\)/);
+  // A long, so an overflowed strtol (LONG_MAX) is not truncated back into 0..2.
+  assert.match(ino, /bool isValidPanel\(long type\)/);
+  for (const bad of ['foo', '1.9', '2abc', '2 ', '0x1', '1e0', '', ' ', '+', '-', 'two']) {
+    const r = P.handleSetPanel({ type: bad });
+    assert.equal(r.status, 400, JSON.stringify(bad));
+    assert.equal(r.body.error, 'invalid panel type', JSON.stringify(bad));
+    assert.equal(r.effect, undefined, JSON.stringify(bad));
+  }
+  // What strtol takes, the board takes: leading C whitespace, a sign, leading zeros.
+  assert.equal(P.handleSetPanel({ type: ' 2' }).effect.panel, 2);
+  assert.equal(P.handleSetPanel({ type: '\n1' }).effect.panel, 1);
+  assert.equal(P.handleSetPanel({ type: '+1' }).effect.panel, 1);
+  assert.equal(P.handleSetPanel({ type: '00' }).effect.panel, 0);
+  assert.equal(P.handleSetPanel({ type: '-0' }).effect.panel, 0);
+  // Past a 32-bit long: the board gets LONG_MAX, the mirror a big number — both 400.
+  assert.equal(P.handleSetPanel({ type: '4294967296' }).status, 400);
+  assert.equal(P.parseIntArg('foo').ok, false);
+  assert.deepEqual(P.parseIntArg('2'), { ok: true, value: 2 });
+  assert.equal(P.arduinoToInt, undefined, 'the atoi mirror is gone with the atoi');
 });
 
 test('set-mode accepts only the strings 0 and 1', () => {
