@@ -52,7 +52,7 @@ bool  autoMode     = true;
 unsigned long lastRead = 0;
 
 // ── Helpers ──────────────────────────────────────────────────────────────
-bool isValidPanel(int type) {
+bool isValidPanel(long type) {
   return type >= 0 && type < PANEL_COUNT;
 }
 
@@ -90,6 +90,22 @@ bool parseFloatArg(const String& s, float& out) {
   out = strtof(start, &end);
   if (end == start || *end != '\0') return false;
   if (isnan(out) || isinf(out)) return false;
+  return true;
+}
+
+// Same contract as parseFloatArg, for integer args: strtol base 10 must
+// consume the whole string. String::toInt() is atoi — "foo" is 0, "1.9" is 1,
+// "2abc" is 2 — so a typo in type= used to select OLED, the loosest tilt cap,
+// and answer 200. Leading C whitespace is still taken (WebServer url-decodes
+// %0A into a newline before we see it); a trailing byte is a reject. out is a
+// long so an overflowed strtol hands isValidPanel LONG_MAX, not a value that
+// was truncated back into 0..2.
+bool parseIntArg(const String& s, long& out) {
+  if (s.length() == 0) return false;
+  const char* start = s.c_str();
+  char* end = nullptr;
+  out = strtol(start, &end, 10);
+  if (end == start || *end != '\0') return false;
   return true;
 }
 
@@ -167,8 +183,11 @@ void handleSetPanel() {
     sendError(400, "missing type");
     return;
   }
-  int type = server.arg("type").toInt();
-  if (!isValidPanel(type)) {
+  // strtol with full consumption, like deg. One error string for both
+  // "not a number" and "not 0..2" — the client only needs to know type= was
+  // not a panel.
+  long type;
+  if (!parseIntArg(server.arg("type"), type) || !isValidPanel(type)) {
     sendError(400, "invalid panel type");
     return;
   }

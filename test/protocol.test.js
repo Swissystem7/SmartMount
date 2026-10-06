@@ -100,11 +100,33 @@ test('panel type 0..2 is accepted; 3 and -1 are not', () => {
   assert.equal(P.handleSetPanel({}).body.error, 'missing type');
 });
 
-test('Arduino toInt("foo") is 0 — type=foo becomes OLED, not 400', () => {
-  assert.equal(P.arduinoToInt('foo'), 0);
-  const r = P.handleSetPanel({ type: 'foo' });
-  assert.equal(r.status, 200);
-  assert.equal(r.effect.panel, 0);
+// toInt() was atoi: "foo" → 0 → OLED, the loosest tilt cap, with a 200. The
+// board now parses type= with strtol and demands full consumption, exactly
+// the parseFloatArg contract for deg=.
+test('type is strtol base 10, fully consumed — type=foo is 400, not OLED', () => {
+  assert.match(ino, /bool parseIntArg\(const String& s, long& out\)/);
+  assert.match(ino, /strtol\(start, &end, 10\)/);
+  assert.match(ino, /parseIntArg\(server\.arg\("type"\), type\) \|\| !isValidPanel\(type\)/);
+  assert.doesNotMatch(ino, /\.toInt\(\)/);
+  // A long, so an overflowed strtol (LONG_MAX) is not truncated back into 0..2.
+  assert.match(ino, /bool isValidPanel\(long type\)/);
+  for (const bad of ['foo', '1.9', '2abc', '2 ', '0x1', '1e0', '', ' ', '+', '-', 'two']) {
+    const r = P.handleSetPanel({ type: bad });
+    assert.equal(r.status, 400, JSON.stringify(bad));
+    assert.equal(r.body.error, 'invalid panel type', JSON.stringify(bad));
+    assert.equal(r.effect, undefined, JSON.stringify(bad));
+  }
+  // What strtol takes, the board takes: leading C whitespace, a sign, leading zeros.
+  assert.equal(P.handleSetPanel({ type: ' 2' }).effect.panel, 2);
+  assert.equal(P.handleSetPanel({ type: '\n1' }).effect.panel, 1);
+  assert.equal(P.handleSetPanel({ type: '+1' }).effect.panel, 1);
+  assert.equal(P.handleSetPanel({ type: '00' }).effect.panel, 0);
+  assert.equal(P.handleSetPanel({ type: '-0' }).effect.panel, 0);
+  // Past a 32-bit long: the board gets LONG_MAX, the mirror a big number — both 400.
+  assert.equal(P.handleSetPanel({ type: '4294967296' }).status, 400);
+  assert.equal(P.parseIntArg('foo').ok, false);
+  assert.deepEqual(P.parseIntArg('2'), { ok: true, value: 2 });
+  assert.equal(P.arduinoToInt, undefined, 'the atoi mirror is gone with the atoi');
 });
 
 test('set-mode accepts only the strings 0 and 1', () => {

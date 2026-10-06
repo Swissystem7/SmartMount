@@ -42,7 +42,7 @@
       severity: 'contract',
       status: 'fixed-in-source',
       was: 'type / deg / auto יכלו להיכנס ריקים או כזבל ולהפוך לברירת מחדל שקטה.',
-      now: 'set-angle ו-set-mode מחזירים 400 על חסר / לא מספר / auto≠0|1. type מחוץ ל-0..2 נדחה. חור שנשאר: toInt("foo")=0 → OLED, לא 400.',
+      now: 'set-angle ו-set-mode מחזירים 400 על חסר / לא מספר / auto≠0|1. type נפרס ב-strtol עם צריכה מלאה: מחוץ ל-0..2, "foo", "1.9" או "2 " → 400. לפני כן toInt("foo")=0 בחר OLED (המכסה הרחב ביותר) בשקט.',
       where: 'firmware/smart_mount.ino — handleSetAngle, handleSetPanel, handleSetMode',
       provenBy: 'test/protocol.test.js',
     }),
