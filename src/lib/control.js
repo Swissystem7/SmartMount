@@ -61,9 +61,13 @@
 
   // moveToAngle — ino: constrain then lroundf(deg * STEPS_PER_DEGREE).
   // JS Math.round matches lroundf for the half-away-from-zero cases we hit.
+  // target is what the board stores in targetAngle and reports in /status:
+  // the rounded step converted back to degrees, so a request of 12.3° on a
+  // 1000-step rev reports 12.24 and equals the angle once the move ends.
   function moveToAngle(deg, panel = 'LED') {
     const clamped = clampToPanel(deg, panel);
-    return { clamped: clamped, steps: Math.round(clamped * P.stepsPerDegree) };
+    const steps = Math.round(clamped * P.stepsPerDegree);
+    return { clamped: clamped, steps: steps, target: steps / P.stepsPerDegree };
   }
 
   // No schedule, cloud, or calibration — those are not in the .ino.

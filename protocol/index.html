@@ -154,8 +154,8 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
     <div class="card">
       <h2>גוף /status</h2>
 <pre>{
-  "angle":   4.5,
-  "target":  8.0,
+  "angle":   4.32,
+  "target":  7.92,
   "auto":    true,
   "panel":   2,
   "lux_top": 412.0,
@@ -165,6 +165,11 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
         <code>panel</code> הוא enum: 0 OLED, 1 QLED, 2 LED.
         <code>lux_*</code> הם הקריאה החיה מ־BH1750 — כולל ערך שלילי כשהחיישן נכשל.
         אין שדה WiFi, אין הומינג, אין מומנט.
+      </p>
+      <p class="fine">
+        <code>angle</code> ו־<code>target</code> שניהם צעדים חלקי <code>STEPS_PER_DEGREE</code>
+        (1000 צעדים לסיבוב, 0.36° לצעד): <code>set-angle?deg=8</code> הופך ל־22 צעדים ומדווח
+        <code>7.92</code>. כשהתנועה נגמרת <code>angle == target</code> בדיוק — זו הדרך של הלקוח לדעת שהזרוע הגיעה.
       </p>
     </div>
     <div class="card">

@@ -122,11 +122,16 @@ float calcOptimalAngle(float luxTop, float luxBot) {
 void moveToAngle(float deg) {
   float limit   = panelLimit();
   float clamped = constrain(deg, -limit, limit);
-  targetAngle   = clamped;
   // Absolute target from a tracked zero — never relative-move from a
   // currentAngle that was updated before the motor actually arrived.
   long steps = (long)lroundf(clamped * STEPS_PER_DEGREE);
   stepper.moveTo(steps);
+  // targetAngle is the step the stepper is actually heading to, not the
+  // unquantised request: 12.3° is 34 steps = 12.24°. Same expression as
+  // syncAngleFromStepper() and handleStop(), so once the move ends /status
+  // shows angle == target instead of a sub-step gap that never closes and
+  // looks to a client like a move still in flight.
+  targetAngle = stepper.targetPosition() / STEPS_PER_DEGREE;
 }
 
 // ── HTTP API ─────────────────────────────────────────────────────────────
