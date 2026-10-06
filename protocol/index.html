@@ -105,8 +105,9 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
         </tbody>
       </table>
       <div class="note-warn">
-        <code>set-panel?type=foo</code> לא נכשל. <code>String::toInt()</code> של Arduino מחזיר 0, ו־0 הוא OLED.
-        זה חולשה בקושחה, לא «סובלנות». המשחק למטה מדגים אותה.
+        <code>set-panel?type=foo</code> נכשל ב־400. בעבר <code>String::toInt()</code> של Arduino החזיר 0 — OLED,
+        המכסה הרחב ביותר — עם 200. עכשיו <code>type</code> נפרס ב־<code>strtol</code> עם צריכה מלאה, כמו <code>deg</code>:
+        רווח לבן מוביל וסימן מתקבלים, <code>1.9</code> / <code>2abc</code> / <code>2 </code> נדחים. המשחק למטה מדגים.
       </div>
       <p class="fine">
         <code>set-angle</code> מכבה אוטו (<code>autoMode = false</code>) ואז קורא <code>moveToAngle</code>,
@@ -234,6 +235,9 @@ function send() {
   const args = argsOf();
   const res = SM_PROTOCOL.dispatch(spec.method, spec.path, args, state);
   let note = '';
+  if (res.status === 400 && spec.key === 'type') {
+    note = 'strtol לא צרך את כל type, או שהוא מחוץ ל־0..2 — 400 בלי שינוי מצב. בעבר toInt("foo")=0 בחר OLED בשקט.';
+  }
   if (res.effect) {
     if (res.effect.autoMode !== undefined) {
       state.auto = res.effect.autoMode;
@@ -241,7 +245,7 @@ function send() {
     }
     if (res.effect.panel !== undefined) {
       state.panel = res.effect.panel;
-      note = 'currentPanel = ' + state.panel + (args.type === 'foo' ? ' — toInt("foo")=0 OLED' : '');
+      note = 'currentPanel = ' + state.panel + ' — strtol צרך את כל type והוא בטווח 0..2';
     }
     if (res.effect.requestedDeg !== undefined) {
       state.auto = false;

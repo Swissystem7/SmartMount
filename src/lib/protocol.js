@@ -3,7 +3,8 @@
 // The board is Arduino WebServer: handlers read query/form args (server.arg),
 // not a JSON body. Status is JSON. Errors are {"ok":false,"error":"..."}.
 // Keep this file in lockstep with handleStatus / handleSetAngle /
-// handleSetPanel / handleSetMode / handleStop and parseFloatArg / isValidPanel.
+// handleSetPanel / handleSetMode / handleStop and parseFloatArg / parseIntArg /
+// isValidPanel.
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -26,7 +27,7 @@
       method: 'POST',
       path: '/set-panel',
       args: Object.freeze(['type']),
-      summary: 'type הוא 0..2. Arduino toInt("foo")=0 — מתקבל כ־OLED',
+      summary: 'type הוא 0..2 בדיוק: strtol עם צריכה מלאה. type=foo → 400, לא OLED',
     }),
     Object.freeze({
       method: 'POST',
@@ -98,10 +99,20 @@
     return { ok: true, value };
   }
 
-  // Arduino String::toInt() ≈ atoi: garbage becomes 0, not an error.
-  function arduinoToInt(s) {
-    const n = parseInt(String(s), 10);
-    return Number.isFinite(n) ? n : 0;
+  // parseIntArg — ino: strtol(start, &end, 10) then *end=='\0'. Same shape as
+  // parseFloatArg: leading C isspace is skipped, a trailing byte is a reject,
+  // nothing parsed is a reject. Base 10 only — no hex, no point, no exponent.
+  // Digits past LONG_MAX come back as LONG_MAX on the board; here they stay a
+  // big number. Either way isValidPanel says no, which is all that matters.
+  const INT = /^[+-]?\d+$/;
+
+  function parseIntArg(s) {
+    if (s == null) return { ok: false };
+    const raw = String(s);
+    if (raw.length === 0) return { ok: false };
+    const body = raw.replace(C_SPACE, '');
+    if (!INT.test(body)) return { ok: false };
+    return { ok: true, value: Number(body) + 0 };
   }
 
   function isValidPanel(type) {
@@ -141,9 +152,11 @@
     if (args == null || !Object.prototype.hasOwnProperty.call(args, 'type')) {
       return { status: 400, body: errorBody('missing type') };
     }
-    const type = arduinoToInt(args.type);
-    if (!isValidPanel(type)) return { status: 400, body: errorBody('invalid panel type') };
-    return { status: 200, body: okBody(), effect: { panel: type } };
+    const parsed = parseIntArg(args.type);
+    if (!parsed.ok || !isValidPanel(parsed.value)) {
+      return { status: 400, body: errorBody('invalid panel type') };
+    }
+    return { status: 200, body: okBody(), effect: { panel: parsed.value } };
   }
 
   function handleSetMode(args) {
@@ -196,7 +209,7 @@
     SERIAL_WIFI_OK,
     SERIAL_WIFI_TIMEOUT,
     parseFloatArg,
-    arduinoToInt,
+    parseIntArg,
     isValidPanel,
     handleStatus,
     handleSetAngle,
