@@ -130,9 +130,11 @@ test('RESEARCH.md panel limits match the firmware (OLED widest)', () => {
   assert.doesNotMatch(md, /OLED ל־20°, QLED ל־40°, LED ל־30°/);
 });
 
-test('there is still no GitHub Actions workflow in this repo', () => {
-  const wf = path.join(root, '.github', 'workflows');
-  assert.equal(fs.existsSync(wf), false);
+test('the only GitHub Actions workflow is the test run, and it never merges, force-pushes or deploys', () => {
+  const dir = path.join(root, '.github', 'workflows');
+  assert.deepEqual(fs.readdirSync(dir).sort(), ['validate.yml']);
+  const wf = read('.github/workflows/validate.yml');
+  assert.doesNotMatch(wf, /pr merge|merge --auto|--admin|deploy-pages|pages-build|--force/);
 });
 
 test('package.json stays dependency-free', () => {

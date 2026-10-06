@@ -52,7 +52,7 @@ bool  autoMode     = true;
 unsigned long lastRead = 0;
 
 // ── Helpers ──────────────────────────────────────────────────────────────
-bool isValidPanel(int type) {
+bool isValidPanel(long type) {
   return type >= 0 && type < PANEL_COUNT;
 }
 
@@ -93,15 +93,34 @@ bool parseFloatArg(const String& s, float& out) {
   return true;
 }
 
+// Same contract as parseFloatArg, for integer args: strtol base 10 must
+// consume the whole string. String::toInt() is atoi — "foo" is 0, "1.9" is 1,
+// "2abc" is 2 — so a typo in type= used to select OLED, the loosest tilt cap,
+// and answer 200. Leading C whitespace is still taken (WebServer url-decodes
+// %0A into a newline before we see it); a trailing byte is a reject. out is a
+// long so an overflowed strtol hands isValidPanel LONG_MAX, not a value that
+// was truncated back into 0..2.
+bool parseIntArg(const String& s, long& out) {
+  if (s.length() == 0) return false;
+  const char* start = s.c_str();
+  char* end = nullptr;
+  out = strtol(start, &end, 10);
+  if (end == start || *end != '\0') return false;
+  return true;
+}
+
 // ── Algorithm ────────────────────────────────────────────────────────────
 // Mirrored by src/lib/control.js, which is covered by tests. Keep both in sync.
 float calcOptimalAngle(float luxTop, float luxBot) {
   // A BH1750 reports a negative value when a read fails. Feeding that through
   // as if it were a lux reading produces a huge glare ratio and slams the panel
-  // to its limit, so a failed read must mean "hold position".
+  // to its limit, so a failed read must mean "hold". Hold = keep the commanded
+  // target, not the lagging currentAngle: mid-move, returning currentAngle
+  // would be > DEADBAND_DEG from targetAngle and loop() would abandon the move
+  // and reverse the stepper under load.
   if (isnan(luxTop) || isnan(luxBot) || isinf(luxTop) || isinf(luxBot) ||
       luxTop < 0.0f || luxBot < 0.0f) {
-    return currentAngle;
+    return targetAngle;
   }
 
   // If top lux >> bottom → direct sunlight hitting screen → tilt away
@@ -119,11 +138,16 @@ float calcOptimalAngle(float luxTop, float luxBot) {
 void moveToAngle(float deg) {
   float limit   = panelLimit();
   float clamped = constrain(deg, -limit, limit);
-  targetAngle   = clamped;
   // Absolute target from a tracked zero — never relative-move from a
   // currentAngle that was updated before the motor actually arrived.
   long steps = (long)lroundf(clamped * STEPS_PER_DEGREE);
   stepper.moveTo(steps);
+  // targetAngle is the step the stepper is actually heading to, not the
+  // unquantised request: 12.3° is 34 steps = 12.24°. Same expression as
+  // syncAngleFromStepper() and handleStop(), so once the move ends /status
+  // shows angle == target instead of a sub-step gap that never closes and
+  // looks to a client like a move still in flight.
+  targetAngle = stepper.targetPosition() / STEPS_PER_DEGREE;
 }
 
 // ── HTTP API ─────────────────────────────────────────────────────────────
@@ -159,14 +183,21 @@ void handleSetPanel() {
     sendError(400, "missing type");
     return;
   }
-  int type = server.arg("type").toInt();
-  if (!isValidPanel(type)) {
+  // strtol with full consumption, like deg. One error string for both
+  // "not a number" and "not 0..2" — the client only needs to know type= was
+  // not a panel.
+  long type;
+  if (!parseIntArg(server.arg("type"), type) || !isValidPanel(type)) {
     sendError(400, "invalid panel type");
     return;
   }
   currentPanel = (PanelType)type;
-  float limit = panelLimit();
-  moveToAngle(constrain(currentAngle, -limit, limit));
+  // Re-clamp the commanded target, not the lagging currentAngle. Mid-move,
+  // moveTo(currentAngle) would abandon the move and turn the stepper around
+  // under load; a panel change is only a new ceiling. moveToAngle() clamps
+  // to the new PANEL_LIMITS, so a target that still fits continues
+  // untouched and one that does not shortens to the new limit.
+  moveToAngle(targetAngle);
   sendOk();
 }
 
@@ -181,6 +212,17 @@ void handleSetMode() {
     return;
   }
   autoMode = (a == "1");
+  sendOk();
+}
+
+// Emergency stop. Leaves auto mode so the 2 s loop does not re-arm the move,
+// then asks AccelStepper to decelerate from the current speed. stop() sets a
+// new absolute target at the end of that ramp; targetAngle tracks it so
+// /status shows where the arm will settle. Coils stay energised (hold).
+void handleStop() {
+  autoMode = false;
+  stepper.stop();
+  targetAngle = stepper.targetPosition() / STEPS_PER_DEGREE;
   sendOk();
 }
 
@@ -211,6 +253,7 @@ void setup() {
   server.on("/set-angle", HTTP_POST, handleSetAngle);
   server.on("/set-panel", HTTP_POST, handleSetPanel);
   server.on("/set-mode",  HTTP_POST, handleSetMode);
+  server.on("/stop",      HTTP_POST, handleStop);
   server.begin();
 }
 
@@ -224,10 +267,15 @@ void loop() {
     float luxTop = sensorTop.readLightLevel();
     float luxBot = sensorBot.readLightLevel();
     float next   = calcOptimalAngle(luxTop, luxBot);
-    if (abs(next - currentAngle) > DEADBAND_DEG) {
+    // Deadband against the commanded target, not currentAngle. Mid-move
+    // currentAngle lags the target by up to the whole move, so measuring
+    // from it (a) let a clear room go unnoticed while the arm kept climbing
+    // to its limit and (b) rewrote targetAngle below while the stepper kept
+    // its old goal, so /status lied and the next /set-panel re-issued that
+    // stale target and reversed the move. Inside the deadband nothing
+    // changes: targetAngle already equals the stepper's goal.
+    if (abs(next - targetAngle) > DEADBAND_DEG) {
       moveToAngle(next);
-    } else {
-      targetAngle = next;
     }
   }
 }

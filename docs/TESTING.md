@@ -9,7 +9,7 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 |---|---|---|
 | חוק בקרה | `test/control.test.js`, `firmware-mirror.test.js` | יחס בוהק, דד-בנד, גבול פאנל, HOLD על כשל חיישן. המראה **קורא את ה־`.ino`** ומשווה נוסחה ל־JS |
 | קבועים | `test/control-params.test.js` | JSON = JS שנוצר = בלוק ב־`.ino` |
-| חוזה HTTP | `test/protocol.test.js` | ארבעה נתיבים, `parseFloatArg`, `toInt("foo")=OLED` |
+| חוזה HTTP | `test/protocol.test.js`, `emergency-stop.test.js` | חמישה נתיבים (כל נתיב ב־`ROUTES` רשום ב־`.ino`), `parseFloatArg` = `strtof` (רווח לבן מוביל, hex, גלישת float32), `type` = `strtol` בצריכה מלאה (`type=foo` → 400), `/stop` = אוטו כבוי ואז `stepper.stop()` |
 | מומנט | `test/torque.test.js` | `τ=mgd cosθ`, נפילה בלי תולעת |
 | אופטיקה | `test/optics.test.js` | lux ≠ nits, ארבעת מקרי אי-הסכמה |
 | מכונת מצבים | `test/fsm.test.js`, `fsm-matrix.test.js` | `.ino` בלי enum/הומינג/WDT; **כל** תא 2×15 ו־11×15 מול הטבלה; וריאנטים (אין מפסק, תקציב סטול) |
@@ -34,4 +34,4 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 
 שנים-עשר מקרים, אפס רצו. המסמך: [HIL.md](HIL.md). העמוד: [`hil/`](../hil/). הנתונים: `src/lib/hil.js`.
 
-אין כאן `.github/workflows`. הבדיקות רצות במכונה המקומית.
+ה-GitHub Actions היחיד כאן הוא `.github/workflows/validate.yml`: מריץ את אותה חבילת בדיקות (`npm test`) על כל push ו-pull request. הוא לא ממזג, לא דוחף בכוח ולא פורס. הבדיקות רצות גם במכונה המקומית.
