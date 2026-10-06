@@ -98,10 +98,13 @@ bool parseFloatArg(const String& s, float& out) {
 float calcOptimalAngle(float luxTop, float luxBot) {
   // A BH1750 reports a negative value when a read fails. Feeding that through
   // as if it were a lux reading produces a huge glare ratio and slams the panel
-  // to its limit, so a failed read must mean "hold position".
+  // to its limit, so a failed read must mean "hold". Hold = keep the commanded
+  // target, not the lagging currentAngle: mid-move, returning currentAngle
+  // would be > DEADBAND_DEG from targetAngle and loop() would abandon the move
+  // and reverse the stepper under load.
   if (isnan(luxTop) || isnan(luxBot) || isinf(luxTop) || isinf(luxBot) ||
       luxTop < 0.0f || luxBot < 0.0f) {
-    return currentAngle;
+    return targetAngle;
   }
 
   // If top lux >> bottom → direct sunlight hitting screen → tilt away
@@ -240,10 +243,15 @@ void loop() {
     float luxTop = sensorTop.readLightLevel();
     float luxBot = sensorBot.readLightLevel();
     float next   = calcOptimalAngle(luxTop, luxBot);
-    if (abs(next - currentAngle) > DEADBAND_DEG) {
+    // Deadband against the commanded target, not currentAngle. Mid-move
+    // currentAngle lags the target by up to the whole move, so measuring
+    // from it (a) let a clear room go unnoticed while the arm kept climbing
+    // to its limit and (b) rewrote targetAngle below while the stepper kept
+    // its old goal, so /status lied and the next /set-panel re-issued that
+    // stale target and reversed the move. Inside the deadband nothing
+    // changes: targetAngle already equals the stepper's goal.
+    if (abs(next - targetAngle) > DEADBAND_DEG) {
       moveToAngle(next);
-    } else {
-      targetAngle = next;
     }
   }
 }

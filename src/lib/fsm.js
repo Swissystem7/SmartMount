@@ -126,9 +126,12 @@
 
   // ── firmware-as-written ────────────────────────────────────────────────
   // Matches loop() + handlers. There is no UNHOMED, no FAULT, no stall.
-  // Boot always claims angle 0. A failed read holds. Mid-move SAMPLE may
-  // retarget from the lagging currentAngle. Power loss is not a software
-  // state — the screen falls if the drivetrain is not self-locking.
+  // Boot always claims angle 0. A failed read holds the commanded target.
+  // SAMPLE measures the deadband against targetAngle, so mid-move it
+  // retargets only when the law moves more than DEADBAND_DEG away from the
+  // goal; inside the deadband targetAngle stays the stepper's goal. Power
+  // loss is not a software state — the screen falls if the drivetrain is
+  // not self-locking.
 
   function stepFirmware(prev, event) {
     const s = copy(prev);
@@ -167,7 +170,7 @@
 
     if (t === 'SENSOR_FAIL') {
       s.sensorFail = true;
-      s.reason = 'קריאה שלילית — מחזיק זווית (calcOptimalAngle מחזיר currentAngle)';
+      s.reason = 'קריאה שלילית — מחזיק יעד (calcOptimalAngle מחזיר targetAngle)';
       return s;
     }
     if (t === 'SENSOR_OK') {
@@ -209,16 +212,16 @@
       }
       const luxTop = s.sensorFail ? -1 : event.luxTop;
       const luxBot = s.sensorFail ? -1 : event.luxBot;
-      const next = law(luxTop, luxBot, s.panel, s.believedAngle);
+      // ino: hold returns targetAngle; deadband is |next - targetAngle|.
+      const next = law(luxTop, luxBot, s.panel, s.targetAngle);
       if (s.sensorFail || (event.luxTop < 0 || event.luxBot < 0)) {
-        s.reason = 'HOLD — לא מכה למקסימום';
+        s.reason = 'HOLD — היעד נשאר, לא מכה למקסימום ולא הופך כיוון';
         return s;
       }
-      if (control.shouldMove(s.believedAngle, next)) {
-        startMove(s, next, 'SAMPLE באמצע מהלך עלול לשנות יעד (currentAngle מפגר)');
+      if (control.shouldMove(s.targetAngle, next)) {
+        startMove(s, next, 'SAMPLE: החוק זז יותר מדד-בנד מהיעד — moveTo חדש (גם באמצע מהלך)');
       } else {
-        s.targetAngle = next;
-        s.reason = 'מתחת לדד-בנד — בלי צעד';
+        s.reason = 'מתחת לדד-בנד מהיעד — בלי צעד, targetAngle נשאר יעד המנוע';
       }
       return s;
     }
