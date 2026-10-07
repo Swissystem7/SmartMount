@@ -37,10 +37,14 @@ test('firmware moveToAngle: targetAngle is the commanded step, set after moveTo'
 test('host moveToAngle.target is the rounded step back in degrees', () => {
   const r = moveToAngle(12.3, 'OLED');
   assert.equal(r.steps, 34);
-  assert.equal(r.target, 34 / P.stepsPerDegree);
-  assert.ok(Math.abs(r.target - 12.24) < 1e-9);
-  // After the move the position is that same step, so angle == target exactly.
-  const angleOnArrival = r.steps / P.stepsPerDegree;
+  // long / const float is a float on the board, so the mirror reports the
+  // float32 of 34 / STEPS_PER_DEGREE, not the double.
+  assert.equal(r.target, Math.fround(34 / Math.fround(P.stepsPerDegree)));
+  assert.equal(r.target, Math.fround(r.target), 'target is a float32 like targetAngle');
+  assert.ok(Math.abs(r.target - 12.24) < 1e-6);
+  // After the move the position is that same step, so angle == target exactly:
+  // syncAngleFromStepper() is the same expression on the same float.
+  const angleOnArrival = Math.fround(r.steps / Math.fround(P.stepsPerDegree));
   assert.equal(angleOnArrival, r.target);
 });
 
@@ -50,7 +54,10 @@ test('quantisation error is under half a step and far inside the deadband', () =
   for (const panel of Object.keys(PANEL_LIMITS)) {
     for (let deg = -PANEL_LIMITS[panel] - 5; deg <= PANEL_LIMITS[panel] + 5; deg += 0.37) {
       const r = moveToAngle(deg, panel);
-      assert.ok(Math.abs(r.target - r.clamped) <= halfStep + 1e-9, panel + ' ' + deg);
+      // Half a step plus float32 slack: -38.34° is exactly -106.5 steps in
+      // double, the board rounds it away from zero to -107 and stores the
+      // target as a float32, so the gap is halfStep + a few 1e-7.
+      assert.ok(Math.abs(r.target - r.clamped) <= halfStep + 1e-5, panel + ' ' + deg);
       // Re-issuing the reported target (what /set-panel does with
       // moveToAngle(targetAngle)) lands on the same step: no drift.
       assert.equal(moveToAngle(r.target, panel).steps, r.steps, panel + ' ' + deg);
