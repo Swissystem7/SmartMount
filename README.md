@@ -16,7 +16,7 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 | [מפרט בנייה](https://swissystem7.github.io/SmartMount/spec/) | BOM כנה, מחשבון מומנט מול NEMA17, חיווט SVG |
 | [גאומטריית בוהק](https://swissystem7.github.io/SmartMount/geometry/) | חוק ההחזרה + למה יחס lux אינו בהירות לצופה |
 | [חוזה API](https://swissystem7.github.io/SmartMount/protocol/) | חמישה נתיבי HTTP + Serial 115200 — בדיוק מה שבקושחה |
-| [מכונת מצבים](https://swissystem7.github.io/SmartMount/fsm/) | מה שה־`.ino` עושה (auto + moveTo) מול FSM בטוח מוצע — 30 + 165 תאים מ־`step()` |
+| [מכונת מצבים](https://swissystem7.github.io/SmartMount/fsm/) | מה שה־`.ino` עושה (auto + moveTo) מול FSM בטוח מוצע — 32 + 176 תאים מ־`step()` |
 | [תזמון והספק](https://swissystem7.github.io/SmartMount/runtime/) | פרופיל AccelStepper, גנט של `loop()`, הבזק שמש שמתפספס בין דגימות |
 | [תקציב הספק](https://swissystem7.github.io/SmartMount/power/) | זרם idle / תנועה / WiFi וחישוב סוללה — דפי נתונים, לא מד-זרם |
 | [תוכנית HIL](https://swissystem7.github.io/SmartMount/hil/) | שנים-עשר מקרים על השולחן. אפס רצו. HIL-10 אוסר טלוויזיה |

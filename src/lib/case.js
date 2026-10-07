@@ -109,7 +109,7 @@
       'MOVING', 'FAULT_SENSOR', 'FAULT_HOME', 'FAULT_STALL', 'FAULT_LIMIT', 'DEAD',
     ]),
     safeNote: 'מכונה מוצעת על המחשב. לא נכתבה ל-.ino ולא רצה על ESP32. בלי מפסק אי אפשר להומינג.',
-    cells: 165, // 11×15 safe only. Firmware is a separate 2×15 = 30.
+    cells: 176, // 11×16 safe only. Firmware is a separate 2×16 = 32.
   });
 
   const TRADEOFFS = Object.freeze([
@@ -139,7 +139,7 @@
   const SHOWN = Object.freeze([
     'סקירת קושחת ESP32 עם באגי בטיחות שננעלו בבדיקות מארח',
     'חוזה HTTP מפורש (חמישה נתיבים, דחיית קלט רע)',
-    'מכונת מצבים כפולה: מה שכתוב מול מה שחסר — 30 + 165 תאים',
+    'מכונת מצבים כפולה: מה שכתוב מול מה שחסר — 32 + 176 תאים',
     'תקציב תזמון והספק מדפי נתונים, לא ממד-זרם',
     'כנות: באנר, HIL never-run, PARK, אין נתיב הכנסה',
   ]);
