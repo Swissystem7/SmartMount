@@ -356,7 +356,9 @@ function httpCall(method, path, args) {
       // The lab stepper has no speed ramp, so the deceleration endpoint is
       // the current step: target == angle, and with auto off nothing re-arms.
       targetSteps = currentSteps;
-      targetAngle = currentSteps / STEPS_PER_DEGREE;
+      // ino: targetAngle = targetPosition() / STEPS_PER_DEGREE, the same
+      // expression as currentAngle, so reuse it instead of redoing the division.
+      targetAngle = currentAngle;
       addLog('HTTP 200 — /stop: אוטו כבוי, stepper.stop(). יעד ' + targetAngle.toFixed(1) + '° = ' + targetSteps + ' st, הסלילים עדיין מוזנים');
     }
   }
