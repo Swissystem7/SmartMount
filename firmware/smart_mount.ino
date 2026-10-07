@@ -138,7 +138,11 @@ float calcOptimalAngle(float luxTop, float luxBot) {
   float angle = 0.0;
   if (glareRatio > GLARE_THRESHOLD) {
     // Map glare intensity to tilt (max = panel limit)
-    angle = min((glareRatio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, (double)limit);
+    // Both operands float: on ESP32 min is std::min (Arduino.h does
+    // using std::min, no macro), so min(float, double) does not deduce T and
+    // the sketch fails to compile. The old double cast on limit matched the
+    // 3.0 / 5.0 double literals that the generated f-suffixed constants replaced.
+    angle = min((glareRatio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
   }
   return angle;
 }
@@ -234,6 +238,16 @@ void handleStop() {
   sendOk();
 }
 
+// Anything not registered below: a typo'd path, or a real path with the wrong
+// method (GET /stop, POST /status). WebServer's built-in reply is 404
+// text/plain "Not found" — the one body this board could send that is not
+// JSON, so a client that parses every response throws on exactly the request
+// it most wants to log. Same envelope as every 400; dispatch() in
+// src/lib/protocol.js already answered this way, the board did not.
+void handleNotFound() {
+  sendError(404, "not found");
+}
+
 // ── Setup & Loop ─────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
@@ -270,6 +284,7 @@ void setup() {
   server.on("/set-panel", HTTP_POST, handleSetPanel);
   server.on("/set-mode",  HTTP_POST, handleSetMode);
   server.on("/stop",      HTTP_POST, handleStop);
+  server.onNotFound(handleNotFound);
   server.begin();
 }
 

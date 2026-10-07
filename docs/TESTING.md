@@ -9,11 +9,11 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 |---|---|---|
 | חוק בקרה | `test/control.test.js`, `firmware-mirror.test.js` | יחס בוהק, דד-בנד, גבול פאנל, HOLD על כשל חיישן. המראה **קורא את ה־`.ino`** ומשווה נוסחה ל־JS |
 | קבועים | `test/control-params.test.js` | JSON = JS שנוצר = בלוק ב־`.ino` |
-| חוזה HTTP | `test/protocol.test.js`, `emergency-stop.test.js` | חמישה נתיבים (כל נתיב ב־`ROUTES` רשום ב־`.ino`), `parseFloatArg` = `strtof` (רווח לבן מוביל, hex, גלישת float32), `type` = `strtol` בצריכה מלאה (`type=foo` → 400), `/stop` = אוטו כבוי ואז `stepper.stop()` |
+| חוזה HTTP | `test/protocol.test.js`, `emergency-stop.test.js` | חמישה נתיבים (כל נתיב ב־`ROUTES` רשום ב־`.ino`), `parseFloatArg` = `strtof` (רווח לבן מוביל, hex, גלישת float32), `type` = `strtol` בצריכה מלאה (`type=foo` → 400), `/stop` = אוטו כבוי ואז `stepper.stop()`, נתיב לא מוכר או method שגוי → 404 בגוף JSON (`onNotFound`), לא text/plain |
 | חיישנים | `test/bh1750-begin-addr.test.js` | שני ה־BH1750 מקבלים את הכתובת גם ב־`begin()` (ברירת המחדל של הספרייה דורסת את הבנאי ל־0x23 — שני האובייקטים קראו את החיישן העליון והיחס היה 1 תמיד); `begin()` שנכשל מדפיס שורה ל־Serial |
 | מומנט | `test/torque.test.js` | `τ=mgd cosθ`, נפילה בלי תולעת |
 | אופטיקה | `test/optics.test.js` | lux ≠ nits, ארבעת מקרי אי-הסכמה |
-| מכונת מצבים | `test/fsm.test.js`, `fsm-matrix.test.js` | `.ino` בלי enum/הומינג/WDT; **כל** תא 2×15 ו־11×15 מול הטבלה; וריאנטים (אין מפסק, תקציב סטול) |
+| מכונת מצבים | `test/fsm.test.js`, `fsm-matrix.test.js` | `.ino` בלי enum/הומינג/WDT; **כל** תא 2×16 ו־11×16 מול הטבלה (כולל `STOP` = `POST /stop`); וריאנטים (אין מפסק, תקציב סטול, עצירה באמצע מהלך) |
 | תזמון | `test/timing.test.js` | `setMaxSpeed(500)` / `2000` ms עדיין בקושחה; 20–40° הם משולש; HTTP 20 ms מרעיב פולסים; הבזק 400 ms מתפספס ב־80% |
 | הספק | `test/power.test.js` | I²R החזקה > USB 5 V; סלילים 24 שעות הם מחמם; פאוורבנק לא מזין 12 V; תולעת הופכת 3S ל־UPS |
 | HIL | `test/hil.test.js` | 12 מקרים, `STATUS=never-run`, HIL-10 אוסר טלוויזיה |
