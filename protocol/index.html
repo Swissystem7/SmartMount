@@ -193,6 +193,8 @@ WiFi timeout — continuing in local auto mode</pre>
     </div>
   </div>
 </main>
+<script src="../src/lib/control-params.js"></script>
+<script src="../src/lib/control.js"></script>
 <script src="../src/lib/protocol.js"></script>
 <script>
 const state = {
@@ -208,6 +210,11 @@ const ARG = {
   mode:   { method: 'POST', path: '/set-mode', key: 'auto', sample: '1' },
   stop:   { method: 'POST', path: '/stop', key: null, sample: '' },
 };
+
+// state.panel is the ino enum (0 OLED, 1 QLED, 2 LED); control.js wants the name.
+function panelName() {
+  return CONTROL_PARAMS.panelNames[state.panel];
+}
 
 function argsOf() {
   const spec = ARG[route];
@@ -245,12 +252,22 @@ function send() {
     }
     if (res.effect.panel !== undefined) {
       state.panel = res.effect.panel;
-      note = 'currentPanel = ' + state.panel + ' — strtol צרך את כל type והוא בטווח 0..2';
+      // ino handleSetPanel: moveToAngle(targetAngle) — the new limit is only a
+      // ceiling, so a target that still fits stays and one that does not
+      // shortens to the new panel limit.
+      const kept = state.target;
+      state.target = moveToAngle(state.target, panelName()).target;
+      note = 'currentPanel = ' + state.panel + ' — strtol צרך את כל type והוא בטווח 0..2.'
+        + (state.target === kept ? ' היעד עדיין בתוך הגבול, התנועה ממשיכה.' : ' היעד קוצר לגבול החדש: ' + state.target + '°.');
     }
     if (res.effect.requestedDeg !== undefined) {
       state.auto = false;
-      state.target = res.effect.requestedDeg;
-      note = 'התקבל deg=' + res.effect.requestedDeg + '. moveToAngle יצמיד לגבול הפאנל; 200 ≠ זווית סופית.';
+      // ino moveToAngle: constrain to the panel limit, then lroundf to a step.
+      // target is what /status will report — not the raw deg from the request.
+      const mv = moveToAngle(res.effect.requestedDeg, panelName());
+      state.target = mv.target;
+      note = 'התקבל deg=' + res.effect.requestedDeg + '. moveToAngle הצמיד לגבול הפאנל (' + mv.clamped
+        + '°) וכימת ל־' + mv.steps + ' צעדים, אז /status ידווח target=' + mv.target + '. 200 ≠ הזווית שביקשת.';
     }
     if (res.effect.stop) {
       state.auto = false;
