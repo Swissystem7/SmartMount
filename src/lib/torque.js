@@ -33,9 +33,10 @@
       throw new Error('invalid torque inputs');
     }
     // The model is a screen in front of the pivot. Past ±90° cos(θ) goes
-    // negative, requiredNm goes negative, safetyFactor becomes Infinity and
-    // sizeMount says "holds" for a CoG behind the pivot. Not a case this
-    // mount has — the firmware caps tilt at 20–40° — so reject it.
+    // negative and requiredNm goes negative: a CoG behind the pivot, a load
+    // the model does not describe (it used to come out as Infinity → "holds";
+    // since #35 safetyFactor maps it to 0 → "cannot-hold", equally made up).
+    // Not a case this mount has — the firmware caps tilt at 20–40° — so reject it.
     if (Math.abs(th) > 90) {
       throw new Error('invalid torque inputs: tilt beyond ±90° from vertical');
     }
@@ -56,7 +57,7 @@
     if (!Number.isFinite(availableNm) || !Number.isFinite(requiredNm)) {
       throw new Error('invalid safety-factor inputs');
     }
-    if (requiredNm <= 0) return Infinity;
+    if (requiredNm <= 0) return 0;
     return availableNm / requiredNm;
   }
 
@@ -64,7 +65,8 @@
   // the last angle without motor current — the commercial-mount reason to exist.
   function verdict({ factor, selfLocking, unpowered }) {
     // NaN fails every `<` below and would fall through to 'holds'.
-    // Infinity is legitimate (requiredNm = 0, see safetyFactor).
+    // Infinity is still a number a direct caller may pass and reads as 'holds';
+    // safetyFactor itself no longer returns it (requiredNm <= 0 → 0, #35).
     if (typeof factor !== 'number' || Number.isNaN(factor)) {
       throw new Error('invalid verdict factor');
     }

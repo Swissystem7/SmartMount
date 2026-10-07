@@ -1,7 +1,7 @@
 // torque.js models a screen whose centre of gravity sits in front of the
 // pivot: τ = m·g·d·cos(θ), θ from vertical. Beyond ±90° cos(θ) is negative,
-// requiredNm is negative, safetyFactor() returns Infinity and sizeMount()
-// says 'holds' for a load the model does not describe. The spec/ slider
+// requiredNm is negative and sizeMount() returned a verdict ('holds' before
+// #35, 'cannot-hold' after) for a load the model does not describe. The spec/ slider
 // stops at 40°, but the lib is also loaded by hand — the lib must refuse.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -30,7 +30,7 @@ test('exactly ±90° is the horizontal edge of the domain and yields ~0 N·m', (
 });
 
 test('sizeMount no longer turns a 55″ at 120° into a holds verdict', () => {
-  // Before the guard: requiredNm < 0 → safetyFactor Infinity → 'holds'.
+  // Before the guard: requiredNm < 0 → a verdict for a CoG behind the pivot.
   assert.throws(() =>
     T.sizeMount({ massKg: 18, cogOffsetM: 0.08, tiltFromVerticalDeg: 120 })
   );
@@ -44,7 +44,7 @@ test('verdict refuses NaN instead of falling through every comparison to holds',
   assert.throws(() => T.verdict({ factor: NaN, selfLocking: true, unpowered: false }), /invalid verdict/);
   assert.throws(() => T.verdict({ factor: undefined, selfLocking: true, unpowered: false }), /invalid verdict/);
   assert.throws(() => T.verdict({ factor: '3', selfLocking: true, unpowered: false }), /invalid verdict/);
-  // Infinity is the legitimate requiredNm = 0 case and still holds.
+  // Infinity (a direct caller's huge factor) is a number and still holds.
   assert.equal(T.verdict({ factor: Infinity, selfLocking: true, unpowered: true }), 'holds');
   // Power loss without a worm is still reported before the factor matters.
   assert.equal(T.verdict({ factor: 5, selfLocking: false, unpowered: true }), 'drop-on-power-loss');
