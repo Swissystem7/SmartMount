@@ -23,8 +23,8 @@ test('walk covers SAFE_STATES × EVENTS and FIRMWARE_STATES × EVENTS', () => {
   const sf = T.walk('safe');
   assert.equal(fw.length, F.FIRMWARE_STATES.length * F.EVENTS.length);
   assert.equal(sf.length, F.SAFE_STATES.length * F.EVENTS.length);
-  assert.equal(fw.length, 2 * 15);
-  assert.equal(sf.length, 11 * 15);
+  assert.equal(fw.length, 2 * 16);
+  assert.equal(sf.length, 11 * 16);
 });
 
 test('every firmware cell matches the table', () => {
@@ -97,10 +97,10 @@ test('edges only list real state changes produced by walk()', () => {
 
 test('counts: most cells stay, a handful actually change state', () => {
   const sf = T.counts('safe');
-  assert.equal(sf.cells, 165);
+  assert.equal(sf.cells, 176);
   assert.ok(sf.changes >= 20 && sf.changes < 50, 'safe changes=' + sf.changes);
   assert.ok(sf.stays > sf.changes);
   const fw = T.counts('firmware');
-  assert.equal(fw.cells, 30);
+  assert.equal(fw.cells, 32);
   assert.equal(fw.changes, 1, 'firmware only leaves BOOT once');
 });
