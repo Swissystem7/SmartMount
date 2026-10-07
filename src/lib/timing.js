@@ -29,13 +29,26 @@
     compute: 'חישוב',
   });
 
+  // ino: (long)lroundf(clamped * STEPS_PER_DEGREE) with every operand a float.
+  // Same arithmetic as control.stepsFor: float32 product, half away from zero.
+  // Math.round(d * k) in double gave -4 for -1.62° (board: -5) and 3 for 0.9°
+  // (board: 2.4999998 → 2), so the pulse count here disagreed with the board
+  // on about one request in eighty.
+  function lroundf(x) {
+    return Math.sign(x) * Math.floor(Math.abs(x) + 0.5);
+  }
+
+  function boardSteps(deg, k) {
+    return lroundf(Math.fround(Math.fround(deg) * Math.fround(k)));
+  }
+
   function stepsForDeg(deg, stepsPerDegree) {
     const d = Number(deg);
     const k = Number(stepsPerDegree != null ? stepsPerDegree : STEPS_PER_DEGREE);
     if (![d, k].every(Number.isFinite) || k <= 0) throw new Error('invalid stepsForDeg');
     // From-zero absolute magnitude: matches control.moveToAngle / lroundf(deg*k).
     // AccelStepper never sees a fractional pulse count.
-    return Math.abs(Math.round(d * k));
+    return Math.abs(boardSteps(d, k));
   }
 
   function profile({ distanceSteps, vmax, accel }) {
@@ -102,7 +115,7 @@
     // Firmware moveToAngle is absolute: stepper.moveTo(lroundf(deg*k)).
     // Distance is |lround(to)-lround(from)| — NOT round(|Δ|·k).
     // Counterexample: 20°→21° → |58-56|=2, but round(1·k)=3.
-    const steps = Math.abs(Math.round(to * k) - Math.round(from * k));
+    const steps = Math.abs(boardSteps(to, k) - boardSteps(from, k));
     const p = profile({ distanceSteps: steps, vmax, accel });
     return Object.assign({ fromDeg: from, toDeg: to, deltaDeg: delta }, p);
   }

@@ -71,10 +71,14 @@ function boot() {
 }
 
 const stepsPerDegree = spec.stepper.stepsPerRev * spec.stepper.gearRatio / 360;
-const quantise = (deg) => Math.round(deg * stepsPerDegree) / stepsPerDegree;
+// The board's arithmetic: float32 product, lroundf (half away from zero), then
+// long / float back to degrees, so the reported target is a float32.
+const K_F32 = Math.fround(stepsPerDegree);
+const lroundf = (x) => Math.sign(x) * Math.floor(Math.abs(x) + 0.5);
+const quantise = (deg) => Math.fround(lroundf(Math.fround(Math.fround(deg) * K_F32)) / K_F32);
 // lroundf(limit * STEPS_PER_DEGREE) can land half a step past the limit:
 // 20° on a 1000-step rev is 55.6 steps, so the board heads for 56 = 20.16°.
-// The demo has to say 20.16 because that is what /status will say.
+// The demo has to report that step (20.16 as a float32) because the board does.
 const limit = (id) => quantise(spec.panels.find((p) => p.id === id).limitDeg);
 
 test('protocol page loads the shared control law instead of echoing the request', () => {
