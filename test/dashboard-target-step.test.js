@@ -46,9 +46,11 @@ function loadDashboard() {
   vm.runInContext(read('src/lib/control-params.js'), ctx);
   vm.runInContext(read('src/lib/control.js'), ctx);
   const html = read('dashboard/index.html');
-  const inline = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
-  assert.equal(inline.length, 1, 'dashboard has one inline script');
-  vm.runInContext(inline[0], ctx);
+  // The page's own file, not untrusted input: slice the one bare <script>.
+  const open = html.indexOf('<script>');
+  assert.ok(open >= 0 && html.indexOf('<script>', open + 1) < 0, 'dashboard has one inline script');
+  const body = html.slice(open + '<script>'.length, html.indexOf('</script>', open));
+  vm.runInContext(body, ctx);
 
   const ui = {
     setLux(top, bot) {
