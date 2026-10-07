@@ -35,13 +35,15 @@
     return luxTop / Math.max(luxBot, MIN_LUX);
   }
 
-  function calcOptimalAngle(luxTop, luxBot, panel = 'LED', currentAngle = 0) {
+  function calcOptimalAngle(luxTop, luxBot, panel = 'LED', targetAngle = 0) {
     const limit = PANEL_LIMITS[panel];
     if (limit === undefined) throw new Error('unknown panel type: ' + panel);
 
     const ratio = glareRatio(luxTop, luxBot);
-    // Firmware returns currentAngle on a failed BH1750 read (hold, never slam).
-    if (ratio === null) return currentAngle;
+    // Firmware returns targetAngle — the commanded target — on a failed BH1750
+    // read (hold, never slam). Mid-move currentAngle lags the target, and
+    // returning it would make loop() reverse the stepper under load (#41).
+    if (ratio === null) return targetAngle;
     if (ratio <= GLARE_THRESHOLD) return 0;
 
     return Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
