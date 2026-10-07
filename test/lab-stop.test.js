@@ -83,7 +83,10 @@ test('lab: /stop mid-move halts the simulated stepper where it is, auto stays of
   assert.equal(JSON.stringify(res.body), '{"ok":true}');
   assert.equal(lab.get('autoMode'), false);
   assert.equal(lab.get('targetSteps'), before);
-  assert.equal(lab.get('targetAngle'), before / stepsPerDeg);
+  // Same expression as currentAngle on the board, whatever float width the
+  // mirror uses: the target is the step the arm is on.
+  assert.equal(lab.get('targetAngle'), lab.get('currentAngle'));
+  assert.equal(Math.round(lab.get('targetAngle') * stepsPerDeg), before);
 
   for (let i = 0; i < 10; i++) lab.ctx.tick();
   assert.equal(lab.get('currentSteps'), before, 'nothing re-arms the move');
