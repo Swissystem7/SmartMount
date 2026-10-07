@@ -223,6 +223,8 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
 const PANEL_NAMES  = CONTROL_PARAMS.panelNames;
 const LIMITS = CONTROL_PARAMS.limitsArray;
 const STEPS_PER_DEGREE = CONTROL_PARAMS.stepsPerDegree;
+// ino: const float STEPS_PER_DEGREE, and long / float is a float.
+const STEPS_PER_DEGREE_F32 = Math.fround(STEPS_PER_DEGREE);
 const MIN_LUX = CONTROL_PARAMS.minLux;
 
 let panel = 0;
@@ -389,7 +391,9 @@ function tick() {
   if (currentSteps !== targetSteps) {
     const dir = Math.sign(targetSteps - currentSteps);
     currentSteps += dir * Math.min(4, Math.abs(targetSteps - currentSteps));
-    currentAngle = currentSteps / STEPS_PER_DEGREE;
+    // ino: currentAngle = stepper.currentPosition() / STEPS_PER_DEGREE, a float32,
+    // the same arithmetic as moveToAngle's target, so angle == target on arrival.
+    currentAngle = Math.fround(currentSteps / STEPS_PER_DEGREE_F32);
   }
 
   const naive = naiveAngle(luxTop, luxBot, panel);
