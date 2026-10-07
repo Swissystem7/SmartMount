@@ -155,6 +155,35 @@ test('unknown path is 404; requestLine builds query-string POST like the board',
   );
 });
 
+// WebServer answers an unregistered path — or a registered path with the
+// wrong method — with its own 404 text/plain "Not found". That was the only
+// non-JSON body the board could send, while the host mirror already said
+// {ok:false,error:"not found"}. onNotFound routes it through sendError so the
+// board and the mirror agree on the envelope for every error, 400 and 404.
+test('unknown path or wrong method is a JSON 404 on the board, not text/plain', () => {
+  assert.ok(ino.includes('server.onNotFound(handleNotFound)'), 'onNotFound must be registered');
+  const start = ino.indexOf('void handleNotFound()');
+  const end = ino.indexOf('void setup()');
+  assert.ok(start > 0 && end > start, 'handleNotFound must be defined before setup()');
+  assert.ok(ino.slice(start, end).includes('sendError(404, "not found")'));
+  assert.ok(
+    ino.indexOf('server.onNotFound(') < ino.indexOf('server.begin()'),
+    'onNotFound must be set before server.begin()'
+  );
+  const cases = [
+    ['POST', '/reboot'],
+    ['GET', '/stop'],
+    ['POST', '/status'],
+    ['GET', '/set-angle'],
+    ['DELETE', '/set-mode'],
+  ];
+  for (const [m, p] of cases) {
+    const r = P.dispatch(m, p, {});
+    assert.equal(r.status, 404, m + ' ' + p);
+    assert.deepEqual(r.body, { ok: false, error: 'not found' }, m + ' ' + p);
+  }
+});
+
 test('Serial on boot matches the two strings the firmware actually prints', () => {
   assert.match(ino, /Serial\.begin\(115200\)/);
   assert.match(ino, /WiFi timeout — continuing in local auto mode/);
