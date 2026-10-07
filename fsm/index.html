@@ -88,11 +88,11 @@ table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
   </div>
 
   <div class="row" role="group" aria-label="תרחיש מוכן">
-    <button type="button" class="btn on" id="scReset">אתחול נקי</button>
-    <button type="button" class="btn" id="scLie">אתחול באמצע הטיה</button>
-    <button type="button" class="btn" id="scSensor">כשל חיישן</button>
-    <button type="button" class="btn" id="scHome">הומינג בלי מפסק</button>
-    <button type="button" class="btn" id="scStall">סטול בתנועה</button>
+    <button type="button" class="btn on" id="scReset" aria-pressed="true">אתחול נקי</button>
+    <button type="button" class="btn" id="scLie" aria-pressed="false">אתחול באמצע הטיה</button>
+    <button type="button" class="btn" id="scSensor" aria-pressed="false">כשל חיישן</button>
+    <button type="button" class="btn" id="scHome" aria-pressed="false">הומינג בלי מפסק</button>
+    <button type="button" class="btn" id="scStall" aria-pressed="false">סטול בתנועה</button>
   </div>
   <label class="check">
     <input type="checkbox" id="hasEndstop">
@@ -360,29 +360,39 @@ function resetBoth(mech) {
   render();
 }
 
-document.getElementById('scReset').addEventListener('click', () => resetBoth(0));
-document.getElementById('scLie').addEventListener('click', () => {
+function applyScenario(id, callback) {
+  ['scReset', 'scLie', 'scSensor', 'scHome', 'scStall'].forEach(bid => {
+    const b = document.getElementById(bid);
+    const on = bid === id;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  callback();
+}
+
+document.getElementById('scReset').addEventListener('click', () => applyScenario('scReset', () => resetBoth(0)));
+document.getElementById('scLie').addEventListener('click', () => applyScenario('scLie', () => {
   resetBoth(12);
   send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE באמצע 12°');
   send({ type: 'SET_ANGLE', deg: 15 }, 'SET_ANGLE 15');
   send({ type: 'ARRIVE' }, 'ARRIVE');
   addLog('שימו לב: .ino מאמין 15°, הזרוע ב־27°. המוצע סירב לזוז בלי הומינג.');
-});
-document.getElementById('scSensor').addEventListener('click', () => {
+}));
+document.getElementById('scSensor').addEventListener('click', () => applyScenario('scSensor', () => {
   resetBoth(0);
   send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE');
   send({ type: 'HOME_START' }, 'HOME_START');
   send({ type: 'HOME_FOUND' }, 'HOME_FOUND');
   send({ type: 'SENSOR_FAIL' }, 'SENSOR_FAIL');
   send({ type: 'SAMPLE', luxTop: 9000, luxBot: 40 }, 'SAMPLE תחת כשל');
-});
-document.getElementById('scHome').addEventListener('click', () => {
+}));
+document.getElementById('scHome').addEventListener('click', () => applyScenario('scHome', () => {
   document.getElementById('hasEndstop').checked = false;
   resetBoth(0);
   send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE');
   send({ type: 'HOME_START' }, 'HOME_START בלי מפסק');
-});
-document.getElementById('scStall').addEventListener('click', () => {
+}));
+document.getElementById('scStall').addEventListener('click', () => applyScenario('scStall', () => {
   document.getElementById('hasEndstop').checked = true;
   resetBoth(0);
   send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE');
@@ -391,7 +401,7 @@ document.getElementById('scStall').addEventListener('click', () => {
   sf.moveBudgetMs = 800;
   send({ type: 'SET_ANGLE', deg: 12 }, 'SET_ANGLE 12 (תקציב 800ms)');
   send({ type: 'TICK', dtMs: 2000 }, 'TICK 2000ms');
-});
+}));
 
 ['hasEndstop', 'selfLock'].forEach((id) => {
   document.getElementById(id).addEventListener('change', syncOpts);
