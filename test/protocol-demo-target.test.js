@@ -34,6 +34,7 @@ function element() {
     set textContent(v) { text = String(v); },
     addEventListener(ev, fn) { handlers[ev] = fn; },
     fire(ev) { handlers[ev](); },
+    setAttribute(k, v) {},
   };
 }
 
