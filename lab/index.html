@@ -117,9 +117,9 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
         <span><i style="background:#f85149"></i>צל נאיבי (כשל → מקסימום)</span>
       </div>
       <label class="sl" for="sunX">מיקום אור אופקי: <span id="sunXVal">695</span></label>
-      <input type="range" id="sunX" min="40" max="760" value="695">
+      <input type="range" id="sunX" min="40" max="760" value="695" dir="ltr">
       <label class="sl" for="sunY">מיקום אור אנכי: <span id="sunYVal">90</span></label>
-      <input type="range" id="sunY" min="24" max="300" value="90">
+      <input type="range" id="sunY" min="24" max="300" value="90" dir="ltr">
       <p class="hint" id="roomHint">גררו את השמש, הזיזו בסליידרים, או מקמו אותה במקלדת (חצים). כשל BH1750 מדמה קריאה שלילית — החוק הבטוח מחזיק זווית; הנאיבי מתייחס לחושך ומטה למקסימום.</p>
     </div>
 
@@ -522,11 +522,13 @@ function toggleBtn(el, on) {
 document.getElementById('failTop').addEventListener('click', function () {
   failTop = !failTop;
   toggleBtn(this, failTop);
+  toggleBtn(document.getElementById('failI2c'), failTop && failBot);
   paintBadges();
 });
 document.getElementById('failBot').addEventListener('click', function () {
   failBot = !failBot;
   toggleBtn(this, failBot);
+  toggleBtn(document.getElementById('failI2c'), failTop && failBot);
   paintBadges();
 });
 document.getElementById('failI2c').addEventListener('click', function () {

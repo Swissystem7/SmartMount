@@ -84,15 +84,15 @@ input[type=range]{width:100%;accent-color:#58a6ff}
         <button type="button" class="btn on" data-panel="LED" aria-pressed="true">LED</button>
       </div>
       <label class="sl" for="luxTop">חיישן עליון: <span id="luxTopVal">400</span> lux</label>
-      <input type="range" id="luxTop" min="-1" max="2000" value="400">
+      <input type="range" id="luxTop" min="-1" max="2000" value="400" dir="ltr">
       <label class="sl" for="luxBot">חיישן תחתון: <span id="luxBotVal">200</span> lux</label>
-      <input type="range" id="luxBot" min="-1" max="2000" value="200">
+      <input type="range" id="luxBot" min="-1" max="2000" value="200" dir="ltr">
       <p class="fine">ערך <code>−1</code> מדמה כשל BH1750. החוק מחזיק זווית — לא מטיח לגבול.</p>
       <div class="row">
         <button type="button" class="btn on" id="modeBtn" aria-pressed="true">אוטומטי</button>
       </div>
       <label class="sl" for="manual">זווית ידנית: <span id="manualVal">0</span>°</label>
-      <input type="range" id="manual" min="-40" max="40" value="0" disabled>
+      <input type="range" id="manual" min="-40" max="40" value="0" disabled dir="ltr">
       <p class="fine">ידני עובר דרך <code>clampToPanel</code> בלבד — כמו <code>moveToAngle</code> בקושחה.</p>
     </section>
   </div>
