@@ -230,8 +230,8 @@ table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
       לחיצה על תא בשורה של המצב הנוכחי שולחת את האירוע לשתי המכונות.
     </p>
     <div class="row" role="group" aria-label="איזו מכונה בטבלה">
-      <button type="button" class="btn" id="mxFw">קושחה (30 תאים)</button>
-      <button type="button" class="btn on" id="mxSf">מוצע (176 תאים)</button>
+      <button type="button" class="btn" id="mxFw" aria-pressed="false">קושחה (30 תאים)</button>
+      <button type="button" class="btn on" id="mxSf" aria-pressed="true">מוצע (176 תאים)</button>
     </div>
     <p class="fine" id="mxCounts">—</p>
     <div class="matrix-wrap">
@@ -443,12 +443,16 @@ document.getElementById('mxFw').addEventListener('click', () => {
   mxKind = 'firmware';
   document.getElementById('mxFw').classList.add('on');
   document.getElementById('mxSf').classList.remove('on');
+  document.getElementById('mxFw').setAttribute('aria-pressed', 'true');
+  document.getElementById('mxSf').setAttribute('aria-pressed', 'false');
   paintMatrix();
 });
 document.getElementById('mxSf').addEventListener('click', () => {
   mxKind = 'safe';
   document.getElementById('mxSf').classList.add('on');
   document.getElementById('mxFw').classList.remove('on');
+  document.getElementById('mxSf').setAttribute('aria-pressed', 'true');
+  document.getElementById('mxFw').setAttribute('aria-pressed', 'false');
   paintMatrix();
 });
 

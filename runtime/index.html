@@ -87,9 +87,9 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
     <div class="card">
       <h2>זווית ומספרים מהקושחה</h2>
       <div class="row" role="group" aria-label="פריסט פאנל">
-        <button type="button" class="btn" data-deg="20">LED 20°</button>
-        <button type="button" class="btn" data-deg="30">QLED 30°</button>
-        <button type="button" class="btn on" data-deg="40">OLED 40°</button>
+        <button type="button" class="btn" data-deg="20" aria-pressed="false">LED 20°</button>
+        <button type="button" class="btn" data-deg="30" aria-pressed="false">QLED 30°</button>
+        <button type="button" class="btn on" data-deg="40" aria-pressed="true">OLED 40°</button>
       </div>
       <label class="sl" for="fromDeg">מ־ (°): <span id="fromLbl">0</span></label>
       <input type="range" id="fromDeg" min="0" max="40" step="1" value="0">
@@ -429,8 +429,11 @@ function all() {
 
 document.querySelectorAll('[data-deg]').forEach((b) => {
   b.addEventListener('click', () => {
-    document.querySelectorAll('[data-deg]').forEach((x) => x.classList.remove('on'));
-    b.classList.add('on');
+    document.querySelectorAll('[data-deg]').forEach((x) => {
+      const on = x === b;
+      x.classList.toggle('on', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
     $('toDeg').value = b.dataset.deg;
     all();
   });

@@ -46,6 +46,7 @@ function boot() {
     const b = element();
     b.dataset = { route: r };
     b.classList = { toggle() {} };
+    b.setAttribute = function() {};
     return b;
   });
   const document = {

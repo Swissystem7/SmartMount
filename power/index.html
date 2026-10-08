@@ -174,8 +174,10 @@ function renderModes() {
     const d = modes[id];
     const el = document.createElement('button');
     el.type = 'button';
-    el.className = 'mode' + (id === modeId ? ' on' : '');
+    const on = id === modeId;
+    el.className = 'mode' + (on ? ' on' : '');
     el.setAttribute('role', 'listitem');
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
     el.innerHTML = '<b>' + d.totalW.toFixed(2) + ' W</b><span>' + MODE_HE[id] + '</span>';
     el.addEventListener('click', () => { modeId = id; all(); });
     box.appendChild(el);
@@ -251,7 +253,9 @@ function packs() {
   SM_POWER.PACKS.forEach((p) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'btn' + (p.id === packId ? ' on' : '');
+    const on = p.id === packId;
+    b.className = 'btn' + (on ? ' on' : '');
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
     b.textContent = p.label;
     b.addEventListener('click', () => { packId = p.id; all(); });
     box.appendChild(b);

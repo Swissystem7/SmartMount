@@ -127,11 +127,11 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
     <div class="card">
       <h2>שחקן חוזה</h2>
       <div class="row" role="group" aria-label="נתיב">
-        <button type="button" class="btn on" data-route="status" id="rStatus">GET /status</button>
-        <button type="button" class="btn" data-route="angle" id="rAngle">POST /set-angle</button>
-        <button type="button" class="btn" data-route="panel" id="rPanel">POST /set-panel</button>
-        <button type="button" class="btn" data-route="mode" id="rMode">POST /set-mode</button>
-        <button type="button" class="btn" data-route="stop" id="rStop">POST /stop</button>
+        <button type="button" class="btn on" data-route="status" id="rStatus" aria-pressed="true">GET /status</button>
+        <button type="button" class="btn" data-route="angle" id="rAngle" aria-pressed="false">POST /set-angle</button>
+        <button type="button" class="btn" data-route="panel" id="rPanel" aria-pressed="false">POST /set-panel</button>
+        <button type="button" class="btn" data-route="mode" id="rMode" aria-pressed="false">POST /set-mode</button>
+        <button type="button" class="btn" data-route="stop" id="rStop" aria-pressed="false">POST /stop</button>
       </div>
       <div id="argBox">
         <label class="sl" for="argVal">ערך ארגומנט</label>
@@ -281,7 +281,11 @@ function send() {
 document.querySelectorAll('[data-route]').forEach((btn) => {
   btn.addEventListener('click', () => {
     route = btn.dataset.route;
-    document.querySelectorAll('[data-route]').forEach((b) => b.classList.toggle('on', b === btn));
+    document.querySelectorAll('[data-route]').forEach((b) => {
+      const on = b === btn;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
     const spec = ARG[route];
     document.getElementById('argVal').value = spec.sample;
     paintRequest();

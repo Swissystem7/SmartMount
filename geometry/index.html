@@ -89,9 +89,9 @@ input[type=range]{width:100%;accent-color:#58a6ff}
     <div class="card">
       <h2>תנאי גאומטריה</h2>
       <div class="row">
-        <button type="button" class="btn on" id="scOver">מנורה מעל</button>
-        <button type="button" class="btn" id="scFace">חלון ממול</button>
-        <button type="button" class="btn" id="scLow">בוהק מלמטה</button>
+        <button type="button" class="btn on" id="scOver" aria-pressed="true">מנורה מעל</button>
+        <button type="button" class="btn" id="scFace" aria-pressed="false">חלון ממול</button>
+        <button type="button" class="btn" id="scLow" aria-pressed="false">בוהק מלמטה</button>
       </div>
       <label class="sl" for="lightX">אור אופקי: <span id="lightXVal">280</span></label>
       <input type="range" id="lightX" min="40" max="780" value="280">
@@ -126,9 +126,9 @@ input[type=range]{width:100%;accent-color:#58a6ff}
         מקור קטן ובוהק יכול להחטיא את שני החיישנים ועדיין לשים כתם של אלפי ניט בעין.
       </p>
       <div class="row">
-        <button type="button" class="btn on" id="optGlint">השתקפות שמש קטנה</button>
-        <button type="button" class="btn" id="optWindow">חלון גדול</button>
-        <button type="button" class="btn" id="optMatte">ציפוי מט</button>
+        <button type="button" class="btn on" id="optGlint" aria-pressed="true">השתקפות שמש קטנה</button>
+        <button type="button" class="btn" id="optWindow" aria-pressed="false">חלון גדול</button>
+        <button type="button" class="btn" id="optMatte" aria-pressed="false">ציפוי מט</button>
       </div>
       <label class="sl" for="srcNits">בהירות מקור: <span id="srcNitsVal">20000</span> cd/m²</label>
       <input type="range" id="srcNits" min="200" max="25000" step="100" value="20000">
@@ -372,16 +372,17 @@ bindArrows('eye', eye);
 
 function applyScene(name) {
   scene = name;
-  document.getElementById('scOver').classList.toggle('on', name === 'over');
-  document.getElementById('scFace').classList.toggle('on', name === 'face');
-  document.getElementById('scLow').classList.toggle('on', name === 'low');
+  ['scOver', 'scFace', 'scLow'].forEach((id) => {
+    const on = (name === 'over' && id === 'scOver') || (name === 'face' && id === 'scFace') || (name === 'low' && id === 'scLow');
+    const el = document.getElementById(id);
+    el.classList.toggle('on', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
   if (name === 'over') {
     light = { x: 280, y: 36 }; eye = { x: 560, y: 268 }; tilt = 0;
   } else if (name === 'face') {
-    document.getElementById('scFace').classList.add('on');
     light = { x: 760, y: 140 }; eye = { x: 520, y: 250 }; tilt = 0;
   } else {
-    document.getElementById('scLow').classList.add('on');
     light = { x: 240, y: 370 }; eye = { x: 560, y: 230 }; tilt = 0;
   }
   document.getElementById('tilt').value = tilt;
@@ -436,9 +437,12 @@ function paintOptics(rayHitsEye) {
 }
 
 function setOptPreset(name) {
-  document.getElementById('optGlint').classList.toggle('on', name === 'glint');
-  document.getElementById('optWindow').classList.toggle('on', name === 'window');
-  document.getElementById('optMatte').classList.toggle('on', name === 'matte');
+  ['optGlint', 'optWindow', 'optMatte'].forEach((id) => {
+    const on = (name === 'glint' && id === 'optGlint') || (name === 'window' && id === 'optWindow') || (name === 'matte' && id === 'optMatte');
+    const el = document.getElementById(id);
+    el.classList.toggle('on', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
   if (name === 'glint') {
     document.getElementById('srcNits').value = 20000;
     document.getElementById('srcArea').value = 4;
