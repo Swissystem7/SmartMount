@@ -88,11 +88,11 @@ table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
   </div>
 
   <div class="row" role="group" aria-label="תרחיש מוכן">
-    <button type="button" class="btn on" id="scReset">אתחול נקי</button>
-    <button type="button" class="btn" id="scLie">אתחול באמצע הטיה</button>
-    <button type="button" class="btn" id="scSensor">כשל חיישן</button>
-    <button type="button" class="btn" id="scHome">הומינג בלי מפסק</button>
-    <button type="button" class="btn" id="scStall">סטול בתנועה</button>
+    <button type="button" class="btn on" id="scReset" aria-pressed="true">אתחול נקי</button>
+    <button type="button" class="btn" id="scLie" aria-pressed="false">אתחול באמצע הטיה</button>
+    <button type="button" class="btn" id="scSensor" aria-pressed="false">כשל חיישן</button>
+    <button type="button" class="btn" id="scHome" aria-pressed="false">הומינג בלי מפסק</button>
+    <button type="button" class="btn" id="scStall" aria-pressed="false">סטול בתנועה</button>
   </div>
   <label class="check">
     <input type="checkbox" id="hasEndstop">
@@ -230,8 +230,8 @@ table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
       לחיצה על תא בשורה של המצב הנוכחי שולחת את האירוע לשתי המכונות.
     </p>
     <div class="row" role="group" aria-label="איזו מכונה בטבלה">
-      <button type="button" class="btn" id="mxFw">קושחה (30 תאים)</button>
-      <button type="button" class="btn on" id="mxSf">מוצע (176 תאים)</button>
+      <button type="button" class="btn" id="mxFw" aria-pressed="false">קושחה (30 תאים)</button>
+      <button type="button" class="btn on" id="mxSf" aria-pressed="true">מוצע (176 תאים)</button>
     </div>
     <p class="fine" id="mxCounts">—</p>
     <div class="matrix-wrap">
@@ -362,8 +362,19 @@ function resetBoth(mech) {
   render();
 }
 
-document.getElementById('scReset').addEventListener('click', () => resetBoth(0));
+function setScBtn(id) {
+  ['scReset', 'scLie', 'scSensor', 'scHome', 'scStall'].forEach((bid) => {
+    const b = document.getElementById(bid);
+    if (!b) return;
+    const on = bid === id;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+document.getElementById('scReset').addEventListener('click', () => { setScBtn('scReset'); resetBoth(0); });
 document.getElementById('scLie').addEventListener('click', () => {
+  setScBtn('scLie');
   resetBoth(12);
   send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE באמצע 12°');
   send({ type: 'SET_ANGLE', deg: 15 }, 'SET_ANGLE 15');
@@ -371,6 +382,7 @@ document.getElementById('scLie').addEventListener('click', () => {
   addLog('שימו לב: .ino מאמין 15°, הזרוע ב־27°. המוצע סירב לזוז בלי הומינג.');
 });
 document.getElementById('scSensor').addEventListener('click', () => {
+  setScBtn('scSensor');
   resetBoth(0);
   send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE');
   send({ type: 'HOME_START' }, 'HOME_START');
@@ -379,12 +391,14 @@ document.getElementById('scSensor').addEventListener('click', () => {
   send({ type: 'SAMPLE', luxTop: 9000, luxBot: 40 }, 'SAMPLE תחת כשל');
 });
 document.getElementById('scHome').addEventListener('click', () => {
+  setScBtn('scHome');
   document.getElementById('hasEndstop').checked = false;
   resetBoth(0);
   send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE');
   send({ type: 'HOME_START' }, 'HOME_START בלי מפסק');
 });
 document.getElementById('scStall').addEventListener('click', () => {
+  setScBtn('scStall');
   document.getElementById('hasEndstop').checked = true;
   resetBoth(0);
   send({ type: 'BOOT_DONE', wifiOk: true }, 'BOOT_DONE');
@@ -443,12 +457,16 @@ document.getElementById('mxFw').addEventListener('click', () => {
   mxKind = 'firmware';
   document.getElementById('mxFw').classList.add('on');
   document.getElementById('mxSf').classList.remove('on');
+  document.getElementById('mxFw').setAttribute('aria-pressed', 'true');
+  document.getElementById('mxSf').setAttribute('aria-pressed', 'false');
   paintMatrix();
 });
 document.getElementById('mxSf').addEventListener('click', () => {
   mxKind = 'safe';
   document.getElementById('mxSf').classList.add('on');
   document.getElementById('mxFw').classList.remove('on');
+  document.getElementById('mxSf').setAttribute('aria-pressed', 'true');
+  document.getElementById('mxFw').setAttribute('aria-pressed', 'false');
   paintMatrix();
 });
 
