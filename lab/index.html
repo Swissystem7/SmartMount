@@ -522,11 +522,13 @@ function toggleBtn(el, on) {
 document.getElementById('failTop').addEventListener('click', function () {
   failTop = !failTop;
   toggleBtn(this, failTop);
+  toggleBtn(document.getElementById('failI2c'), failTop && failBot);
   paintBadges();
 });
 document.getElementById('failBot').addEventListener('click', function () {
   failBot = !failBot;
   toggleBtn(this, failBot);
+  toggleBtn(document.getElementById('failI2c'), failTop && failBot);
   paintBadges();
 });
 document.getElementById('failI2c').addEventListener('click', function () {
