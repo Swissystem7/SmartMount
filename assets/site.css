@@ -137,3 +137,13 @@ a { color: var(--accent); }
     scroll-behavior: auto !important;
   }
 }
+
+input[type=range] {
+  direction: ltr; /* Fix RTL layout bug where sliders drag backwards (min on right) */
+}
+
+/* Fix RTL layout bugs for numeric values and sliders */
+.angle, .m b, #angleVal {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
