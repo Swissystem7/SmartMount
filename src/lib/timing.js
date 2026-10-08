@@ -177,14 +177,20 @@
     if (!Number.isFinite(t) || !Number.isFinite(poll) || t < 0 || poll <= 0) {
       throw new Error('invalid wifi-block inputs');
     }
-    if (okAt != null && !Number.isFinite(okAt)) throw new Error('invalid wifi-block inputs');
-    const blockedMs = okAt == null ? t : Math.min(okAt, t);
-    const polls = Math.ceil(blockedMs / poll);
+    if (okAt != null && (!Number.isFinite(okAt) || okAt < 0)) throw new Error('invalid wifi-block inputs');
+    // The .ino reads WiFi.status() only between delay(poll) calls, so setup
+    // notices the link on a poll boundary, not the instant it comes up. It
+    // leaves the loop on the first check at or past the timeout, then reads
+    // the status once more: a link that comes up during the last delay is
+    // connected, not local auto.
+    const lastCheckMs = Math.ceil(t / poll) * poll;
+    const seen = okAt != null && okAt <= lastCheckMs;
+    const blockedMs = seen ? Math.ceil(okAt / poll) * poll : lastCheckMs;
     return {
       blockedMs,
-      polls,
+      polls: Math.round(blockedMs / poll),
       motorRunsDuringSetup: false,
-      localAutoAfterTimeout: okAt == null || okAt >= t,
+      localAutoAfterTimeout: !seen,
     };
   }
 

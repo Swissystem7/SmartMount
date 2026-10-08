@@ -195,6 +195,39 @@ test('WiFi setup blocks the motor: timeout is 10 s of delay(200)', () => {
   assert.equal(hit.localAutoAfterTimeout, false);
 });
 
+test('WiFi setup only sees the link on a delay(200) boundary', () => {
+  // while (status != CONNECTED && elapsed < TIMEOUT) delay(200);
+  // if (status == CONNECTED) ... — the status is read after the loop too.
+  assert.match(ino, /while \(WiFi\.status\(\) != WL_CONNECTED &&\s+millis\(\) - wifiStart < WIFI_CONNECT_TIMEOUT_MS\)/);
+  assert.match(ino, /delay\(200\);\s+\}\s+if \(WiFi\.status\(\) == WL_CONNECTED\)/);
+
+  const mid = T.wifiBlock({ connectedAfterMs: 1450 });
+  assert.equal(mid.blockedMs, 1600);
+  assert.equal(mid.polls, 8);
+
+  const now = T.wifiBlock({ connectedAfterMs: 0 });
+  assert.equal(now.blockedMs, 0);
+  assert.equal(now.polls, 0);
+
+  // Up during the last delay: the post-loop check sees it.
+  const late = T.wifiBlock({ connectedAfterMs: 9950 });
+  assert.equal(late.blockedMs, 10000);
+  assert.equal(late.localAutoAfterTimeout, false);
+  assert.equal(T.wifiBlock({ connectedAfterMs: 10000 }).localAutoAfterTimeout, false);
+
+  const missed = T.wifiBlock({ connectedAfterMs: 10001 });
+  assert.equal(missed.blockedMs, 10000);
+  assert.equal(missed.localAutoAfterTimeout, true);
+
+  // A timeout off the poll grid still ends on one: 10100 → checks at 10000, 10200.
+  const odd = T.wifiBlock({ timeoutMs: 10100 });
+  assert.equal(odd.blockedMs, 10200);
+  assert.equal(odd.polls, 51);
+  assert.equal(T.wifiBlock({ timeoutMs: 10100, connectedAfterMs: 10150 }).localAutoAfterTimeout, false);
+
+  assert.throws(() => T.wifiBlock({ connectedAfterMs: -1 }), /invalid/);
+});
+
 test('bad inputs are rejected', () => {
   assert.throws(() => T.profile({ distanceSteps: 10, vmax: 0 }), /invalid/);
   assert.throws(() => T.glareLatency({ moveSec: -1 }), /invalid/);
