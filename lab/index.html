@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SmartMount — מצב הדגמה הנדסי</title>
-<meta name="description" content="סימולציית חדר עם קונסולת הזרקת תקלות: כשל חיישן, ניתוק WiFi, פקודה מעל גבול הפאנל — מול חוק הקושחה.">
+<meta name="description" content="סימולציית חדר עם קונסולת הזרקת תקלות: כשל חיישן, ניתוק WiFi, פקודה מעל גבול הפאנל, עצירת חירום — מול חוק הקושחה.">
 <meta name="theme-color" content="#0f1420">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
@@ -178,8 +178,13 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
         </div>
       </div>
       <div class="fault">
-        <h3>3. פקודה מעל הגבול</h3>
+        <h3>3. פקודה מעל הגבול ועצירת חירום</h3>
         <p><code>POST /set-angle?deg=99</code> מחזיר 200, מכבה אוטו, ו־<code>moveToAngle</code> מצמיד לגבול הפאנל. 200 ≠ 99°.</p>
+        <p>
+          <code>POST /stop</code> מכבה אוטו ואז <code>stepper.stop()</code>: על הלוח AccelStepper מאט עד עצירה
+          והיעד החדש נולד בסוף הרמפה. לסטפר המדומה כאן אין רמפה (4 צעדים לטיק), אז היעד נעצר בצעד הנוכחי.
+          הסלילים נשארים מוזנים — זו לא נפילת מתח.
+        </p>
         <p class="fine">
           היעד שמוצג הוא הצעד המעוגל (<code>targetPosition() / STEPS_PER_DEGREE</code>), כמו בלוח: 12.3° הם 34 צעדים = 12.24°,
           ובהגעה <code>angle == target</code>. החלפת פאנל באמצע מהלך מצמידה את <strong>היעד</strong> לגבול החדש, לא את הזווית המפגרת,
@@ -187,6 +192,7 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
         </p>
         <div class="row" style="margin:0">
           <button type="button" class="btn" id="cmdOver">שלח deg=99</button>
+          <button type="button" class="btn danger" id="cmdStop">POST /stop</button>
           <button type="button" class="btn" id="cmdAuto">החזר אוטו</button>
         </div>
       </div>
@@ -223,6 +229,8 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
 const PANEL_NAMES  = CONTROL_PARAMS.panelNames;
 const LIMITS = CONTROL_PARAMS.limitsArray;
 const STEPS_PER_DEGREE = CONTROL_PARAMS.stepsPerDegree;
+// ino: const float STEPS_PER_DEGREE, and long / float is a float.
+const STEPS_PER_DEGREE_F32 = Math.fround(STEPS_PER_DEGREE);
 const MIN_LUX = CONTROL_PARAMS.minLux;
 
 let panel = 0;
@@ -345,6 +353,16 @@ function httpCall(method, path, args) {
       const clamped = commandMoveTo(res.effect.requestedDeg, panel);
       addLog('HTTP 200 — התבקש ' + res.effect.requestedDeg + '°, הוצמד ל־' + clamped + '° (' + PANEL_NAMES[panel] + ')');
     }
+    if (res.effect.stop) {
+      // ino handleStop: autoMode = false (applied above), then stepper.stop().
+      // The lab stepper has no speed ramp, so the deceleration endpoint is
+      // the current step: target == angle, and with auto off nothing re-arms.
+      targetSteps = currentSteps;
+      // ino: targetAngle = targetPosition() / STEPS_PER_DEGREE, the same
+      // expression as currentAngle, so reuse it instead of redoing the division.
+      targetAngle = currentAngle;
+      addLog('HTTP 200 — /stop: אוטו כבוי, stepper.stop(). יעד ' + targetAngle.toFixed(1) + '° = ' + targetSteps + ' st, הסלילים עדיין מוזנים');
+    }
   }
   paintBadges();
   return res;
@@ -389,7 +407,9 @@ function tick() {
   if (currentSteps !== targetSteps) {
     const dir = Math.sign(targetSteps - currentSteps);
     currentSteps += dir * Math.min(4, Math.abs(targetSteps - currentSteps));
-    currentAngle = currentSteps / STEPS_PER_DEGREE;
+    // ino: currentAngle = stepper.currentPosition() / STEPS_PER_DEGREE, a float32,
+    // the same arithmetic as moveToAngle's target, so angle == target on arrival.
+    currentAngle = Math.fround(currentSteps / STEPS_PER_DEGREE_F32);
   }
 
   const naive = naiveAngle(luxTop, luxBot, panel);
@@ -532,6 +552,9 @@ document.getElementById('showNaive').addEventListener('click', function () {
 });
 document.getElementById('cmdOver').addEventListener('click', function () {
   httpCall('POST', '/set-angle', { deg: '99' });
+});
+document.getElementById('cmdStop').addEventListener('click', function () {
+  httpCall('POST', '/stop', {});
 });
 document.getElementById('cmdAuto').addEventListener('click', function () {
   httpCall('POST', '/set-mode', { auto: '1' });

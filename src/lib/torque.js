@@ -32,6 +32,14 @@
     if (![m, d, th].every(Number.isFinite) || m < 0 || d < 0) {
       throw new Error('invalid torque inputs');
     }
+    // The model is a screen in front of the pivot. Past ±90° cos(θ) goes
+    // negative and requiredNm goes negative: a CoG behind the pivot, a load
+    // the model does not describe (it used to come out as Infinity → "holds";
+    // since #35 safetyFactor maps it to 0 → "cannot-hold", equally made up).
+    // Not a case this mount has — the firmware caps tilt at 20–40° — so reject it.
+    if (Math.abs(th) > 90) {
+      throw new Error('invalid torque inputs: tilt beyond ±90° from vertical');
+    }
     return m * G * d * Math.cos((th * Math.PI) / 180);
   }
 
@@ -56,6 +64,12 @@
   // Unpowered stepper hold is treated as 0. Self-locking (worm / brake) keeps
   // the last angle without motor current — the commercial-mount reason to exist.
   function verdict({ factor, selfLocking, unpowered }) {
+    // NaN fails every `<` below and would fall through to 'holds'.
+    // Infinity is still a number a direct caller may pass and reads as 'holds';
+    // safetyFactor itself no longer returns it (requiredNm <= 0 → 0, #35).
+    if (typeof factor !== 'number' || Number.isNaN(factor)) {
+      throw new Error('invalid verdict factor');
+    }
     if (unpowered && !selfLocking) return 'drop-on-power-loss';
     if (factor < 1) return 'cannot-hold';
     if (factor < 2) return 'marginal';

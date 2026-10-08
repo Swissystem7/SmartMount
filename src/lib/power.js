@@ -142,11 +142,16 @@
     const logicMa = wifiMa + sensorMa + A4988_LOGIC_MA;
     const logic = (logicMa / 1000) * LOGIC_V;
     const hold = windingHoldW({ phaseA, phaseOhm });
+    // windingHoldW has already validated phaseA (finite, >= 0) or thrown.
+    // The peak the PSU / pack must survive is the *caller's* phase current,
+    // not the 17HS4401 label — otherwise a 0.8 A motor reports 1.5 A peaks
+    // while its I²R hold says 1.9 W.
+    const phaseAmps = Number(phaseA != null ? phaseA : NEMA17_PHASE_A);
     const coilsOn = holding || moving;
     const motor = coilsOn ? hold * (moving ? moveFactor : 1) : 0;
     const motor12vAvgMa = motor > 0 ? (motor / MOTOR_V) * 1000 : 0;
     const motorPhasePeakMa = coilsOn
-      ? NEMA17_PHASE_A * 1000 * (moving ? moveFactor : 1)
+      ? phaseAmps * 1000 * (moving ? moveFactor : 1)
       : 0;
 
     let mode = 'idle-worm';
@@ -166,6 +171,7 @@
       logic3v3Ma: logicMa,
       motor12vAvgMa,
       motorPhasePeakMa,
+      phaseA: phaseAmps,
       logicW: logic,
       motorW: motor,
       totalW: logic + motor,

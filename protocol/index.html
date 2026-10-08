@@ -164,7 +164,7 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
 }</pre>
       <p class="fine">
         <code>panel</code> הוא enum: 0 OLED, 1 QLED, 2 LED.
-        <code>lux_*</code> הם הקריאה החיה מ־BH1750 — כולל ערך שלילי כשהחיישן נכשל.
+        <code>lux_*</code> הם הקריאה החיה מ־BH1750 — קריאה כושלת (ערך שלילי מהספרייה) יוצאת כ־<code>null</code>, לא כ־lux.
         אין שדה WiFi, אין הומינג, אין מומנט.
       </p>
       <p class="fine">

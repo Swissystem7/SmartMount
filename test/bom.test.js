@@ -73,3 +73,31 @@ test('getBomItems hands out a fresh copy that callers cannot use to corrupt the 
   assert.strictEqual(third[0].suppliers.length, originalSupplierCount, 'appending to a returned suppliers array must not grow the canonical BOM');
   assert.ok(!third[0].suppliers.includes('Injected Supplier'), 'an injected supplier must not leak into the canonical BOM');
 });
+
+test('the BOM is the hardware firmware/smart_mount.ino drives, not a different machine', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const ino = fs.readFileSync(path.join(__dirname, '..', 'firmware', 'smart_mount.ino'), 'utf8');
+  const items = getBomItems();
+  const byId = Object.fromEntries(items.map((p) => [p.id, p]));
+
+  // MCU: the firmware includes WiFi.h / WebServer.h from the ESP32 core.
+  assert.match(ino, /ESP32/);
+  assert.ok(byId['mcu-esp32-devkit'], 'MCU must be the ESP32 the firmware targets');
+  assert.ok(!items.some((p) => /RP2040/i.test(p.name + p.specification)), 'no RP2040: the firmware is ESP32-only');
+
+  // Sensors: one BH1750 per constructor in the firmware.
+  const sensors = (ino.match(/^BH1750\s+\w+\(/gm) || []).length;
+  assert.strictEqual(sensors, 2);
+  assert.strictEqual(byId['light-sensor-bh1750'].quantity, sensors);
+
+  // Motion: one AccelStepper in DRIVER mode → one STEP/DIR driver, one motor.
+  const steppers = (ino.match(/^AccelStepper\s+\w+\(/gm) || []).length;
+  assert.strictEqual(steppers, 1);
+  assert.match(ino, /AccelStepper::DRIVER/);
+  assert.strictEqual(byId['stepper-driver-a4988'].quantity, steppers);
+  assert.strictEqual(byId['stepper-motor-nema17'].quantity, steppers);
+
+  // No homing in firmware (setCurrentPosition(0) at boot), so no endstop part.
+  assert.ok(!items.some((p) => /endstop/i.test(p.id + p.name)), 'endstops are an open problem, not a fitted part');
+});

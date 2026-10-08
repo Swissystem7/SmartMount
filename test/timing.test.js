@@ -6,18 +6,51 @@ const T = require('../src/lib/timing');
 const C = require('../src/lib/control');
 
 const ino = fs.readFileSync(path.join(__dirname, '../firmware/smart_mount.ino'), 'utf8');
+const spec = require('../config/control-params.json');
 
 test('firmware still publishes the numbers this model is built on', () => {
-  assert.match(ino, /setMaxSpeed\(500\)/);
-  assert.match(ino, /setAcceleration\(200\)/);
-  assert.match(ino, /lastRead > 2000/);
+  // The motor envelope and sample period are generated into the .ino from
+  // config/control-params.json; the firmware must use those names, not a
+  // literal that can drift from what this model was built on.
+  assert.match(ino, /setMaxSpeed\(MAX_SPEED_SPS\)/);
+  assert.match(ino, /setAcceleration\(ACCEL_SPS2\)/);
+  assert.match(ino, /lastRead > SAMPLE_PERIOD_MS/);
+  assert.doesNotMatch(ino, /setMaxSpeed\(\d/);
+  assert.doesNotMatch(ino, /setAcceleration\(\d/);
+  assert.doesNotMatch(ino, /lastRead > \d/);
+  assert.match(ino, new RegExp('MAX_SPEED_SPS = ' + spec.motion.maxSpeedSps + '\\.0f'));
+  assert.match(ino, new RegExp('ACCEL_SPS2    = ' + spec.motion.accelSps2 + '\\.0f'));
+  assert.match(ino, new RegExp('SAMPLE_PERIOD_MS = ' + spec.motion.samplePeriodMs + ';'));
   assert.match(ino, /WIFI_CONNECT_TIMEOUT_MS = 10000/);
   assert.match(ino, /delay\(200\)/);
   assert.match(ino, /lroundf\(clamped \* STEPS_PER_DEGREE\)/);
+  assert.equal(T.MAX_SPEED_SPS, spec.motion.maxSpeedSps);
+  assert.equal(T.ACCEL_SPS2, spec.motion.accelSps2);
+  assert.equal(T.SAMPLE_PERIOD_MS, spec.motion.samplePeriodMs);
+  assert.equal(T.STEPS_PER_DEGREE, (spec.stepper.stepsPerRev * spec.stepper.gearRatio) / 360);
+  // The numbers the rest of this file asserts against.
   assert.equal(T.MAX_SPEED_SPS, 500);
   assert.equal(T.ACCEL_SPS2, 200);
   assert.equal(T.SAMPLE_PERIOD_MS, 2000);
-  assert.equal(T.STEPS_PER_DEGREE, (200 * 5) / 360);
+});
+
+test('timing.js has no private copy of the motion constants', () => {
+  const src = fs.readFileSync(path.join(__dirname, '../src/lib/timing.js'), 'utf8');
+  assert.match(src, /require\('\.\/control-params'\)/);
+  assert.match(src, /globalThis\.CONTROL_PARAMS/);
+  assert.doesNotMatch(src, /MAX_SPEED_SPS = \d/);
+  assert.doesNotMatch(src, /ACCEL_SPS2 = \d/);
+  assert.doesNotMatch(src, /SAMPLE_PERIOD_MS = \d/);
+  assert.doesNotMatch(src, /STEPS_PER_REV = \d/);
+  assert.doesNotMatch(src, /GEAR_RATIO = \d/);
+  // Pages that load timing.js in a browser must load the params first.
+  for (const rel of ['runtime/index.html', 'power/index.html']) {
+    const html = fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
+    const params = html.indexOf('src/lib/control-params.js');
+    const timing = html.indexOf('src/lib/timing.js');
+    assert.ok(params >= 0, rel + ' does not load control-params.js');
+    assert.ok(params < timing, rel + ' loads timing.js before control-params.js');
+  }
 });
 
 test('stepsForDeg is from-zero lround magnitude (integer pulses)', () => {
