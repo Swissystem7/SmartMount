@@ -159,14 +159,22 @@ void moveToAngle(float deg) {
 }
 
 // ── HTTP API ─────────────────────────────────────────────────────────────
+// A failed BH1750 read is a negative sentinel, not a lux value. /status used
+// to pass it through, so a client plotted -1 lux next to a real reading.
+// Same test as calcOptimalAngle's hold: failed or non-finite -> JSON null.
+void setLux(JsonDocument& doc, const char* key, float lux) {
+  if (isnan(lux) || isinf(lux) || lux < 0.0f) doc[key] = nullptr;
+  else doc[key] = lux;
+}
+
 void handleStatus() {
   StaticJsonDocument<256> doc;
   doc["angle"]       = currentAngle;
   doc["target"]      = targetAngle;
   doc["auto"]        = autoMode;
   doc["panel"]       = currentPanel;
-  doc["lux_top"]     = sensorTop.readLightLevel();
-  doc["lux_bot"]     = sensorBot.readLightLevel();
+  setLux(doc, "lux_top", sensorTop.readLightLevel());
+  setLux(doc, "lux_bot", sensorBot.readLightLevel());
   String out; serializeJson(doc, out);
   sendJson(200, out);
 }

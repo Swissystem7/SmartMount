@@ -119,6 +119,12 @@
     return Number.isInteger(type) && type >= 0 && type < 3;
   }
 
+  // statusLux — ino: setLux(). A failed BH1750 read (negative, NaN, inf) is
+  // reported as null, never as a lux value.
+  function statusLux(v) {
+    return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
+  }
+
   function handleStatus(state) {
     const s = state || {};
     const autoMode = s.autoMode !== undefined ? s.autoMode : s.auto;
@@ -129,8 +135,8 @@
         target: s.target,
         auto: autoMode,
         panel: s.panel,
-        lux_top: s.lux_top,
-        lux_bot: s.lux_bot,
+        lux_top: statusLux(s.lux_top),
+        lux_bot: statusLux(s.lux_bot),
       },
     };
   }
