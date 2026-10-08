@@ -11,6 +11,7 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 | קבועים | `test/control-params.test.js` | JSON = JS שנוצר = בלוק ב־`.ino` |
 | קוונטיזציה | `test/target-quantised.test.js`, `lroundf-float32.test.js` | `moveToAngle` ב־JS מחשב כמו הלוח: מכפלה ב־float32 ואז `lroundf` (חצי **מתרחק מאפס**, לא `Math.round`); `target` הוא float32 כמו `targetAngle` |
 | חוזה HTTP | `test/protocol.test.js`, `emergency-stop.test.js`, `protocol-demo-target.test.js` | חמישה נתיבים (כל נתיב ב־`ROUTES` רשום ב־`.ino`), `parseFloatArg` = `strtof` (רווח לבן מוביל, hex, גלישת float32), `type` = `strtol` בצריכה מלאה (`type=foo` → 400), `/stop` = אוטו כבוי ואז `stepper.stop()`, נתיב לא מוכר או method שגוי → 404 בגוף JSON (`onNotFound`), לא text/plain; דף `protocol/` מדווח אחרי `set-angle`/`set-panel` את אותו `target` מוצמד ומכומת כמו הלוח (node:vm על הסקריפט שבדף) |
+| חיישנים | `test/bh1750-begin-addr.test.js` | שני ה־BH1750 מקבלים את הכתובת גם ב־`begin()` (ברירת המחדל של הספרייה דורסת את הבנאי ל־0x23 — שני האובייקטים קראו את החיישן העליון והיחס היה 1 תמיד); `begin()` שנכשל מדפיס שורה ל־Serial |
 | מעבדה | `test/lab-stop.test.js` | הסקריפט של `lab/` רץ ב־`node:vm` עם DOM מזויף: `/set-angle` ואז `/stop` → אוטו כבוי, יעד = הצעד הנוכחי, הטיקים הבאים לא מזיזים; הכפתור מחווט לאותה קריאה |
 | מומנט | `test/torque.test.js`, `torque-tilt-domain.test.js` | `τ=mgd cosθ`, נפילה בלי תולעת; הטיה מעבר ל־±90° נדחית (לא מומנט שלילי → «מחזיק»), `verdict` זורק על NaN |
 | אופטיקה | `test/optics.test.js` | lux ≠ nits, ארבעת מקרי אי-הסכמה |

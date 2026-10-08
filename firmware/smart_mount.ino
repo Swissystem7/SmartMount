@@ -40,9 +40,17 @@ PanelType currentPanel = LED;
 // Stepper: STEP=18, DIR=19
 AccelStepper stepper(AccelStepper::DRIVER, 18, 19);
 
-// Sensors: top sensor (facing up/out) + bottom sensor (facing screen)
-BH1750 sensorTop(0x23);   // ADDR=GND
-BH1750 sensorBot(0x5C);   // ADDR=VCC
+// Sensors: top sensor (facing up/out) + bottom sensor (facing screen).
+// The address is passed to the constructor AND to begin(): claws/BH1750's
+// begin(mode, addr = 0x23, i2c) overwrites the constructor address whenever
+// addr is non-zero, so a bare begin() on the bottom sensor re-pointed the 0x5C
+// object at 0x23. Both objects then read the top sensor, glareRatio was 1.0 in any
+// light, and the mount never tilted. One constant per sensor, used in both
+// places, so the two cannot drift apart again.
+const uint8_t SENSOR_TOP_ADDR = 0x23;   // ADDR=GND
+const uint8_t SENSOR_BOT_ADDR = 0x5C;   // ADDR=VCC
+BH1750 sensorTop(SENSOR_TOP_ADDR);
+BH1750 sensorBot(SENSOR_BOT_ADDR);
 
 WebServer server(80);
 
@@ -256,8 +264,16 @@ void handleNotFound() {
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-  sensorTop.begin();
-  sensorBot.begin();
+  // begin() returns false when the sensor does not answer on the bus. Every
+  // later readLightLevel() then returns -2 and calcOptimalAngle() holds the
+  // target forever: a silent, motionless board. One Serial line per missing
+  // sensor is the only way to tell that apart from a dark room.
+  if (!sensorTop.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, SENSOR_TOP_ADDR)) {
+    Serial.println("BH1750 top not found at 0x23");
+  }
+  if (!sensorBot.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, SENSOR_BOT_ADDR)) {
+    Serial.println("BH1750 bot not found at 0x5C");
+  }
 
   stepper.setMaxSpeed(MAX_SPEED_SPS);
   stepper.setAcceleration(ACCEL_SPS2);

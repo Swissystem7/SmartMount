@@ -175,8 +175,12 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
     </div>
     <div class="card">
       <h2>Serial 115200</h2>
-      <p class="fine">הקושחה מדפיסה <em>שורה אחת</em> ב־<code>setup()</code>. לא לוג בקרה, לא קריאות lux.</p>
+      <p class="fine">הקושחה מדפיסה ב־<code>setup()</code> <em>שורת WiFi אחת</em>, ולפניה שורה לכל BH1750 ש־<code>begin()</code> שלו נכשל. לא לוג בקרה, לא קריאות lux.</p>
 <pre>Serial.begin(115200);
+
+// רק אם חיישן לא עונה על ה־I²C (אחרת כלום):
+BH1750 top not found at 0x23
+BH1750 bot not found at 0x5C
 
 // אחרי WiFi.begin + לולאת 10 שניות:
 IP: 192.168.1.42
