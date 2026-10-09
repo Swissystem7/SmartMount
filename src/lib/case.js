@@ -159,7 +159,7 @@
     libs: Object.freeze(['BH1750 1.3.0', 'AccelStepper 1.64', 'ArduinoJson 7.4.3']),
     flashBytes: 964756,
     ramBytes: 48888,
-    inoSha256: '3ef9a110a6bf7b1e65869473f1677ebd43ef18ff3e633106473899a18e717775',
+    inoSha256: 'e68f05ee3b072ec96642f1b96fc6dc42e180932470a4e505c47ef21aebb87b9a',
     before: "smart_mount.ino:114: error: no matching function for call to 'min(float, double)'",
     he: 'הקושחה מתקמפלת ל-ESP32 (נמדד 27.9.2026). לפני התיקון היא לא התקמפלה: min(float, double) בשורה 114. זה הידור בלבד. היא לא הועלתה ללוח.',
   });
