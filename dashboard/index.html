@@ -93,7 +93,7 @@ input[type=range]{width:100%;accent-color:#58a6ff}
       </div>
       <label class="sl" for="manual">זווית ידנית: <span id="manualVal">0</span>°</label>
       <input type="range" id="manual" min="-40" max="40" value="0" disabled>
-      <p class="fine">ידני עובר דרך <code>clampToPanel</code> בלבד — כמו <code>moveToAngle</code> בקושחה.</p>
+      <p class="fine">ידני עובר דרך <code>moveToAngle</code> — הצמדה לגבול ועיגול לצעד, כמו בקושחה: הזווית המוצגת היא ה־<code>target</code> ש־<code>/status</code> מחזיר.</p>
     </section>
   </div>
   <p class="fine">
@@ -129,11 +129,14 @@ input[type=range]{width:100%;accent-color:#58a6ff}
 
     let next;
     const ratio = glareRatio(luxTop, luxBot);
+    // current is what the board reports as target in /status: the rounded
+    // step from moveToAngle (#42), not the unquantised request. 12.3° is
+    // 34 steps = 12.24°; the QLED cap of 30° is 83 steps = 29.88°.
     if (auto) {
       next = calcOptimalAngle(luxTop, luxBot, panel, current);
-      if (shouldMove(current, next)) current = next;
+      if (shouldMove(current, next)) current = moveToAngle(next, panel).target;
     } else {
-      current = clampToPanel(Number(manEl.value), panel);
+      current = moveToAngle(Number(manEl.value), panel).target;
       next = current;
     }
 
@@ -151,7 +154,9 @@ input[type=range]{width:100%;accent-color:#58a6ff}
     } else {
       mR.className = 'm' + (ratio > GLARE_THRESHOLD ? '' : ' ok');
       mR.querySelector('b').textContent = ratio.toFixed(2) + '×';
-      const clamped = shown >= limit && ratio > GLARE_THRESHOLD;
+      // From the law's output, not the shown angle: a quantised cap can sit
+      // just under the limit (QLED 29.88°), so shown >= limit never fires.
+      const clamped = auto && next >= limit && ratio > GLARE_THRESHOLD;
       mD.className = 'm' + (clamped ? ' clamp' : (shown > 0 ? '' : ' ok'));
       mD.querySelector('b').textContent = !auto ? 'ידני' : (clamped ? 'CLAMP ' + limit + '°' : (shown > 0 ? 'MOVE' : 'שקט'));
     }
@@ -165,7 +170,7 @@ input[type=range]{width:100%;accent-color:#58a6ff}
         b.classList.toggle('on', on);
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
-      current = clampToPanel(current, panel);
+      current = moveToAngle(current, panel).target;
       paint();
     });
   });
