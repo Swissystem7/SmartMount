@@ -12,7 +12,14 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SM_OPTICS = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  const DEFAULT_THRESHOLD = 3;
+  // The glare threshold and lux floor are the firmware's, from
+  // config/control-params.json via the generated control-params.js, so
+  // the page and the board agree on when the law moves.
+  const P = (typeof module === 'object' && module.exports)
+    ? require('./control-params')
+    : globalThis.CONTROL_PARAMS;
+  const DEFAULT_THRESHOLD = P.glareThreshold;
+  const MIN_LUX = P.minLux;
   const SDR_CONTENT_NITS = 150;
   // Glossy cover glass ~4–8% per air-glass surface; matte / Glare Free is lower.
   const GLOSSY_R = 0.06;
@@ -48,7 +55,7 @@
     return L * R;
   }
 
-  function sensorRatio(luxTop, luxBot, minLux = 1) {
+  function sensorRatio(luxTop, luxBot, minLux = MIN_LUX) {
     if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot)) return null;
     if (luxTop < 0 || luxBot < 0) return null;
     return luxTop / Math.max(luxBot, minLux);
@@ -113,6 +120,7 @@
 
   return {
     DEFAULT_THRESHOLD,
+    MIN_LUX,
     SDR_CONTENT_NITS,
     GLOSSY_R,
     MATTE_R,

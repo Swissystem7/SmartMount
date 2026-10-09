@@ -55,8 +55,9 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
 <main id="main" tabindex="-1" class="wrap">
   <h1>תזמון והספק</h1>
   <p class="lead">
-    הקושחה קובעת <code>setMaxSpeed(500)</code> ו־<code>setAcceleration(200)</code>,
-    ודגימת חיישנים כל 2000 ms. מהלך 20° הוא משולש קצר שלא מגיע ל־500 צעד/שנייה —
+    הקושחה קובעת <code>setMaxSpeed(<span id="leadVmax">500</span>)</code> ו־<code>setAcceleration(<span id="leadAccel">200</span>)</code>
+    (מ־<code>config/control-params.json</code>, אותו מקור של חוק הבקרה),
+    ודגימת חיישנים כל <span id="leadSample">2000</span> ms. מהלך 20° הוא משולש קצר שלא מגיע ל־<span id="leadVmax2">500</span> צעד/שנייה —
     הדגימה, לא המנוע, היא השהיית המפעל. באותו זמן <code>handleClient()</code> יכול להרעיב פולסים.
     למטה: למה סלילי NEMA17 הם המוצר, וה־ESP32 הוא עיגול.
   </p>
@@ -207,10 +208,16 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
     </div>
   </div>
 </main>
+<script src="../src/lib/control-params.js"></script>
 <script src="../src/lib/timing.js"></script>
 <script src="../src/lib/power.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
+// The lead paragraph quotes the firmware numbers; take them from the shared params.
+$('leadVmax').textContent = SM_TIMING.MAX_SPEED_SPS;
+$('leadVmax2').textContent = SM_TIMING.MAX_SPEED_SPS;
+$('leadAccel').textContent = SM_TIMING.ACCEL_SPS2;
+$('leadSample').textContent = SM_TIMING.SAMPLE_PERIOD_MS;
 
 function paintPlot(p, lat) {
   const x0 = 48, y0 = 220, x1 = 620, y1 = 20;
@@ -260,8 +267,8 @@ function timing() {
   $('kBest').textContent = lat.bestSec.toFixed(2) + ' s';
   $('kWorst').textContent = lat.worstSec.toFixed(2) + ' s';
   $('profileNote').textContent = p.hitsVmax
-    ? 'המהלך ארוך מספיק להגיע ל־500. בגבולות הפאנל של הקושחה זה לא קורה.'
-    : 'לא מגיעים ל־vmax. setMaxSpeed(500) לא רלוונטי להטיה של 20–40°.';
+    ? 'המהלך ארוך מספיק להגיע ל־' + SM_TIMING.MAX_SPEED_SPS + '. בגבולות הפאנל של הקושחה זה לא קורה.'
+    : 'לא מגיעים ל־vmax. setMaxSpeed(' + SM_TIMING.MAX_SPEED_SPS + ') לא רלוונטי להטיה של 20–40°.';
   const v = $('tVerdict');
   if (lat.sampleDominates) {
     v.className = 'verdict meh';

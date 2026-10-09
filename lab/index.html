@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SmartMount — מצב הדגמה הנדסי</title>
-<meta name="description" content="סימולציית חדר עם קונסולת הזרקת תקלות: כשל חיישן, ניתוק WiFi, פקודה מעל גבול הפאנל — מול חוק הקושחה.">
+<meta name="description" content="סימולציית חדר עם קונסולת הזרקת תקלות: כשל חיישן, ניתוק WiFi, פקודה מעל גבול הפאנל, עצירת חירום — מול חוק הקושחה.">
 <meta name="theme-color" content="#0f1420">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
@@ -175,10 +175,21 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
         </div>
       </div>
       <div class="fault">
-        <h3>3. פקודה מעל הגבול</h3>
+        <h3>3. פקודה מעל הגבול ועצירת חירום</h3>
         <p><code>POST /set-angle?deg=99</code> מחזיר 200, מכבה אוטו, ו־<code>moveToAngle</code> מצמיד לגבול הפאנל. 200 ≠ 99°.</p>
+        <p>
+          <code>POST /stop</code> מכבה אוטו ואז <code>stepper.stop()</code>: על הלוח AccelStepper מאט עד עצירה
+          והיעד החדש נולד בסוף הרמפה. לסטפר המדומה כאן אין רמפה (4 צעדים לטיק), אז היעד נעצר בצעד הנוכחי.
+          הסלילים נשארים מוזנים — זו לא נפילת מתח.
+        </p>
+        <p class="fine">
+          היעד שמוצג הוא הצעד המעוגל (<code>targetPosition() / STEPS_PER_DEGREE</code>), כמו בלוח: 12.3° הם 34 צעדים = 12.24°,
+          ובהגעה <code>angle == target</code>. החלפת פאנל באמצע מהלך מצמידה את <strong>היעד</strong> לגבול החדש, לא את הזווית המפגרת,
+          והדד-בנד של האוטו נמדד מול היעד — דגימה בתוכו לא משכתבת אותו.
+        </p>
         <div class="row" style="margin:0">
           <button type="button" class="btn" id="cmdOver">שלח deg=99</button>
+          <button type="button" class="btn danger" id="cmdStop">POST /stop</button>
           <button type="button" class="btn" id="cmdAuto">החזר אוטו</button>
         </div>
       </div>
@@ -215,6 +226,8 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
 const PANEL_NAMES  = CONTROL_PARAMS.panelNames;
 const LIMITS = CONTROL_PARAMS.limitsArray;
 const STEPS_PER_DEGREE = CONTROL_PARAMS.stepsPerDegree;
+// ino: const float STEPS_PER_DEGREE, and long / float is a float.
+const STEPS_PER_DEGREE_F32 = Math.fround(STEPS_PER_DEGREE);
 const MIN_LUX = CONTROL_PARAMS.minLux;
 
 let panel = 0;
@@ -246,7 +259,10 @@ function decide(luxTop, luxBot, heldAngle, panelIdx) {
 
 function commandMoveTo(deg, panelIdx) {
   const r = moveToAngle(deg, PANEL_NAMES[panelIdx]);
-  targetAngle = r.clamped;
+  // ino moveToAngle: targetAngle = stepper.targetPosition() / STEPS_PER_DEGREE,
+  // the step the motor is heading to, not the unquantised request (#42).
+  // 12.3° is 34 steps = 12.24°; once the move ends angle == target.
+  targetAngle = r.target;
   targetSteps = r.steps;
   return r.clamped;
 }
@@ -325,11 +341,24 @@ function httpCall(method, path, args) {
         b.classList.toggle('on', on);
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
-      commandMoveTo(currentAngle, panel);
+      // ino handleSetPanel: moveToAngle(targetAngle) — re-clamp the commanded
+      // target to the new ceiling (#40). Mid-move, moveTo(currentAngle) would
+      // abandon the move and turn the stepper around under load.
+      commandMoveTo(targetAngle, panel);
     }
     if (res.effect.requestedDeg !== undefined) {
       const clamped = commandMoveTo(res.effect.requestedDeg, panel);
       addLog('HTTP 200 — התבקש ' + res.effect.requestedDeg + '°, הוצמד ל־' + clamped + '° (' + PANEL_NAMES[panel] + ')');
+    }
+    if (res.effect.stop) {
+      // ino handleStop: autoMode = false (applied above), then stepper.stop().
+      // The lab stepper has no speed ramp, so the deceleration endpoint is
+      // the current step: target == angle, and with auto off nothing re-arms.
+      targetSteps = currentSteps;
+      // ino: targetAngle = targetPosition() / STEPS_PER_DEGREE, the same
+      // expression as currentAngle, so reuse it instead of redoing the division.
+      targetAngle = currentAngle;
+      addLog('HTTP 200 — /stop: אוטו כבוי, stepper.stop(). יעד ' + targetAngle.toFixed(1) + '° = ' + targetSteps + ' st, הסלילים עדיין מוזנים');
     }
   }
   paintBadges();
@@ -357,22 +386,27 @@ function tick() {
   if (failBot) luxBot = -1;
   lastLux = { top: luxTop, bot: luxBot };
 
-  const decision = decide(luxTop, luxBot, currentAngle, panel);
+  // ino loop(): hold returns targetAngle and the deadband is
+  // |next - targetAngle| (#41). Measured against the lagging currentAngle a
+  // sample inside the deadband used to rewrite targetAngle while targetSteps
+  // kept the old goal, so /status lied and the next /set-panel re-issued the
+  // stale value. Inside the deadband nothing changes.
+  const decision = decide(luxTop, luxBot, targetAngle, panel);
   const next = decision.angle;
   let moved = false;
   if (autoMode) {
-    if (Math.abs(next - currentAngle) > DEADBAND_DEG) {
+    if (Math.abs(next - targetAngle) > DEADBAND_DEG) {
       commandMoveTo(next, panel);
       moved = true;
-    } else if (!decision.hold) {
-      targetAngle = next;
     }
   }
 
   if (currentSteps !== targetSteps) {
     const dir = Math.sign(targetSteps - currentSteps);
     currentSteps += dir * Math.min(4, Math.abs(targetSteps - currentSteps));
-    currentAngle = currentSteps / STEPS_PER_DEGREE;
+    // ino: currentAngle = stepper.currentPosition() / STEPS_PER_DEGREE, a float32,
+    // the same arithmetic as moveToAngle's target, so angle == target on arrival.
+    currentAngle = Math.fround(currentSteps / STEPS_PER_DEGREE_F32);
   }
 
   const naive = naiveAngle(luxTop, luxBot, panel);
@@ -412,7 +446,7 @@ function tick() {
   setMetric('mTgt', targetAngle.toFixed(1) + '° / ' + targetSteps + ' st');
 
   if (autoMode && decision.hold && tick._wasHold !== true) {
-    addLog('כשל חיישן — מחזיק ' + currentAngle.toFixed(1) + '° (ino:99–101). נאיבי היה מגיע ל־' + naive.toFixed(1) + '°');
+    addLog('כשל חיישן — מחזיק יעד ' + targetAngle.toFixed(1) + '° (calcOptimalAngle מחזיר targetAngle). נאיבי היה מגיע ל־' + naive.toFixed(1) + '°');
   } else if (autoMode && !decision.hold && decision.clamped && tick._wasClamp !== true) {
     addLog('יחס ' + decision.ratio.toFixed(1) + '× — נצמד לגבול ' + PANEL_NAMES[panel] + ' ' + LIMITS[panel] + '°');
   } else if (autoMode && moved && !decision.hold) {
@@ -515,6 +549,9 @@ document.getElementById('showNaive').addEventListener('click', function () {
 });
 document.getElementById('cmdOver').addEventListener('click', function () {
   httpCall('POST', '/set-angle', { deg: '99' });
+});
+document.getElementById('cmdStop').addEventListener('click', function () {
+  httpCall('POST', '/stop', {});
 });
 document.getElementById('cmdAuto').addEventListener('click', function () {
   httpCall('POST', '/set-mode', { auto: '1' });

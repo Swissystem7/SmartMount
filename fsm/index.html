@@ -189,6 +189,7 @@ table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
         <button type="button" class="btn" data-ev="AUTO">set-mode auto=1</button>
         <button type="button" class="btn" data-ev="MANUAL">set-mode auto=0</button>
         <button type="button" class="btn" data-ev="PANEL0">set-panel OLED</button>
+        <button type="button" class="btn danger" data-ev="STOP">POST /stop</button>
       </div>
     </div>
     <div class="group">
@@ -215,7 +216,7 @@ table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
     <p class="fine">
       הקוד: <code>src/lib/fsm.js</code> + <code>src/lib/fsm-table.js</code>.
       כל תא בטבלה הוא <code>step()</code> אמיתי על דייר קנוני של המצב.
-      11 × 15 = 165 תאים במכונה המוצעת, 2 × 15 בקושחה — כולם נעולים ב־<code>npm test</code>.
+      11 × 16 = 176 תאים במכונה המוצעת, 2 × 16 בקושחה — כולם נעולים ב־<code>npm test</code>.
     </p>
   </div>
 
@@ -227,7 +228,7 @@ table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
     </p>
     <div class="row" role="group" aria-label="איזו מכונה בטבלה">
       <button type="button" class="btn" id="mxFw">קושחה (30 תאים)</button>
-      <button type="button" class="btn on" id="mxSf">מוצע (165 תאים)</button>
+      <button type="button" class="btn on" id="mxSf">מוצע (176 תאים)</button>
     </div>
     <p class="fine" id="mxCounts">—</p>
     <div class="matrix-wrap">
@@ -328,6 +329,7 @@ const EV = {
   AUTO: [{ type: 'SET_MODE', auto: true }, 'SET_MODE auto'],
   MANUAL: [{ type: 'SET_MODE', auto: false }, 'SET_MODE ידני'],
   PANEL0: [{ type: 'SET_PANEL', panel: 0 }, 'SET_PANEL OLED'],
+  STOP: [{ type: 'STOP' }, 'STOP (POST /stop)'],
   ARRIVE: [{ type: 'ARRIVE' }, 'ARRIVE'],
   TICK: [{ type: 'TICK', dtMs: 1000 }, 'TICK 1000ms'],
   HOME_START: [{ type: 'HOME_START' }, 'HOME_START'],

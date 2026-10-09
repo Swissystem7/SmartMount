@@ -42,6 +42,7 @@
     'SET_ANGLE',
     'SET_MODE',
     'SET_PANEL',
+    'STOP',
     'TICK',
     'ARRIVE',
     'HOME_START',
@@ -67,7 +68,7 @@
   }
 
   function fresh(kind, extra) {
-    return Object.assign({
+    const state = Object.assign({
       kind: kind,
       state: 'BOOT',
       autoMode: true,
@@ -92,15 +93,24 @@
       stallMargin: DEFAULT_STALL_MARGIN,
       reason: 'setup() טרם הסתיים',
     }, extra || {});
+    
+    // Calculate and set angleErrorDeg for fresh state
+    state.angleErrorDeg = state.mechanicalAngle - state.believedAngle;
+    return state;
   }
 
   function copy(s) {
-    return Object.assign({}, s, { reject: null });
+    const newState = Object.assign({}, s, { reject: null });
+    // Ensure angleErrorDeg is carried over in copies
+    newState.angleErrorDeg = newState.mechanicalAngle - newState.believedAngle;
+    return newState;
   }
 
   function go(s, state, reason) {
     s.state = state;
     s.reason = reason;
+    // Update angleErrorDeg when state changes
+    s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
     return s;
   }
 
@@ -110,14 +120,19 @@
     s.moving = Math.abs(clamped - s.believedAngle) > control.DEADBAND_DEG;
     s.moveElapsedMs = 0;
     if (reason) s.reason = reason;
+    // Update angleErrorDeg when starting a move
+    s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
     return s;
   }
 
   // ── firmware-as-written ────────────────────────────────────────────────
   // Matches loop() + handlers. There is no UNHOMED, no FAULT, no stall.
-  // Boot always claims angle 0. A failed read holds. Mid-move SAMPLE may
-  // retarget from the lagging currentAngle. Power loss is not a software
-  // state — the screen falls if the drivetrain is not self-locking.
+  // Boot always claims angle 0. A failed read holds the commanded target.
+  // SAMPLE measures the deadband against targetAngle, so mid-move it
+  // retargets only when the law moves more than DEADBAND_DEG away from the
+  // goal; inside the deadband targetAngle stays the stepper's goal. Power
+  // loss is not a software state — the screen falls if the drivetrain is
+  // not self-locking.
 
   function stepFirmware(prev, event) {
     const s = copy(prev);
@@ -144,6 +159,8 @@
         // The mechanical angle is whatever the arm was. Firmware does not know.
         s.homed = false;
         s.autoMode = true;
+        // Update angleErrorDeg after boot
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, 'RUN',
           'setCurrentPosition(0) — מיקום משוער, לא הומינג. ' +
           (s.wifiUp ? 'WiFi עלה' : 'WiFi timeout, אוטו מקומי ממשיך'));
@@ -154,7 +171,7 @@
 
     if (t === 'SENSOR_FAIL') {
       s.sensorFail = true;
-      s.reason = 'קריאה שלילית — מחזיק זווית (calcOptimalAngle מחזיר currentAngle)';
+      s.reason = 'קריאה שלילית — מחזיק יעד (calcOptimalAngle מחזיר targetAngle)';
       return s;
     }
     if (t === 'SENSOR_OK') {
@@ -183,7 +200,22 @@
         return s;
       }
       s.panel = panel;
-      startMove(s, clamp(s.believedAngle, panel), 'החלפת פאנל מצמידה לגבול החדש');
+      // ino: moveToAngle(targetAngle) — the target is re-clamped, the move
+      // in flight is not cancelled. startMove clamps to the new s.panel.
+      startMove(s, s.targetAngle, 'החלפת פאנל מצמידה את היעד לגבול החדש — תנועה פעילה ממשיכה');
+      return s;
+    }
+    if (t === 'STOP') {
+      // ino handleStop: autoMode = false first (so the next SAMPLE cannot
+      // re-arm the move), then stepper.stop() — a deceleration ramp whose
+      // endpoint becomes the new target. The host has no speed, so the ramp
+      // is zero-length here: the target collapses onto the believed angle
+      // and the move ends. Never a moveTo() back — that reverses under load.
+      s.autoMode = false;
+      s.targetAngle = s.believedAngle;
+      s.moving = false;
+      s.moveElapsedMs = 0;
+      s.reason = 'stop: אוטו כבוי ואז stepper.stop() — האטה עד עצירה, היעד הוא סוף הרמפה (במודל: הזווית הנוכחית)';
       return s;
     }
 
@@ -194,16 +226,16 @@
       }
       const luxTop = s.sensorFail ? -1 : event.luxTop;
       const luxBot = s.sensorFail ? -1 : event.luxBot;
-      const next = law(luxTop, luxBot, s.panel, s.believedAngle);
+      // ino: hold returns targetAngle; deadband is |next - targetAngle|.
+      const next = law(luxTop, luxBot, s.panel, s.targetAngle);
       if (s.sensorFail || (event.luxTop < 0 || event.luxBot < 0)) {
-        s.reason = 'HOLD — לא מכה למקסימום';
+        s.reason = 'HOLD — היעד נשאר, לא מכה למקסימום ולא הופך כיוון';
         return s;
       }
-      if (control.shouldMove(s.believedAngle, next)) {
-        startMove(s, next, 'SAMPLE באמצע מהלך עלול לשנות יעד (currentAngle מפגר)');
+      if (control.shouldMove(s.targetAngle, next)) {
+        startMove(s, next, 'SAMPLE: החוק זז יותר מדד-בנד מהיעד — moveTo חדש (גם באמצע מהלך)');
       } else {
-        s.targetAngle = next;
-        s.reason = 'מתחת לדד-בנד — בלי צעד';
+        s.reason = 'מתחת לדד-בנד מהיעד — בלי צעד, targetAngle נשאר יעד המנוע';
       }
       return s;
     }
@@ -214,6 +246,8 @@
       s.believedAngle = s.targetAngle;
       s.currentAngle = s.targetAngle;
       s.moving = false;
+      // Update angleErrorDeg after arrival
+      s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
       s.reason = 'המנוע הגיע — אין מצב IDLE נפרד, נשארים ב-RUN';
       return s;
     }
@@ -221,6 +255,8 @@
     if (t === 'TICK') {
       if (s.moving) s.moveElapsedMs += Number(event.dtMs) || 0;
       s.currentAngle = s.believedAngle;
+      // Update angleErrorDeg on tick
+      s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
       s.reason = 'loop: handleClient + stepper.run — אין WDT ייעודי, אין סטול';
       return s;
     }
@@ -276,11 +312,46 @@
       return s;
     }
 
+    // Emergency stop is accepted in every live state and never auto-resumes:
+    // auto goes off, so SENSOR_OK / ARRIVE land in IDLE_MANUAL, not IDLE_AUTO.
+    // Mid-homing it aborts to UNHOMED (zero still unknown). Latched faults
+    // stay latched — nothing is moving there anyway.
+    if (t === 'STOP') {
+      if (s.state === 'BOOT' || s.state === 'UNHOMED') {
+        s.reason = s.state + ' — אין תנועה לעצור';
+        return s;
+      }
+      if (s.state === 'HOMING') {
+        s.moving = false;
+        s.homeElapsedMs = 0;
+        return go(s, 'UNHOMED', 'עצירה באמצע הומינג — האפס עדיין לא ידוע');
+      }
+      if (s.state === 'FAULT_HOME' || s.state === 'FAULT_STALL' || s.state === 'FAULT_LIMIT') {
+        s.reason = s.state + ' נעול עד CLEAR — אין תנועה';
+        return s;
+      }
+      s.autoMode = false;
+      s.lastIdle = 'IDLE_MANUAL';
+      if (s.state === 'FAULT_SENSOR') {
+        s.reason = 'אוטו כבוי — SENSOR_OK יחזיר ל-IDLE_MANUAL, לא ל-IDLE_AUTO';
+        return s;
+      }
+      if (s.state === 'MOVING') {
+        s.moving = false;
+        s.moveElapsedMs = 0;
+        s.targetAngle = s.believedAngle;
+        return go(s, 'IDLE_MANUAL', 'עצירת חירום — האטה עד עצירה, אוטו לא יחזור לבד');
+      }
+      return go(s, 'IDLE_MANUAL', s.state === 'IDLE_AUTO' ? 'אוטו כבוי — לא תהיה תנועה חדשה מ-SAMPLE' : 'כבר ידני ועומד');
+    }
+
     if (s.state === 'BOOT') {
       if (t === 'BOOT_DONE') {
         s.wifiUp = event.wifiOk !== false;
         s.homed = false;
         s.autoMode = true;
+        // Update angleErrorDeg after boot
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, 'UNHOMED',
           'מיקום לא ידוע. אסור moveTo עד הומינג. ' +
           (s.wifiUp ? 'WiFi עלה' : 'WiFi timeout — אוטו מקומי אחרי הומינג'));
@@ -317,6 +388,8 @@
         s.moving = false;
         s.autoMode = true;
         s.lastIdle = 'IDLE_AUTO';
+        // Update angleErrorDeg after homing
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, 'IDLE_AUTO', 'מפסק קצה — אפס אמיתי');
       }
       if (t === 'TICK') {
@@ -342,6 +415,8 @@
       if (t === 'CLEAR') {
         s.moving = false;
         s.homed = false;
+        // Update angleErrorDeg after clear
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, 'UNHOMED', 'אופרטור אישר — חובה הומינג מחדש');
       }
       if (t === 'HOME_START' && s.state === 'FAULT_HOME' && s.hasEndstop) {
@@ -357,6 +432,8 @@
         s.sensorFail = false;
         const back = s.lastIdle || 'IDLE_AUTO';
         s.autoMode = back === 'IDLE_AUTO';
+        // Update angleErrorDeg after sensor recovery
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, back, 'חיישן חזר');
       }
       if (t === 'SET_ANGLE') {
@@ -378,6 +455,8 @@
         s.dropped = false;
         s.homed = false;
         s.moving = false;
+        // Update angleErrorDeg after clear
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, 'UNHOMED', 'מתח חזר — מיקום לא ידוע');
       }
       return s;
@@ -395,6 +474,8 @@
     if (t === 'SENSOR_OK') {
       s.sensorFail = false;
       s.reason = 'חיישן תקין';
+      // Update angleErrorDeg after sensor recovery
+      s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
       return s;
     }
 
@@ -418,6 +499,8 @@
         s.autoMode = Boolean(event.auto);
         const next = s.autoMode ? 'IDLE_AUTO' : 'IDLE_MANUAL';
         s.lastIdle = next;
+        // Update angleErrorDeg after mode change
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, next, 'החלפת מצב');
       }
       if (t === 'SAMPLE' && s.state === 'IDLE_AUTO') {
@@ -436,6 +519,8 @@
         }
         s.targetAngle = next;
         s.reason = 'שקט — דד-בנד';
+        // Update angleErrorDeg after sample
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return s;
       }
       if (t === 'HOME_START') {
@@ -453,6 +538,8 @@
         s.mechanicalAngle = s.targetAngle;
         s.moving = false;
         const back = s.lastIdle || (s.autoMode ? 'IDLE_AUTO' : 'IDLE_MANUAL');
+        // Update angleErrorDeg after arrival
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return go(s, back, 'הגיע ליעד');
       }
       if (t === 'SET_ANGLE') {
@@ -479,12 +566,16 @@
             Math.round(s.moveBudgetMs * s.stallMargin) + ' ms)');
         }
         s.reason = 'בתנועה… ' + s.moveElapsedMs + ' ms';
+        // Update angleErrorDeg on tick
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return s;
       }
       if (t === 'SET_MODE') {
         s.autoMode = Boolean(event.auto);
         s.lastIdle = s.autoMode ? 'IDLE_AUTO' : 'IDLE_MANUAL';
         s.reason = 'מצב אחרי ההגעה ישתנה ל-' + s.lastIdle;
+        // Update angleErrorDeg after mode change
+        s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
         return s;
       }
       return s;

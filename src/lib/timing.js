@@ -1,10 +1,13 @@
 // SmartMount — AccelStepper timing + cooperative-loop budget.
 //
 // Firmware (smart_mount.ino):
-//   stepper.setMaxSpeed(500);        // steps / s
-//   stepper.setAcceleration(200);    // steps / s²
-//   sample every 2000 ms
+//   stepper.setMaxSpeed(MAX_SPEED_SPS);      // steps / s
+//   stepper.setAcceleration(ACCEL_SPS2);     // steps / s²
+//   sample every SAMPLE_PERIOD_MS
 //   WiFi connect blocks with delay(200) up to 10 s — before loop()
+// Those three, and the step geometry, come from config/control-params.json
+// through the generated control-params.js — the same file control.js reads —
+// so a retune of the board cannot leave this model describing the old motor.
 //
 // Host model of a trapezoid / triangle. AccelStepper is discrete; this is
 // the continuous envelope an interviewer can compute on a whiteboard.
@@ -14,21 +17,42 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SM_TIMING = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  const MAX_SPEED_SPS = 500;
-  const ACCEL_SPS2 = 200;
-  const SAMPLE_PERIOD_MS = 2000;
+  const P = (typeof module === 'object' && module.exports)
+    ? require('./control-params')
+    : globalThis.CONTROL_PARAMS;
+  const MAX_SPEED_SPS = P.maxSpeedSps;
+  const ACCEL_SPS2 = P.accelSps2;
+  const SAMPLE_PERIOD_MS = P.samplePeriodMs;
   const WIFI_CONNECT_TIMEOUT_MS = 10000;
   const WIFI_POLL_MS = 200;
-  const STEPS_PER_REV = 200;
-  const GEAR_RATIO = 5;
-  const STEPS_PER_DEGREE = (STEPS_PER_REV * GEAR_RATIO) / 360;
+  const STEPS_PER_DEGREE = P.stepsPerDegree;
   const DEFAULT_WDT_MS = 5000;
+  const NECK_HE = Object.freeze({
+    sample: 'המתנה לדגימה',
+    motor: 'מעטפת מנוע',
+    compute: 'חישוב',
+  });
+
+  // ino: (long)lroundf(clamped * STEPS_PER_DEGREE) with every operand a float.
+  // Same arithmetic as control.stepsFor: float32 product, half away from zero.
+  // Math.round(d * k) in double gave -4 for -1.62° (board: -5) and 3 for 0.9°
+  // (board: 2.4999998 → 2), so the pulse count here disagreed with the board
+  // on about one request in eighty.
+  function lroundf(x) {
+    return Math.sign(x) * Math.floor(Math.abs(x) + 0.5);
+  }
+
+  function boardSteps(deg, k) {
+    return lroundf(Math.fround(Math.fround(deg) * Math.fround(k)));
+  }
 
   function stepsForDeg(deg, stepsPerDegree) {
     const d = Number(deg);
     const k = Number(stepsPerDegree != null ? stepsPerDegree : STEPS_PER_DEGREE);
     if (![d, k].every(Number.isFinite) || k <= 0) throw new Error('invalid stepsForDeg');
-    return Math.abs(d) * k;
+    // From-zero absolute magnitude: matches control.moveToAngle / lroundf(deg*k).
+    // AccelStepper never sees a fractional pulse count.
+    return Math.abs(boardSteps(d, k));
   }
 
   function profile({ distanceSteps, vmax, accel }) {
@@ -84,13 +108,20 @@
   }
 
   function moveProfile({ fromDeg, toDeg, stepsPerDegree, vmax, accel }) {
-    const delta = Number(toDeg) - Number(fromDeg);
-    if (![Number(fromDeg), Number(toDeg)].every(Number.isFinite)) {
+    const from = Number(fromDeg);
+    const to = Number(toDeg);
+    const delta = to - from;
+    if (![from, to].every(Number.isFinite)) {
       throw new Error('invalid angles');
     }
-    const steps = stepsForDeg(delta, stepsPerDegree);
+    const k = Number(stepsPerDegree != null ? stepsPerDegree : STEPS_PER_DEGREE);
+    if (!Number.isFinite(k) || k <= 0) throw new Error('invalid angles');
+    // Firmware moveToAngle is absolute: stepper.moveTo(lroundf(deg*k)).
+    // Distance is |lround(to)-lround(from)| — NOT round(|Δ|·k).
+    // Counterexample: 20°→21° → |58-56|=2, but round(1·k)=3.
+    const steps = Math.abs(boardSteps(to, k) - boardSteps(from, k));
     const p = profile({ distanceSteps: steps, vmax, accel });
-    return Object.assign({ fromDeg: Number(fromDeg), toDeg: Number(toDeg), deltaDeg: delta }, p);
+    return Object.assign({ fromDeg: from, toDeg: to, deltaDeg: delta }, p);
   }
 
   // Glare appears at a random phase of the 2 s poll. Best case: sample is due.
@@ -225,6 +256,7 @@
     let bottleneck = 'motor';
     if (waitSampleMs >= motorMs && waitSampleMs >= computeMs) bottleneck = 'sample';
     else if (computeMs >= motorMs && computeMs >= waitSampleMs) bottleneck = 'compute';
+    const summaryHe = (totalMs / 1000).toFixed(1) + ' שניות · הכי מעכב: ' + NECK_HE[bottleneck];
     return {
       stages,
       totalMs,
@@ -232,6 +264,7 @@
       computeMs,
       motorMs,
       bottleneck,
+      summaryHe,
       move,
       samplePeriodMs,
     };
@@ -277,6 +310,7 @@
     WIFI_POLL_MS,
     STEPS_PER_DEGREE,
     DEFAULT_WDT_MS,
+    NECK_HE,
     stepsForDeg,
     profile,
     moveProfile,

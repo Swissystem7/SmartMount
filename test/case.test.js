@@ -31,6 +31,8 @@ test('six reviewed bugs stay fixed-in-source or fixed-in-ui, never hardware-veri
   assert.equal(C.bug('sensor-fail-hold').severity, 'safety');
   assert.match(C.bug('sensor-fail-hold').now, /HOLD/);
   assert.match(C.bug('api-reject').now, /toInt|foo|OLED/);
+  assert.match(C.bug('api-reject').now, /strtol/);
+  assert.doesNotMatch(C.bug('api-reject').now, /חור שנשאר/);
 });
 
 test('the case admits that a safety fix broke the build, and shows how it was caught', () => {
@@ -54,10 +56,10 @@ test('open hazards include never-flashed and no homing', () => {
   assert.equal(C.openItem('plasma'), null);
 });
 
-test('FSM facts match the host model: 2 firmware states, 11 safe, 165 cells', () => {
+test('FSM facts match the host model: 2 firmware states, 11 safe, 176 cells', () => {
   assert.deepEqual(C.FSM.firmwareStates, ['BOOT', 'RUN']);
   assert.equal(C.FSM.safeStates.length, 11);
-  assert.equal(C.FSM.cells, 165);
+  assert.equal(C.FSM.cells, 176);
   assert.match(C.FSM.safeNote, /לא נכתבה ל-\.ino|לא רצה על ESP32/);
 });
 

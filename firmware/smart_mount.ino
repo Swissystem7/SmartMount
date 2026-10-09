@@ -29,6 +29,10 @@ const float DEADBAND_DEG = 1.0f;
 const float STEPS_PER_REV = 200.0f;
 const float GEAR_RATIO = 5.0f;
 const float STEPS_PER_DEGREE = (STEPS_PER_REV * GEAR_RATIO) / 360.0f;
+// AccelStepper envelope + auto-mode sample period. Mirrored by src/lib/timing.js.
+const float MAX_SPEED_SPS = 500.0f;  // steps / s
+const float ACCEL_SPS2    = 200.0f;  // steps / s^2
+const unsigned long SAMPLE_PERIOD_MS = 2000;
 // <<< END GENERATED control-params
 enum PanelType { OLED = 0, QLED = 1, LED = 2 };
 PanelType currentPanel = LED;
@@ -36,9 +40,17 @@ PanelType currentPanel = LED;
 // Stepper: STEP=18, DIR=19
 AccelStepper stepper(AccelStepper::DRIVER, 18, 19);
 
-// Sensors: top sensor (facing up/out) + bottom sensor (facing screen)
-BH1750 sensorTop(0x23);   // ADDR=GND
-BH1750 sensorBot(0x5C);   // ADDR=VCC
+// Sensors: top sensor (facing up/out) + bottom sensor (facing screen).
+// The address is passed to the constructor AND to begin(): claws/BH1750's
+// begin(mode, addr = 0x23, i2c) overwrites the constructor address whenever
+// addr is non-zero, so a bare begin() on the bottom sensor re-pointed the 0x5C
+// object at 0x23. Both objects then read the top sensor, glareRatio was 1.0 in any
+// light, and the mount never tilted. One constant per sensor, used in both
+// places, so the two cannot drift apart again.
+const uint8_t SENSOR_TOP_ADDR = 0x23;   // ADDR=GND
+const uint8_t SENSOR_BOT_ADDR = 0x5C;   // ADDR=VCC
+BH1750 sensorTop(SENSOR_TOP_ADDR);
+BH1750 sensorBot(SENSOR_BOT_ADDR);
 
 WebServer server(80);
 
@@ -52,7 +64,7 @@ bool  autoMode     = true;
 unsigned long lastRead = 0;
 
 // ── Helpers ──────────────────────────────────────────────────────────────
-bool isValidPanel(int type) {
+bool isValidPanel(long type) {
   return type >= 0 && type < PANEL_COUNT;
 }
 
@@ -93,15 +105,34 @@ bool parseFloatArg(const String& s, float& out) {
   return true;
 }
 
+// Same contract as parseFloatArg, for integer args: strtol base 10 must
+// consume the whole string. String::toInt() is atoi — "foo" is 0, "1.9" is 1,
+// "2abc" is 2 — so a typo in type= used to select OLED, the loosest tilt cap,
+// and answer 200. Leading C whitespace is still taken (WebServer url-decodes
+// %0A into a newline before we see it); a trailing byte is a reject. out is a
+// long so an overflowed strtol hands isValidPanel LONG_MAX, not a value that
+// was truncated back into 0..2.
+bool parseIntArg(const String& s, long& out) {
+  if (s.length() == 0) return false;
+  const char* start = s.c_str();
+  char* end = nullptr;
+  out = strtol(start, &end, 10);
+  if (end == start || *end != '\0') return false;
+  return true;
+}
+
 // ── Algorithm ────────────────────────────────────────────────────────────
 // Mirrored by src/lib/control.js, which is covered by tests. Keep both in sync.
 float calcOptimalAngle(float luxTop, float luxBot) {
   // A BH1750 reports a negative value when a read fails. Feeding that through
   // as if it were a lux reading produces a huge glare ratio and slams the panel
-  // to its limit, so a failed read must mean "hold position".
+  // to its limit, so a failed read must mean "hold". Hold = keep the commanded
+  // target, not the lagging currentAngle: mid-move, returning currentAngle
+  // would be > DEADBAND_DEG from targetAngle and loop() would abandon the move
+  // and reverse the stepper under load.
   if (isnan(luxTop) || isnan(luxBot) || isinf(luxTop) || isinf(luxBot) ||
       luxTop < 0.0f || luxBot < 0.0f) {
-    return currentAngle;
+    return targetAngle;
   }
 
   // If top lux >> bottom → direct sunlight hitting screen → tilt away
@@ -111,6 +142,10 @@ float calcOptimalAngle(float luxTop, float luxBot) {
   float angle = 0.0;
   if (glareRatio > GLARE_THRESHOLD) {
     // Map glare intensity to tilt (max = panel limit)
+    // Both operands float: on ESP32 min is std::min (Arduino.h does
+    // using std::min, no macro), so min(float, double) does not deduce T and
+    // the sketch fails to compile. The old double cast on limit matched the
+    // 3.0 / 5.0 double literals that the generated f-suffixed constants replaced.
     angle = min((glareRatio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
   }
   return angle;
@@ -119,22 +154,35 @@ float calcOptimalAngle(float luxTop, float luxBot) {
 void moveToAngle(float deg) {
   float limit   = panelLimit();
   float clamped = constrain(deg, -limit, limit);
-  targetAngle   = clamped;
   // Absolute target from a tracked zero — never relative-move from a
   // currentAngle that was updated before the motor actually arrived.
   long steps = (long)lroundf(clamped * STEPS_PER_DEGREE);
   stepper.moveTo(steps);
+  // targetAngle is the step the stepper is actually heading to, not the
+  // unquantised request: 12.3° is 34 steps = 12.24°. Same expression as
+  // syncAngleFromStepper() and handleStop(), so once the move ends /status
+  // shows angle == target instead of a sub-step gap that never closes and
+  // looks to a client like a move still in flight.
+  targetAngle = stepper.targetPosition() / STEPS_PER_DEGREE;
 }
 
 // ── HTTP API ─────────────────────────────────────────────────────────────
+// A failed BH1750 read is a negative sentinel, not a lux value. /status used
+// to pass it through, so a client plotted -1 lux next to a real reading.
+// Same test as calcOptimalAngle's hold: failed or non-finite -> JSON null.
+void setLux(JsonDocument& doc, const char* key, float lux) {
+  if (isnan(lux) || isinf(lux) || lux < 0.0f) doc[key] = nullptr;
+  else doc[key] = lux;
+}
+
 void handleStatus() {
   StaticJsonDocument<256> doc;
   doc["angle"]       = currentAngle;
   doc["target"]      = targetAngle;
   doc["auto"]        = autoMode;
   doc["panel"]       = currentPanel;
-  doc["lux_top"]     = sensorTop.readLightLevel();
-  doc["lux_bot"]     = sensorBot.readLightLevel();
+  setLux(doc, "lux_top", sensorTop.readLightLevel());
+  setLux(doc, "lux_bot", sensorBot.readLightLevel());
   String out; serializeJson(doc, out);
   sendJson(200, out);
 }
@@ -159,14 +207,21 @@ void handleSetPanel() {
     sendError(400, "missing type");
     return;
   }
-  int type = server.arg("type").toInt();
-  if (!isValidPanel(type)) {
+  // strtol with full consumption, like deg. One error string for both
+  // "not a number" and "not 0..2" — the client only needs to know type= was
+  // not a panel.
+  long type;
+  if (!parseIntArg(server.arg("type"), type) || !isValidPanel(type)) {
     sendError(400, "invalid panel type");
     return;
   }
   currentPanel = (PanelType)type;
-  float limit = panelLimit();
-  moveToAngle(constrain(currentAngle, -limit, limit));
+  // Re-clamp the commanded target, not the lagging currentAngle. Mid-move,
+  // moveTo(currentAngle) would abandon the move and turn the stepper around
+  // under load; a panel change is only a new ceiling. moveToAngle() clamps
+  // to the new PANEL_LIMITS, so a target that still fits continues
+  // untouched and one that does not shortens to the new limit.
+  moveToAngle(targetAngle);
   sendOk();
 }
 
@@ -184,15 +239,44 @@ void handleSetMode() {
   sendOk();
 }
 
+// Emergency stop. Leaves auto mode so the 2 s loop does not re-arm the move,
+// then asks AccelStepper to decelerate from the current speed. stop() sets a
+// new absolute target at the end of that ramp; targetAngle tracks it so
+// /status shows where the arm will settle. Coils stay energised (hold).
+void handleStop() {
+  autoMode = false;
+  stepper.stop();
+  targetAngle = stepper.targetPosition() / STEPS_PER_DEGREE;
+  sendOk();
+}
+
+// Anything not registered below: a typo'd path, or a real path with the wrong
+// method (GET /stop, POST /status). WebServer's built-in reply is 404
+// text/plain "Not found" — the one body this board could send that is not
+// JSON, so a client that parses every response throws on exactly the request
+// it most wants to log. Same envelope as every 400; dispatch() in
+// src/lib/protocol.js already answered this way, the board did not.
+void handleNotFound() {
+  sendError(404, "not found");
+}
+
 // ── Setup & Loop ─────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-  sensorTop.begin();
-  sensorBot.begin();
+  // begin() returns false when the sensor does not answer on the bus. Every
+  // later readLightLevel() then returns -2 and calcOptimalAngle() holds the
+  // target forever: a silent, motionless board. One Serial line per missing
+  // sensor is the only way to tell that apart from a dark room.
+  if (!sensorTop.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, SENSOR_TOP_ADDR)) {
+    Serial.println("BH1750 top not found at 0x23");
+  }
+  if (!sensorBot.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, SENSOR_BOT_ADDR)) {
+    Serial.println("BH1750 bot not found at 0x5C");
+  }
 
-  stepper.setMaxSpeed(500);
-  stepper.setAcceleration(200);
+  stepper.setMaxSpeed(MAX_SPEED_SPS);
+  stepper.setAcceleration(ACCEL_SPS2);
   stepper.setCurrentPosition(0);
 
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -211,6 +295,8 @@ void setup() {
   server.on("/set-angle", HTTP_POST, handleSetAngle);
   server.on("/set-panel", HTTP_POST, handleSetPanel);
   server.on("/set-mode",  HTTP_POST, handleSetMode);
+  server.on("/stop",      HTTP_POST, handleStop);
+  server.onNotFound(handleNotFound);
   server.begin();
 }
 
@@ -219,15 +305,20 @@ void loop() {
   stepper.run();
   syncAngleFromStepper();
 
-  if (autoMode && millis() - lastRead > 2000) {
+  if (autoMode && millis() - lastRead > SAMPLE_PERIOD_MS) {
     lastRead = millis();
     float luxTop = sensorTop.readLightLevel();
     float luxBot = sensorBot.readLightLevel();
     float next   = calcOptimalAngle(luxTop, luxBot);
-    if (abs(next - currentAngle) > DEADBAND_DEG) {
+    // Deadband against the commanded target, not currentAngle. Mid-move
+    // currentAngle lags the target by up to the whole move, so measuring
+    // from it (a) let a clear room go unnoticed while the arm kept climbing
+    // to its limit and (b) rewrote targetAngle below while the stepper kept
+    // its old goal, so /status lied and the next /set-panel re-issued that
+    // stale target and reversed the move. Inside the deadband nothing
+    // changes: targetAngle already equals the stepper's goal.
+    if (abs(next - targetAngle) > DEADBAND_DEG) {
       moveToAngle(next);
-    } else {
-      targetAngle = next;
     }
   }
 }

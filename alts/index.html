@@ -25,6 +25,12 @@
 .fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
 .note-warn{background:#2d1f00;border:1px solid #9e6a03;color:#e3b341;border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;margin:12px 0}
 .q{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin-bottom:8px}
+.search{margin:14px 0 6px}
+.search label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:6px}
+.search input{width:100%;max-width:420px;background:#0d1117;border:1px solid #30363d;border-radius:10px;
+  color:inherit;font:inherit;font-size:.9rem;padding:9px 12px}
+.search input:focus{outline:2px solid #58a6ff;outline-offset:1px}
+.count{font-size:.78rem;color:var(--muted);margin:0 0 14px}
 </style>
 </head>
 <body>
@@ -52,17 +58,24 @@
   <p class="cut-note">הדף הזה הוצא מהניווט ב-28.9.2026 כדי שהתיק ייקרא ב-90 שניות. הוא נשאר כאן לקישורים ישירים. שלוש הפשרות המרכזיות מופיעות בטבלת הפשרות בעמוד <a href="../case/">מקרה הנדסי</a>.</p>
   <h1>חלופות שנדחו — ולמה</h1>
   <p class="lead">
-    סרבו מול צעד מול מפעיל קווי. יחס lux מול סף מוחלט מול nits לצופה.
-    חיישן על המסגרת מול קיר מול מצלמה. כל שורה היא החלטה, לא שכחה.
+    תריס חכם מול זרוע מוניטור מול מנוע. סרבו מול צעד מול מפעיל קווי.
+    יחס lux מול סף מוחלט מול nits לצופה. חיישן על המסגרת מול קיר מול מצלמה.
+    כל שורה היא החלטה, לא שכחה.
   </p>
   <div class="note-warn">
     «נבחר לדמו» ≠ «הוכח כטוב ביותר». מפעיל קווי + תולעת + מפסק קצה הם מה שהייתי בונה
     אם מישהו היה מבטל את פסק ה־PARK ומתעקש על חומרה. ראו <a href="../spec/">מפרט</a>.
   </div>
+  <form class="search" role="search" onsubmit="return false">
+    <label for="q">חיפוש חלופה לפי מילת מפתח</label>
+    <input id="q" type="search" autocomplete="off" placeholder="למשל: תריס חכם, זרוע מוניטור, סרבו, תולעת">
+  </form>
+  <p id="count" class="count" aria-live="polite"></p>
   <div id="list"></div>
   <p class="fine">
-    המקור: <code>src/lib/alts.js</code>. הבדיקות נועלות את חמש ההחלטות
-    ואת זה שהדמו בחר בצעד + יחס + מסגרת + זרם החזקה + שקר האפס.
+    המקור: <code>src/lib/alts.js</code>. הבדיקות נועלות את שש ההחלטות,
+    את זה שהדמו בחר בצעד + יחס + מסגרת + זרם החזקה + שקר האפס,
+    ואת זה שחיפוש «תריס חכם» או «זרוע מוניטור» מחזיר את החלופות האלה.
   </p>
 </main>
 <script src="../src/lib/alts.js"></script>
@@ -85,12 +98,15 @@ function optClass(v) {
 }
 
 const list = document.getElementById('list');
-SM_ALTS.DECISIONS.forEach((d) => {
+const count = document.getElementById('count');
+const q = document.getElementById('q');
+
+function cardFor(question, options) {
   const card = document.createElement('section');
   card.className = 'card';
-  card.innerHTML = '<p class="q">' + d.question + '</p><div class="opts"></div>';
+  card.innerHTML = '<p class="q">' + question + '</p><div class="opts"></div>';
   const opts = card.querySelector('.opts');
-  d.options.forEach((o) => {
+  options.forEach((o) => {
     const el = document.createElement('article');
     el.className = 'opt ' + optClass(o.verdict);
     el.innerHTML =
@@ -99,8 +115,45 @@ SM_ALTS.DECISIONS.forEach((d) => {
       '<p>' + o.why + '</p>';
     opts.appendChild(el);
   });
-  list.appendChild(card);
-});
+  return card;
+}
+
+// One keyword hit per option; regroup under its decision so the page keeps
+// reading as «question → options» instead of a flat pile of cards.
+function groupHits(hits) {
+  const groups = [];
+  hits.forEach((h) => {
+    let g = groups.find((x) => x.id === h.decision);
+    if (!g) {
+      g = { id: h.decision, question: h.question, options: [] };
+      groups.push(g);
+    }
+    g.options.push(h);
+  });
+  return groups;
+}
+
+function render() {
+  const term = q.value.trim();
+  list.textContent = '';
+  if (!term) {
+    count.textContent = '';
+    SM_ALTS.DECISIONS.forEach((d) => list.appendChild(cardFor(d.question, d.options)));
+    return;
+  }
+  const hits = SM_ALTS.searchSolutions(term);
+  groupHits(hits).forEach((g) => list.appendChild(cardFor(g.question, g.options)));
+  if (!hits.length) {
+    count.textContent = 'אין חלופה שמכילה «' + term + '». נסו: תריס חכם, זרוע מוניטור, תולעת.';
+  } else if (hits.length === 1) {
+    count.textContent = 'נמצאה חלופה אחת עבור «' + term + '»';
+  } else {
+    count.textContent = 'נמצאו ' + hits.length + ' חלופות עבור «' + term + '»';
+  }
+}
+
+q.addEventListener('input', render);
+render();
 </script>
 </body>
 </html>

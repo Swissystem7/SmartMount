@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SmartMount — חוזה HTTP / Serial</title>
-<meta name="description" content="החוזה המדויק של הקושחה: ארבעה נתיבי WebServer, ארגומנטים ב־query, ומה ש־Serial באמת מדפיס.">
+<meta name="description" content="החוזה המדויק של הקושחה: חמישה נתיבי WebServer, ארגומנטים ב־query, ומה ש־Serial באמת מדפיס.">
 <meta name="theme-color" content="#0f1420">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
@@ -63,7 +63,7 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
 
   <div class="grid">
     <div class="card">
-      <h2>ארבעה נתיבים</h2>
+      <h2>חמישה נתיבים</h2>
       <table>
         <thead>
           <tr><th>שיטה</th><th>נתיב</th><th>ארגומנט</th><th>כישלון</th></tr>
@@ -85,7 +85,7 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
             <td class="mono">POST</td>
             <td class="mono">/set-panel</td>
             <td class="mono">type</td>
-            <td>חסר → <code>missing type</code>; מחוץ ל־0..2 → <code>invalid panel type</code></td>
+            <td>חסר → <code>missing type</code>; מחוץ ל־0..2 → <code>invalid panel type</code>. מצמיד את <em>היעד</em> לגבול החדש — תנועה באמצע לא מתבטלת</td>
           </tr>
           <tr>
             <td class="mono">POST</td>
@@ -93,15 +93,31 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
             <td class="mono">auto</td>
             <td>חייב המחרוזת <code>"0"</code> או <code>"1"</code></td>
           </tr>
+          <tr>
+            <td class="mono">POST</td>
+            <td class="mono">/stop</td>
+            <td>—</td>
+            <td>אין. עצירת חירום: <code>autoMode = false</code> ואז <code>stepper.stop()</code> — האטה עד עצירה</td>
+          </tr>
         </tbody>
       </table>
       <div class="note-warn">
-        <code>set-panel?type=foo</code> לא נכשל. <code>String::toInt()</code> של Arduino מחזיר 0, ו־0 הוא OLED.
-        זה חולשה בקושחה, לא «סובלנות». המשחק למטה מדגים אותה.
+        <code>set-panel?type=foo</code> נכשל ב־400. בעבר <code>String::toInt()</code> של Arduino החזיר 0 — OLED,
+        המכסה הרחב ביותר — עם 200. עכשיו <code>type</code> נפרס ב־<code>strtol</code> עם צריכה מלאה, כמו <code>deg</code>:
+        רווח לבן מוביל וסימן מתקבלים, <code>1.9</code> / <code>2abc</code> / <code>2 </code> נדחים. המשחק למטה מדגים.
       </div>
       <p class="fine">
         <code>set-angle</code> מכבה אוטו (<code>autoMode = false</code>) ואז קורא <code>moveToAngle</code>,
         שמצמיד ל־<code>±PANEL_LIMITS[panel]</code>. תשובת 200 אומרת «הפקודה התקבלה», לא «המסך ב־99°».
+      </p>
+      <p class="fine">
+        <code>deg</code> עובר דרך <code>strtof</code> של newlib, לא דרך regex עשרוני: רווח לבן מוביל
+        (<code>%0A12</code> → 12°) ו־hex (<code>0x10</code> → 16°) מתקבלים; <code>1e39</code> גולש
+        מ־float של 32 ביט ונדחה כ־<code>invalid deg</code>. המראה ב־JS משקף את זה, לא מייפה.
+      </p>
+      <p class="fine">
+        <code>stop</code> לא מנתק זרם: <code>AccelStepper::stop()</code> מחשב יעד חדש בסוף רמפת ההאטה,
+        והסלילים ממשיכים להחזיק. אוטו כבוי אחרת הלולאה הייתה חוזרת לנוע תוך 2 שניות.
       </p>
     </div>
 
@@ -112,6 +128,7 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
         <button type="button" class="btn" data-route="angle" id="rAngle">POST /set-angle</button>
         <button type="button" class="btn" data-route="panel" id="rPanel">POST /set-panel</button>
         <button type="button" class="btn" data-route="mode" id="rMode">POST /set-mode</button>
+        <button type="button" class="btn" data-route="stop" id="rStop">POST /stop</button>
       </div>
       <div id="argBox">
         <label class="sl" for="argVal">ערך ארגומנט</label>
@@ -135,8 +152,8 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
     <div class="card">
       <h2>גוף /status</h2>
 <pre>{
-  "angle":   4.5,
-  "target":  8.0,
+  "angle":   4.32,
+  "target":  7.92,
   "auto":    true,
   "panel":   2,
   "lux_top": 412.0,
@@ -144,14 +161,23 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
 }</pre>
       <p class="fine">
         <code>panel</code> הוא enum: 0 OLED, 1 QLED, 2 LED.
-        <code>lux_*</code> הם הקריאה החיה מ־BH1750 — כולל ערך שלילי כשהחיישן נכשל.
+        <code>lux_*</code> הם הקריאה החיה מ־BH1750 — קריאה כושלת (ערך שלילי מהספרייה) יוצאת כ־<code>null</code>, לא כ־lux.
         אין שדה WiFi, אין הומינג, אין מומנט.
+      </p>
+      <p class="fine">
+        <code>angle</code> ו־<code>target</code> שניהם צעדים חלקי <code>STEPS_PER_DEGREE</code>
+        (1000 צעדים לסיבוב, 0.36° לצעד): <code>set-angle?deg=8</code> הופך ל־22 צעדים ומדווח
+        <code>7.92</code>. כשהתנועה נגמרת <code>angle == target</code> בדיוק — זו הדרך של הלקוח לדעת שהזרוע הגיעה.
       </p>
     </div>
     <div class="card">
       <h2>Serial 115200</h2>
-      <p class="fine">הקושחה מדפיסה <em>שורה אחת</em> ב־<code>setup()</code>. לא לוג בקרה, לא קריאות lux.</p>
+      <p class="fine">הקושחה מדפיסה ב־<code>setup()</code> <em>שורת WiFi אחת</em>, ולפניה שורה לכל BH1750 ש־<code>begin()</code> שלו נכשל. לא לוג בקרה, לא קריאות lux.</p>
 <pre>Serial.begin(115200);
+
+// רק אם חיישן לא עונה על ה־I²C (אחרת כלום):
+BH1750 top not found at 0x23
+BH1750 bot not found at 0x5C
 
 // אחרי WiFi.begin + לולאת 10 שניות:
 IP: 192.168.1.42
@@ -168,6 +194,8 @@ WiFi timeout — continuing in local auto mode</pre>
     </div>
   </div>
 </main>
+<script src="../src/lib/control-params.js"></script>
+<script src="../src/lib/control.js"></script>
 <script src="../src/lib/protocol.js"></script>
 <script>
 const state = {
@@ -181,7 +209,13 @@ const ARG = {
   angle:  { method: 'POST', path: '/set-angle', key: 'deg', sample: '12.5' },
   panel:  { method: 'POST', path: '/set-panel', key: 'type', sample: '2' },
   mode:   { method: 'POST', path: '/set-mode', key: 'auto', sample: '1' },
+  stop:   { method: 'POST', path: '/stop', key: null, sample: '' },
 };
+
+// state.panel is the ino enum (0 OLED, 1 QLED, 2 LED); control.js wants the name.
+function panelName() {
+  return CONTROL_PARAMS.panelNames[state.panel];
+}
 
 function argsOf() {
   const spec = ARG[route];
@@ -193,7 +227,7 @@ function paintRequest() {
   const spec = ARG[route];
   document.getElementById('reqLine').textContent = SM_PROTOCOL.requestLine(spec.method, spec.path, argsOf());
   document.getElementById('argVal').disabled = !spec.key;
-  document.getElementById('argVal').placeholder = spec.key ? spec.key : 'אין ארגומנט ל־/status';
+  document.getElementById('argVal').placeholder = spec.key ? spec.key : 'אין ארגומנט ל־' + spec.path;
 }
 
 function show(res, extra) {
@@ -209,6 +243,9 @@ function send() {
   const args = argsOf();
   const res = SM_PROTOCOL.dispatch(spec.method, spec.path, args, state);
   let note = '';
+  if (res.status === 400 && spec.key === 'type') {
+    note = 'strtol לא צרך את כל type, או שהוא מחוץ ל־0..2 — 400 בלי שינוי מצב. בעבר toInt("foo")=0 בחר OLED בשקט.';
+  }
   if (res.effect) {
     if (res.effect.autoMode !== undefined) {
       state.auto = res.effect.autoMode;
@@ -216,12 +253,27 @@ function send() {
     }
     if (res.effect.panel !== undefined) {
       state.panel = res.effect.panel;
-      note = 'currentPanel = ' + state.panel + (args.type === 'foo' ? ' — toInt("foo")=0 OLED' : '');
+      // ino handleSetPanel: moveToAngle(targetAngle) — the new limit is only a
+      // ceiling, so a target that still fits stays and one that does not
+      // shortens to the new panel limit.
+      const kept = state.target;
+      state.target = moveToAngle(state.target, panelName()).target;
+      note = 'currentPanel = ' + state.panel + ' — strtol צרך את כל type והוא בטווח 0..2.'
+        + (state.target === kept ? ' היעד עדיין בתוך הגבול, התנועה ממשיכה.' : ' היעד קוצר לגבול החדש: ' + state.target + '°.');
     }
     if (res.effect.requestedDeg !== undefined) {
       state.auto = false;
-      state.target = res.effect.requestedDeg;
-      note = 'התקבל deg=' + res.effect.requestedDeg + '. moveToAngle יצמיד לגבול הפאנל; 200 ≠ זווית סופית.';
+      // ino moveToAngle: constrain to the panel limit, then lroundf to a step.
+      // target is what /status will report — not the raw deg from the request.
+      const mv = moveToAngle(res.effect.requestedDeg, panelName());
+      state.target = mv.target;
+      note = 'התקבל deg=' + res.effect.requestedDeg + '. moveToAngle הצמיד לגבול הפאנל (' + mv.clamped
+        + '°) וכימת ל־' + mv.steps + ' צעדים, אז /status ידווח target=' + mv.target + '. 200 ≠ הזווית שביקשת.';
+    }
+    if (res.effect.stop) {
+      state.auto = false;
+      state.target = state.angle;
+      note = 'עצירת חירום: autoMode = false, stepper.stop() מאט לעצירה. הסלילים עדיין מוזנים — זו לא נפילת מתח.';
     }
   }
   show(res, note);

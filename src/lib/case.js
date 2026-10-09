@@ -22,7 +22,7 @@
       severity: 'safety',
       status: 'fixed-in-source',
       was: 'ערך שלילי מהספרייה זרם ליחס בוהק ענק והמסך הלך לגבול הפאנל.',
-      now: 'NaN / שלילי → מחזירים את הזווית הנוכחית. HOLD, לא slam.',
+      now: 'NaN / שלילי → מחזירים את היעד המצווה (targetAngle). HOLD, לא slam ולא היפוך כיוון באמצע מהלך.',
       where: 'firmware/smart_mount.ino — calcOptimalAngle',
       provenBy: 'test/control.test.js, test/firmware-mirror.test.js',
     }),
@@ -42,7 +42,7 @@
       severity: 'contract',
       status: 'fixed-in-source',
       was: 'type / deg / auto יכלו להיכנס ריקים או כזבל ולהפוך לברירת מחדל שקטה.',
-      now: 'set-angle ו-set-mode מחזירים 400 על חסר / לא מספר / auto≠0|1. type מחוץ ל-0..2 נדחה. חור שנשאר: toInt("foo")=0 → OLED, לא 400.',
+      now: 'set-angle ו-set-mode מחזירים 400 על חסר / לא מספר / auto≠0|1. type נפרס ב-strtol עם צריכה מלאה: מחוץ ל-0..2, "foo", "1.9" או "2 " → 400. לפני כן toInt("foo")=0 בחר OLED (המכסה הרחב ביותר) בשקט.',
       where: 'firmware/smart_mount.ino — handleSetAngle, handleSetPanel, handleSetMode',
       provenBy: 'test/protocol.test.js',
     }),
@@ -119,7 +119,7 @@
       'MOVING', 'FAULT_SENSOR', 'FAULT_HOME', 'FAULT_STALL', 'FAULT_LIMIT', 'DEAD',
     ]),
     safeNote: 'מכונה מוצעת על המחשב. לא נכתבה ל-.ino ולא רצה על ESP32. בלי מפסק אי אפשר להומינג.',
-    cells: 165, // 11×15 safe only. Firmware is a separate 2×15 = 30.
+    cells: 176, // 11×16 safe only. Firmware is a separate 2×16 = 32.
   });
 
   const TRADEOFFS = Object.freeze([
@@ -167,8 +167,8 @@
   const SHOWN = Object.freeze([
     'הקושחה מתקמפלת ל-ESP32 — core 3.3.12 ו-2.0.17 (הידור בלבד, 27.9.2026)',
     'סקירת קושחת ESP32 עם באגי בטיחות שננעלו בבדיקות מארח',
-    'חוזה HTTP מפורש (ארבעה נתיבים, דחיית קלט רע)',
-    'מכונת מצבים כפולה: מה שכתוב מול מה שחסר — 30 + 165 תאים',
+    'חוזה HTTP מפורש (חמישה נתיבים, דחיית קלט רע)',
+    'מכונת מצבים כפולה: מה שכתוב מול מה שחסר — 32 + 176 תאים',
     'תקציב תזמון והספק מדפי נתונים, לא ממד-זרם',
     'כנות: באנר, HIL never-run, PARK, אין נתיב הכנסה',
   ]);

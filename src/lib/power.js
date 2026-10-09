@@ -142,11 +142,16 @@
     const logicMa = wifiMa + sensorMa + A4988_LOGIC_MA;
     const logic = (logicMa / 1000) * LOGIC_V;
     const hold = windingHoldW({ phaseA, phaseOhm });
+    // windingHoldW has already validated phaseA (finite, >= 0) or thrown.
+    // The peak the PSU / pack must survive is the *caller's* phase current,
+    // not the 17HS4401 label — otherwise a 0.8 A motor reports 1.5 A peaks
+    // while its I²R hold says 1.9 W.
+    const phaseAmps = Number(phaseA != null ? phaseA : NEMA17_PHASE_A);
     const coilsOn = holding || moving;
     const motor = coilsOn ? hold * (moving ? moveFactor : 1) : 0;
     const motor12vAvgMa = motor > 0 ? (motor / MOTOR_V) * 1000 : 0;
     const motorPhasePeakMa = coilsOn
-      ? NEMA17_PHASE_A * 1000 * (moving ? moveFactor : 1)
+      ? phaseAmps * 1000 * (moving ? moveFactor : 1)
       : 0;
 
     let mode = 'idle-worm';
@@ -166,6 +171,7 @@
       logic3v3Ma: logicMa,
       motor12vAvgMa,
       motorPhasePeakMa,
+      phaseA: phaseAmps,
       logicW: logic,
       motorW: motor,
       totalW: logic + motor,
@@ -231,6 +237,22 @@
     return null;
   }
 
+  // «איזו סוללה לקנות» — the smallest pack on the list that covers requiredWh
+  // and is still allowed to feed the rail. requiredWh is already grossed up for
+  // DoD and converter loss, so the honest comparison is against full cellWh.
+  // Energy + rail only: C-rate and weight are the buyer's call, not ours.
+  // Ties on cellWh resolve to the first pack in PACKS order.
+  function smallestPackFor(requiredWh, needsMotorRail) {
+    let best = null;
+    for (let i = 0; i < PACKS.length; i++) {
+      const p = PACKS[i];
+      if (needsMotorRail && !p.canMotor12v) continue;
+      if (p.cellWh < requiredWh) continue;
+      if (best === null || p.cellWh < best.cellWh) best = p;
+    }
+    return best;
+  }
+
   function sizeBattery(input) {
     const src = input || {};
     const day = dailyEnergy(src);
@@ -251,6 +273,9 @@
     const packAh = pack.cellWh / pack.railV;
     const cRate = packAh > 0 ? peakA / packAh : Infinity;
     const motorNeeded = day.holdW > 0 || (src.movesPerDay || 0) > 0;
+    // Hold and the move pulse are both 12 V; either one disqualifies a 5 V bank.
+    const needsMotorRail = motorNeeded && day.holdW > 0;
+    const bestPack = smallestPackFor(requiredWh, needsMotorRail);
 
     let kind = 'hours-ok';
     if (!pack.canMotor12v && motorNeeded && day.holdW > 0) kind = 'pack-cannot-motor-rail';
@@ -272,6 +297,7 @@
       cRate,
       motorNeeded,
       canFeedMotorRail: pack.canMotor12v,
+      bestPackId: bestPack ? bestPack.id : null,
       kind,
       daily: day,
     };

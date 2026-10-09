@@ -153,6 +153,7 @@ input[type=range]{width:100%;accent-color:#58a6ff}
     </div>
   </div>
 </main>
+<script src="../src/lib/control-params.js"></script>
 <script src="../src/lib/optics.js"></script>
 <script>
 const PIVOT = { x: 70, y: 250 };
@@ -416,7 +417,7 @@ function paintOptics(rayHitsEye) {
   const law = s.ratio != null && s.ratio > s.threshold;
   if (s.kind === 'blind-but-quiet') {
     ov.className = 'verdict hit';
-    ov.textContent = 'החוק שקט (יחס ' + s.ratio.toFixed(2) + '× < 3) והעין מסונוורת — כתם ' + s.highlight.toFixed(0) + ' cd/m² מול תוכן ~' + s.contentNits + '. זה הפער שהאלגוריתם לא יכול לסגור.';
+    ov.textContent = 'החוק שקט (יחס ' + s.ratio.toFixed(2) + '× < ' + s.threshold + ') והעין מסונוורת — כתם ' + s.highlight.toFixed(0) + ' cd/m² מול תוכן ~' + s.contentNits + '. זה הפער שהאלגוריתם לא יכול לסגור.';
   } else if (s.kind === 'tilts-for-nothing') {
     ov.className = 'verdict meh';
     ov.textContent = 'החיישנים דורשים הטיה (יחס ' + s.ratio.toFixed(1) + '×) אבל אין כתם בעין. הזרוע זזה בלי סיבה אופטית לצופה.';

@@ -152,6 +152,17 @@
       proves: 'המכונה הבטוחה לא בקושחה — גם על הלוח',
       cannotProve: 'שאפשר לעשות הומינג בלי חומרה נוספת (אי אפשר)',
     }),
+    Object.freeze({
+      id: 'HIL-13',
+      fixture: 'motor',
+      title: 'POST /stop באמצע מהלך 20°',
+      inject: 'set-angle?deg=20 ואז POST /stop אחרי ~חצי מהלך. אחר כך SAMPLE אחד עם בוהק.',
+      expect: 'האטה ועצירה לפני 20°, לא קפיצה. /status.auto=false ו-target=angle אחרי העצירה. SAMPLE לא מזיז.',
+      instruments: Object.freeze(['מד זווית', 'curl', 'לוגיקה על STEP']),
+      hazard: 'low',
+      proves: 'handleStop: stepper.stop() מאט, autoMode כבוי, targetAngle = נקודת העצירה — על הלוח',
+      cannotProve: 'עצירת חירום אמיתית: הסלילים נשארים מוזנים, ובלי WiFi אין /stop בכלל',
+    }),
   ]);
 
   function byId(id) {
