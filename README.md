@@ -19,7 +19,7 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 | [מכונת מצבים](https://swissystem7.github.io/SmartMount/fsm/) | מה שה־`.ino` עושה (auto + moveTo) מול FSM בטוח מוצע — 32 + 176 תאים מ־`step()` |
 | [תזמון והספק](https://swissystem7.github.io/SmartMount/runtime/) | פרופיל AccelStepper, גנט של `loop()`, הבזק שמש שמתפספס בין דגימות |
 | [תקציב הספק](https://swissystem7.github.io/SmartMount/power/) | זרם idle / תנועה / WiFi וחישוב סוללה — דפי נתונים, לא מד-זרם |
-| [תוכנית HIL](https://swissystem7.github.io/SmartMount/hil/) | שנים-עשר מקרים על השולחן. אפס רצו. HIL-10 אוסר טלוויזיה |
+| [תוכנית HIL](https://swissystem7.github.io/SmartMount/hil/) | שלושה-עשר מקרים על השולחן. אפס רצו. HIL-10 אוסר טלוויזיה |
 | [חלופות](https://swissystem7.github.io/SmartMount/alts/) | צעד מול סרבו מול מפעיל קווי; יחס lux מול מוחלט; למה המסגרת |
 | [לוח בקרה](https://swissystem7.github.io/SmartMount/dashboard/) | סליידרי lux על `control.js` — בלי Cloud ובלי חשבון |
 
