@@ -101,3 +101,27 @@ test('the BOM is the hardware firmware/smart_mount.ino drives, not a different m
   // No homing in firmware (setCurrentPosition(0) at boot), so no endstop part.
   assert.ok(!items.some((p) => /endstop/i.test(p.id + p.name)), 'endstops are an open problem, not a fitted part');
 });
+
+const { getBomItemById } = require('../src/lib/bom.js');
+
+test('getBomItemById returns complete BOM item objects for given IDs', () => {
+  const result1 = getBomItemById('light-sensor-bh1750');
+  assert.deepStrictEqual(result1, {
+    id: 'light-sensor-bh1750',
+    name: 'BH1750 Ambient Light Sensor',
+    specification: 'BH1750 I2C lux sensor module with ADDR pin (one at 0x23, one at 0x5C)',
+    quantity: 2,
+    suppliers: ['Adafruit Industries', 'DFRobot', 'Generic GY-302 Module Supplier'],
+  });
+
+  const result2 = getBomItemById('mcu-esp32-devkit');
+  assert.deepStrictEqual(result2, {
+    id: 'mcu-esp32-devkit',
+    name: 'ESP32 DevKit',
+    specification: 'ESP32-WROOM-32 DevKit, WiFi, I2C on GPIO 21/22, STEP/DIR on GPIO 18/19',
+    quantity: 1,
+    suppliers: ['Espressif', 'DOIT', 'AZ-Delivery'],
+  });
+
+  assert.notStrictEqual(result1, result2, 'different IDs must return different object references');
+});

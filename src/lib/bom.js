@@ -72,6 +72,19 @@ function getBomItems() {
   }));
 }
 
+function getBomItemById(id) {
+  const item = BOM_ITEMS.find((item) => item.id === id);
+  if (!item) return undefined;
+  return {
+    id: item.id,
+    name: item.name,
+    specification: item.specification,
+    quantity: item.quantity,
+    suppliers: [...item.suppliers],
+  };
+}
+
 module.exports = getBomItems;
 module.exports.getBomItems = getBomItems;
+module.exports.getBomItemById = getBomItemById;
 module.exports.BOM_ITEMS = BOM_ITEMS;
