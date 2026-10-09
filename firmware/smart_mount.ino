@@ -29,6 +29,10 @@ const float DEADBAND_DEG = 1.0f;
 const float STEPS_PER_REV = 200.0f;
 const float GEAR_RATIO = 5.0f;
 const float STEPS_PER_DEGREE = (STEPS_PER_REV * GEAR_RATIO) / 360.0f;
+// AccelStepper envelope + auto-mode sample period. Mirrored by src/lib/timing.js.
+const float MAX_SPEED_SPS = 500.0f;  // steps / s
+const float ACCEL_SPS2    = 200.0f;  // steps / s^2
+const unsigned long SAMPLE_PERIOD_MS = 2000;
 // <<< END GENERATED control-params
 enum PanelType { OLED = 0, QLED = 1, LED = 2 };
 PanelType currentPanel = LED;
@@ -36,9 +40,17 @@ PanelType currentPanel = LED;
 // Stepper: STEP=18, DIR=19
 AccelStepper stepper(AccelStepper::DRIVER, 18, 19);
 
-// Sensors: top sensor (facing up/out) + bottom sensor (facing screen)
-BH1750 sensorTop(0x23);   // ADDR=GND
-BH1750 sensorBot(0x5C);   // ADDR=VCC
+// Sensors: top sensor (facing up/out) + bottom sensor (facing screen).
+// The address is passed to the constructor AND to begin(): claws/BH1750's
+// begin(mode, addr = 0x23, i2c) overwrites the constructor address whenever
+// addr is non-zero, so a bare begin() on the bottom sensor re-pointed the 0x5C
+// object at 0x23. Both objects then read the top sensor, glareRatio was 1.0 in any
+// light, and the mount never tilted. One constant per sensor, used in both
+// places, so the two cannot drift apart again.
+const uint8_t SENSOR_TOP_ADDR = 0x23;   // ADDR=GND
+const uint8_t SENSOR_BOT_ADDR = 0x5C;   // ADDR=VCC
+BH1750 sensorTop(SENSOR_TOP_ADDR);
+BH1750 sensorBot(SENSOR_BOT_ADDR);
 
 WebServer server(80);
 
@@ -130,7 +142,11 @@ float calcOptimalAngle(float luxTop, float luxBot) {
   float angle = 0.0;
   if (glareRatio > GLARE_THRESHOLD) {
     // Map glare intensity to tilt (max = panel limit)
-    angle = min((glareRatio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, (double)limit);
+    // Both operands float: on ESP32 min is std::min (Arduino.h does
+    // using std::min, no macro), so min(float, double) does not deduce T and
+    // the sketch fails to compile. The old double cast on limit matched the
+    // 3.0 / 5.0 double literals that the generated f-suffixed constants replaced.
+    angle = min((glareRatio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
   }
   return angle;
 }
@@ -151,14 +167,22 @@ void moveToAngle(float deg) {
 }
 
 // ── HTTP API ─────────────────────────────────────────────────────────────
+// A failed BH1750 read is a negative sentinel, not a lux value. /status used
+// to pass it through, so a client plotted -1 lux next to a real reading.
+// Same test as calcOptimalAngle's hold: failed or non-finite -> JSON null.
+void setLux(JsonDocument& doc, const char* key, float lux) {
+  if (isnan(lux) || isinf(lux) || lux < 0.0f) doc[key] = nullptr;
+  else doc[key] = lux;
+}
+
 void handleStatus() {
   StaticJsonDocument<256> doc;
   doc["angle"]       = currentAngle;
   doc["target"]      = targetAngle;
   doc["auto"]        = autoMode;
   doc["panel"]       = currentPanel;
-  doc["lux_top"]     = sensorTop.readLightLevel();
-  doc["lux_bot"]     = sensorBot.readLightLevel();
+  setLux(doc, "lux_top", sensorTop.readLightLevel());
+  setLux(doc, "lux_bot", sensorBot.readLightLevel());
   String out; serializeJson(doc, out);
   sendJson(200, out);
 }
@@ -226,15 +250,33 @@ void handleStop() {
   sendOk();
 }
 
+// Anything not registered below: a typo'd path, or a real path with the wrong
+// method (GET /stop, POST /status). WebServer's built-in reply is 404
+// text/plain "Not found" — the one body this board could send that is not
+// JSON, so a client that parses every response throws on exactly the request
+// it most wants to log. Same envelope as every 400; dispatch() in
+// src/lib/protocol.js already answered this way, the board did not.
+void handleNotFound() {
+  sendError(404, "not found");
+}
+
 // ── Setup & Loop ─────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-  sensorTop.begin();
-  sensorBot.begin();
+  // begin() returns false when the sensor does not answer on the bus. Every
+  // later readLightLevel() then returns -2 and calcOptimalAngle() holds the
+  // target forever: a silent, motionless board. One Serial line per missing
+  // sensor is the only way to tell that apart from a dark room.
+  if (!sensorTop.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, SENSOR_TOP_ADDR)) {
+    Serial.println("BH1750 top not found at 0x23");
+  }
+  if (!sensorBot.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, SENSOR_BOT_ADDR)) {
+    Serial.println("BH1750 bot not found at 0x5C");
+  }
 
-  stepper.setMaxSpeed(500);
-  stepper.setAcceleration(200);
+  stepper.setMaxSpeed(MAX_SPEED_SPS);
+  stepper.setAcceleration(ACCEL_SPS2);
   stepper.setCurrentPosition(0);
 
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -254,6 +296,7 @@ void setup() {
   server.on("/set-panel", HTTP_POST, handleSetPanel);
   server.on("/set-mode",  HTTP_POST, handleSetMode);
   server.on("/stop",      HTTP_POST, handleStop);
+  server.onNotFound(handleNotFound);
   server.begin();
 }
 
@@ -262,7 +305,7 @@ void loop() {
   stepper.run();
   syncAngleFromStepper();
 
-  if (autoMode && millis() - lastRead > 2000) {
+  if (autoMode && millis() - lastRead > SAMPLE_PERIOD_MS) {
     lastRead = millis();
     float luxTop = sensorTop.readLightLevel();
     float luxBot = sensorBot.readLightLevel();

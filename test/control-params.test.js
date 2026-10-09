@@ -16,6 +16,9 @@ test('generated JS matches config/control-params.json', () => {
   assert.equal(params.gainDegPerRatio, spec.gainDegPerRatio);
   assert.equal(params.minLux, spec.minLux);
   assert.equal(params.deadbandDeg, spec.deadbandDeg);
+  assert.equal(params.maxSpeedSps, spec.motion.maxSpeedSps);
+  assert.equal(params.accelSps2, spec.motion.accelSps2);
+  assert.equal(params.samplePeriodMs, spec.motion.samplePeriodMs);
 });
 
 test('control.js reads the same generated params', () => {
