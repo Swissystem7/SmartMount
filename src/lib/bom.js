@@ -14,6 +14,7 @@ const BOM_ITEMS = Object.freeze([
       'Espressif',
       'DOIT',
       'AZ-Delivery',
+      'Generic ESP32 Supplier',
     ]),
   }),
   Object.freeze({
