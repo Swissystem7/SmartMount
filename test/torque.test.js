@@ -76,3 +76,7 @@ test('bad inputs are rejected rather than returning NaN', () => {
 test('verdict returns holds when factor is exactly 1.0', () => {
   assert.equal(T.verdict({ factor: 1.0, selfLocking: false, unpowered: false }), 'holds');
 });
+
+test('safetyFactor returns 0 when requiredNm is 0, regardless of availableNm', () => {
+  assert.strictEqual(T.safetyFactor(10, 0), 0);
+});

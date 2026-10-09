@@ -48,6 +48,26 @@
   const SERIAL_WIFI_OK = 'IP: ';
   const SERIAL_WIFI_TIMEOUT = 'WiFi timeout — continuing in local auto mode';
 
+  // BH1750 I2C addresses: ADDR pin to GND is 0x23, to VCC is 0x5C. The .ino
+  // passes each one to the constructor and again to begin(mode, addr): the
+  // library's begin() defaults addr to 0x23 and overwrites the constructor
+  // value, so a bare begin() on the 0x5C sensor silently re-pointed it at the
+  // top sensor. begin() failing prints one line per sensor (before the WiFi
+  // line); nothing else on Serial.
+  const SENSOR_TOP_ADDR = 0x23;
+  const SENSOR_BOT_ADDR = 0x5C;
+  const SERIAL_SENSOR_TOP_MISSING = 'BH1750 top not found at 0x23';
+  const SERIAL_SENSOR_BOT_MISSING = 'BH1750 bot not found at 0x5C';
+
+  // The Serial lines setup() prints for the sensors, in order. Both found →
+  // nothing, like the board.
+  function serialOnSensorBegin(topOk, botOk) {
+    const lines = [];
+    if (!topOk) lines.push(SERIAL_SENSOR_TOP_MISSING);
+    if (!botOk) lines.push(SERIAL_SENSOR_BOT_MISSING);
+    return lines;
+  }
+
   function errorBody(msg) {
     return { ok: false, error: msg };
   }
@@ -119,6 +139,12 @@
     return Number.isInteger(type) && type >= 0 && type < 3;
   }
 
+  // statusLux — ino: setLux(). A failed BH1750 read (negative, NaN, inf) is
+  // reported as null, never as a lux value.
+  function statusLux(v) {
+    return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
+  }
+
   function handleStatus(state) {
     const s = state || {};
     const autoMode = s.autoMode !== undefined ? s.autoMode : s.auto;
@@ -129,8 +155,8 @@
         target: s.target,
         auto: autoMode,
         panel: s.panel,
-        lux_top: s.lux_top,
-        lux_bot: s.lux_bot,
+        lux_top: statusLux(s.lux_top),
+        lux_bot: statusLux(s.lux_bot),
       },
     };
   }
@@ -208,6 +234,11 @@
     WIFI_CONNECT_TIMEOUT_MS,
     SERIAL_WIFI_OK,
     SERIAL_WIFI_TIMEOUT,
+    SENSOR_TOP_ADDR,
+    SENSOR_BOT_ADDR,
+    SERIAL_SENSOR_TOP_MISSING,
+    SERIAL_SENSOR_BOT_MISSING,
+    serialOnSensorBegin,
     parseFloatArg,
     parseIntArg,
     isValidPanel,
