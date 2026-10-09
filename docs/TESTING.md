@@ -19,7 +19,7 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 | מעבדה — יעד | `test/lab-target-mirror.test.js` | הסקריפט של `lab/` רץ ב־`node:vm` עם DOM מזויף: היעד הוא הצעד המעוגל (`angle == target` בהגעה), `/set-panel` באמצע מהלך מצמיד את היעד ולא את הזווית המפגרת, דגימה בתוך הדד-בנד לא משכתבת `targetAngle`, HOLD מחזיק את היעד בזמן שהזרוע ממשיכה |
 | תזמון | `test/timing.test.js` | `setMaxSpeed(MAX_SPEED_SPS)` / `SAMPLE_PERIOD_MS` בקושחה, הערכים מ־`config/control-params.json` (500 / 2000 ms) ו־`timing.js` קורא אותם משם; 20–40° הם משולש; HTTP 20 ms מרעיב פולסים; הבזק 400 ms מתפספס ב־80% |
 | הספק | `test/power.test.js` | I²R החזקה > USB 5 V; סלילים 24 שעות הם מחמם; פאוורבנק לא מזין 12 V; תולעת הופכת 3S ל־UPS |
-| HIL | `test/hil.test.js` | 12 מקרים, `STATUS=never-run`, HIL-10 אוסר טלוויזיה |
+| HIL | `test/hil.test.js` | 13 מקרים, `STATUS=never-run`, HIL-10 אוסר טלוויזיה |
 | חלופות | `test/alts.test.js` | הדמו בחר צעד+יחס+מסגרת+החזקה+שקר אפס; מפעיל קווי+תולעת+מפסק הם «למוצר» |
 | מקרה הנדסי | `test/case.test.js` | פסק דין portfolio-only; באגים «תוקנו במקור» לא «אומתו על חומרה»; HIL נשאר never-run |
 
@@ -36,6 +36,6 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 
 ## תוכנית HIL
 
-שנים-עשר מקרים, אפס רצו. המסמך: [HIL.md](HIL.md). העמוד: [`hil/`](../hil/). הנתונים: `src/lib/hil.js`.
+שלושה-עשר מקרים, אפס רצו. המסמך: [HIL.md](HIL.md). העמוד: [`hil/`](../hil/). הנתונים: `src/lib/hil.js`.
 
 ה-GitHub Actions היחיד כאן הוא `.github/workflows/validate.yml`: מריץ את אותה חבילת בדיקות (`npm test`) על כל push ו-pull request. הוא לא ממזג, לא דוחף בכוח ולא פורס. הבדיקות רצות גם במכונה המקומית.
