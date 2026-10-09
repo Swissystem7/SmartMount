@@ -6,6 +6,15 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 
 זה **לא** מוצר, לא תושבת שנבדקה על הקיר, ולא שירות. הקושחה ב־`firmware/smart_mount.ino` נכתבה ללוח אמיתי **אך טרם רצה מול חומרה**. אלגוריתם הבוהק **לא כויל מול מדידה**. אין ענן, אין חשבונות ואין סליקה.
 
+## In English
+
+SmartMount is a **portfolio piece, not a product** (market verdict: PARK). It is ESP32 firmware (`firmware/smart_mount.ino`) that reads two BH1750 light sensors and tilts a screen with a stepper when their ratio suggests glare, plus a static Hebrew site that runs the same control law in the browser.
+
+- **What is measured:** the firmware compiles for ESP32 (arduino-cli, esp32 core 3.3.12 and 2.0.17, 27.9.2026). Before that fix it did not compile at all. 140+ host tests pin the control law, the HTTP contract and every cell of the state machine.
+- **What is not:** it has never been flashed to a board. The glare threshold is not calibrated. There is no homing switch, so position zero is a guess. The 12-case bench plan (HIL) has not run.
+- **Start here (90 seconds):** https://swissystem7.github.io/SmartMount/case/ (Hebrew).
+- **Contact:** a public GitHub issue form, https://github.com/Swissystem7/SmartMount/issues/new?template=recruiter.yml. Please do not post a phone number or email there.
+
 ## דפים
 
 | עמוד | מה יש בו |
@@ -37,6 +46,8 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 - **WiFi:** timeout — המצב האוטומטי המקומי ממשיך גם בלי רשת.
 - **דשבורד:** סימולציית חוק בקרה בלבד (`control.js`). אין Cloud, אין התחברות, אין לוח זמנים — אלה לא קיימים בקושחה.
 - **גבולות צפייה:** OLED 40° (הרחב ביותר), QLED 30°, LED/VA 20°.
+
+**הידור:** הקושחה מתקמפלת ל־ESP32 (core 3.3.12 ו־2.0.17, נמדד 27.9.2026). לפני כן היא לא התקמפלה בגלל `min(float, double)`. זה הידור בלבד, לא ריצה על לוח. פירוט: [docs/TESTING.md](docs/TESTING.md).
 
 מה **לא** עובד: אין ESP32 מחובר לדמו, אין מדידת בוהק אמיתית, ואין הרכבה מכנית שנשאה מסך. הומינג, מפעיל נעילה עצמית וגאומטריית הכתם — פתוחים (ראו [מפרט](https://swissystem7.github.io/SmartMount/spec/)). מכונת המצבים ה«בטוחה», מספרי התזמון/הספק/הסוללה ותוכנית ה-HIL הם מודלים ומסמכים על המחשב, לא קושחה שרצה ולא מדידת מעבדה.
 
