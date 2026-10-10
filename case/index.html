@@ -45,6 +45,9 @@ h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;
 ul.plain{margin:0;padding:0 18px 0 0}
 ul.plain li{margin:6px 0;font-size:.88rem;line-height:1.55;color:#c9d1d9}
 .cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.contact{margin:22px 0 6px;padding:14px 16px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#111120}
+.contact h2{margin:0 0 10px}
+.contact .fine{display:block;margin-top:8px}
 a.btn{text-decoration:none;font-weight:700;font-size:.88rem;border-radius:10px;padding:10px 16px;display:inline-block;border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
 a.primary{background:linear-gradient(135deg,#38bdf8,#8b5cf6);border:0;color:#fff}
 table{width:100%;border-collapse:collapse;font-size:.84rem}
@@ -182,6 +185,14 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
     <a class="btn" href="https://github.com/Swissystem7/SmartMount/blob/master/firmware/smart_mount.ino">הקושחה ב-GitHub</a>
     <a class="btn" href="https://github.com/Swissystem7/SmartMount/blob/master/MONETIZATION.md">למה אין מוצר</a>
   </div>
+  <section class="contact" id="contactBox" aria-labelledby="contactTitle">
+    <h2 id="contactTitle">רוצים לדבר על משרת embedded?</h2>
+    <a class="btn primary" data-contact-direct hidden>יצירת קשר</a>
+    <span data-contact-issue>
+      <a class="btn" href="https://github.com/Swissystem7/SmartMount/issues/new?template=recruiter.yml">פנייה בטופס GitHub (עברית)</a>
+      <span class="fine">הפנייה ציבורית: בלי טלפון ובלי מייל. התשובה מגיעה כתגובה, וערוץ פרטי מתואם משם. צריך חשבון GitHub.</span>
+    </span>
+  </section>
   <p class="fine">
     פסק דין שוק: <a href="https://github.com/Swissystem7/SmartMount/blob/master/RESEARCH.md">RESEARCH.md</a> (PARK).
     פסק דין הכנסה: <a href="https://github.com/Swissystem7/SmartMount/blob/master/MONETIZATION.md">MONETIZATION.md</a> (תיק עבודות בלבד).
@@ -189,6 +200,8 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
   </p>
 </main>
 <script src="../src/lib/case.js"></script>
+<script src="../config/contact.js"></script>
+<script src="../src/lib/contact.js"></script>
 <script>
 (function () {
   const C = window.SM_CASE;
