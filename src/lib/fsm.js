@@ -604,6 +604,15 @@
     return step(s, { type: 'BOOT_DONE', wifiOk: wifiOk !== false });
   }
 
+  // Host-side status for Gantt overlays on the control loop (dashboard / runtime).
+  function controlLoopFsmStatus(snapshot) {
+    if (!snapshot) return 'auto';
+    if (snapshot.dropped || snapshot.sensorFail) return 'hold';
+    if (snapshot.moving) return 'moving';
+    if (!snapshot.autoMode) return 'manual';
+    return 'auto';
+  }
+
   return {
     FIRMWARE_STATES,
     SAFE_STATES,
@@ -616,5 +625,6 @@
     applyAll,
     firmwareBoot,
     safeBoot,
+    controlLoopFsmStatus,
   };
 });
