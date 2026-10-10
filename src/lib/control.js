@@ -27,6 +27,27 @@
   const DEADBAND_DEG = P.deadbandDeg;
   const MIN_LUX = P.minLux;
 
+  // Labels for one cooperative loop() pass — shared with timing.loopPhases ids.
+  const LOOP_PHASE_LABELS = Object.freeze({
+    waitSample: 'המתנה לדגימה',
+    handleClient: 'handleClient()',
+    i2c: 'BH1750 ×2',
+    law: 'calcOptimalAngle',
+    moveTo: 'moveToAngle',
+    run: 'stepper.run()',
+    motor: 'מעטפת מנוע',
+  });
+
+  function loopPhaseGanttStatus(phaseId, fsmStatus) {
+    if (fsmStatus === 'hold' && (phaseId === 'law' || phaseId === 'moveTo' || phaseId === 'motor')) {
+      return 'hold';
+    }
+    if (phaseId === 'waitSample') return 'delay';
+    if (phaseId === 'law' || phaseId === 'moveTo') return 'control';
+    if (phaseId === 'motor') return 'moving';
+    return 'busy';
+  }
+
   function glareRatio(luxTop, luxBot) {
     if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot)) return null;
     // A BH1750 reports a negative value when a read fails; treat that as
@@ -125,5 +146,7 @@
     GLARE_THRESHOLD,
     GAIN_DEG_PER_RATIO,
     DEADBAND_DEG,
+    LOOP_PHASE_LABELS,
+    loopPhaseGanttStatus,
   };
 });
