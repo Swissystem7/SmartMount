@@ -12,6 +12,7 @@
 .wrap{max-width:1000px}
 h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin:22px 0 12px}
 .card{margin-bottom:16px}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:.84rem}
 th,td{text-align:right;padding:8px 10px;border-bottom:1px solid #21262d;vertical-align:top}
 th{color:var(--muted);font-weight:600;font-size:.75rem}
@@ -60,10 +61,7 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
       <a href="../protocol/">חוזה API</a>
       <a href="../fsm/">מכונת מצבים</a>
       <a href="../runtime/">תזמון והספק</a>
-      <a href="../power/">תקציב הספק</a>
       <a href="../hil/">תוכנית HIL</a>
-      <a href="../alts/">חלופות</a>
-      <a href="../dashboard/">לוח בקרה</a>
     </div>
   </details>
 </nav>
@@ -74,6 +72,7 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
 
   <h2>רשימת חומרים</h2>
   <div class="card">
+    <div class="table-scroll">
     <table>
       <thead>
         <tr><th>פריט</th><th>תפקיד בקושחה</th><th>טווח מחיר</th><th>מצב</th></tr>
@@ -141,6 +140,7 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
         </tr>
       </tbody>
     </table>
+    </div>
     <div class="total">
       <span>אלקטרוניקה בלבד (מה שיש ב־<code>.ino</code>)</span>
       <b>≈ ₪110–220</b>
