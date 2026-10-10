@@ -72,6 +72,7 @@
     }
     if (unpowered && !selfLocking) return 'drop-on-power-loss';
     if (factor < 1) return 'cannot-hold';
+    if (factor === 1) return 'holds';
     if (factor < 2) return 'marginal';
     return 'holds';
   }
