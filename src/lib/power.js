@@ -125,7 +125,7 @@
   // current is P/V — not the 1.5 A phase rating. Peak coil current is
   // the thing a PSU / pack must survive for a few hundred ms.
   function currentDraw(input) {
-    const wifiOn = input && input.wifiOn !== false;
+    const wifiOn = !input || input.wifiOn !== false;
     const sensorsOn = !input || input.sensorsOn !== false;
     const sensorCount = Number(input && input.sensorCount != null ? input.sensorCount : 2);
     const holding = Boolean(input && input.holding);
