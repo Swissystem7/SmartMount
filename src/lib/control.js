@@ -35,9 +35,29 @@
     return luxTop / Math.max(luxBot, MIN_LUX);
   }
 
-  function calcOptimalAngle(luxTop, luxBot, panel = 'LED', targetAngle = 0) {
-    const limit = PANEL_LIMITS[panel];
-    if (limit === undefined) throw new Error('unknown panel type: ' + panel);
+  function getPanelLimit(panel, customLimit) {
+    if (typeof panel === 'object' && panel !== null) {
+      if (customLimit === undefined) {
+        customLimit = panel.limit ?? panel.maxAngle ?? panel.max;
+      }
+      panel = panel.type ?? panel.panel ?? panel.name ?? 'CUSTOM';
+    }
+    if (typeof customLimit === 'object' && customLimit !== null) {
+      customLimit = customLimit.limit ?? customLimit.maxAngle ?? customLimit.max;
+    }
+    if (typeof customLimit === 'number' && Number.isFinite(customLimit)) {
+      return { panel, limit: customLimit };
+    }
+    if (panel === 'CUSTOM' && customLimit !== undefined) {
+      return { panel, limit: customLimit };
+    }
+    const limit = PANEL_LIMITS ? PANEL_LIMITS[panel] : undefined;
+    return { panel, limit };
+  }
+
+  function calcOptimalAngle(luxTop, luxBot, panel = 'LED', targetAngle = 0, customLimit) {
+    const { panel: panelType, limit } = getPanelLimit(panel, customLimit);
+    if (limit === undefined) throw new Error('unknown panel type: ' + panelType);
 
     const ratio = glareRatio(luxTop, luxBot);
     // Firmware returns targetAngle — the commanded target — on a failed BH1750
@@ -54,9 +74,9 @@
     return Math.abs(targetAngle - currentAngle) > DEADBAND_DEG;
   }
 
-  function clampToPanel(angle, panel = 'LED') {
-    const limit = PANEL_LIMITS[panel];
-    if (limit === undefined) throw new Error('unknown panel type: ' + panel);
+  function clampToPanel(angle, panel = 'LED', customLimit) {
+    const { panel: panelType, limit } = getPanelLimit(panel, customLimit);
+    if (limit === undefined) throw new Error('unknown panel type: ' + panelType);
     if (Number.isNaN(angle)) return 0;
     return Math.min(Math.max(angle, -limit), limit);
   }
@@ -85,8 +105,8 @@
   // the commanded step divided by the float STEPS_PER_DEGREE (long / float is
   // a float), so a request of 12.3° on a 1000-step rev reports 12.24 (as a
   // float32) and equals currentAngle, computed the same way, once the move ends.
-  function moveToAngle(deg, panel = 'LED') {
-    const clamped = clampToPanel(deg, panel);
+  function moveToAngle(deg, panel = 'LED', customLimit) {
+    const clamped = clampToPanel(deg, panel, customLimit);
     const steps = stepsFor(clamped);
     return { clamped: clamped, steps: steps, target: Math.fround(steps / STEPS_PER_DEGREE_F32) };
   }
