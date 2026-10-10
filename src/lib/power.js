@@ -78,7 +78,10 @@
     const hold = windingHoldW({ phaseA, phaseOhm });
     const moveW = hold * 1.15;
     const movingHours = (moves * moveSec) / 3600;
-    const idleHours = Math.max(0, 24 - movingHours);
+    // A day has 24 hours. More moving time than that is a bad schedule, not
+    // a day whose motor energy keeps growing while idle is clamped to 0.
+    if (movingHours > 24) throw new Error('invalid daily-energy inputs: moving time exceeds 24 h');
+    const idleHours = 24 - movingHours;
 
     const coilsIdle = selfLocking || disableCoilsWhenIdle ? 0 : hold;
     const motorWh = moveW * movingHours + coilsIdle * idleHours;
