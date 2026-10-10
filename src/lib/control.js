@@ -32,6 +32,9 @@
     // A BH1750 reports a negative value when a read fails; treat that as
     // "no reading" rather than as darkness, which would look like glare.
     if (luxTop < 0 || luxBot < 0) return null;
+    // Both sensors at zero lux is absolute darkness, not "infinite glare" via
+    // MIN_LUX — callers must not treat 0/1 as a meaningful ratio.
+    if (luxTop === 0 && luxBot === 0) return null;
     return luxTop / Math.max(luxBot, MIN_LUX);
   }
 
@@ -43,7 +46,10 @@
     // Firmware returns targetAngle — the commanded target — on a failed BH1750
     // read (hold, never slam). Mid-move currentAngle lags the target, and
     // returning it would make loop() reverse the stepper under load (#41).
-    if (ratio === null) return targetAngle;
+    if (ratio === null) {
+      if (luxTop === 0 && luxBot === 0) return 0;
+      return targetAngle;
+    }
     if (ratio <= GLARE_THRESHOLD) return 0;
 
     return Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
