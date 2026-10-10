@@ -137,9 +137,20 @@ test('the only GitHub Actions workflow is the test run, and it never merges, for
   assert.doesNotMatch(wf, /pr merge|merge --auto|--admin|deploy-pages|pages-build|--force/);
 });
 
-test('package.json stays dependency-free', () => {
+test('the shipped site stays dependency-free and `npm test` stays offline', () => {
   const pkg = JSON.parse(read('package.json'));
+  // Nothing the browser downloads may come from npm — the pages load only files
+  // in this repo.
   assert.equal(pkg.dependencies, undefined);
-  assert.equal(pkg.devDependencies, undefined);
+  // Playwright is the one dev tool, and it drives the smoke test only. `npm test`
+  // must keep running on a bare checkout with no node_modules and no network.
+  assert.deepEqual(Object.keys(pkg.devDependencies || {}), ['playwright']);
   assert.equal(pkg.scripts.test, 'node --test');
+  assert.equal(pkg.scripts.smoke, 'node scripts/smoke-ui.js');
+});
+
+test('no test/ file requires playwright, so `npm test` needs no node_modules', () => {
+  for (const name of fs.readdirSync(path.join(root, 'test'))) {
+    assert.doesNotMatch(read(path.join('test', name)), /require\(['"]playwright/, name);
+  }
 });

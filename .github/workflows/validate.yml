@@ -26,3 +26,20 @@ jobs:
           else
             node --test
           fi
+
+  # Opens the landing page in headless Chromium at 390px and fails on console
+  # errors or a broken RTL layout. Kept separate from `test` so the unit suite
+  # keeps running without node_modules.
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps --only-shell chromium
+      - name: Smoke (390px, headless)
+        run: npm run smoke
