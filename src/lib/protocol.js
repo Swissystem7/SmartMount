@@ -179,7 +179,10 @@
       return { status: 400, body: errorBody('missing type') };
     }
     const parsed = parseIntArg(args.type);
-    if (!parsed.ok || !isValidPanel(parsed.value)) {
+    if (!parsed.ok) {
+      return { status: 400, body: errorBody('invalid panel type') };
+    }
+    if (!isValidPanel(parsed.value)) {
       return { status: 400, body: errorBody('invalid panel type') };
     }
     return { status: 200, body: okBody(), effect: { panel: parsed.value } };
