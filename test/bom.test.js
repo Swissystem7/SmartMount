@@ -101,3 +101,10 @@ test('the BOM is the hardware firmware/smart_mount.ino drives, not a different m
   // No homing in firmware (setCurrentPosition(0) at boot), so no endstop part.
   assert.ok(!items.some((p) => /endstop/i.test(p.id + p.name)), 'endstops are an open problem, not a fitted part');
 });
+
+test('getBomItems()[0].suppliers must include Generic ESP32 Supplier', () => {
+  const bom = require('../src/lib/bom.js');
+  const getBomItems = bom.getBomItems || bom;
+  const items = getBomItems();
+  assert.deepStrictEqual(items[0].suppliers, ['Espressif', 'DOIT', 'AZ-Delivery', 'Generic ESP32 Supplier']);
+});
