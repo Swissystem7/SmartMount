@@ -18,10 +18,15 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 | [חוזה API](https://swissystem7.github.io/SmartMount/protocol/) | חמישה נתיבי HTTP + Serial 115200 — בדיוק מה שבקושחה |
 | [מכונת מצבים](https://swissystem7.github.io/SmartMount/fsm/) | מה שה־`.ino` עושה (auto + moveTo) מול FSM בטוח מוצע — 32 + 176 תאים מ־`step()` |
 | [תזמון והספק](https://swissystem7.github.io/SmartMount/runtime/) | פרופיל AccelStepper, גנט של `loop()`, הבזק שמש שמתפספס בין דגימות |
-| [תקציב הספק](https://swissystem7.github.io/SmartMount/power/) | זרם idle / תנועה / WiFi וחישוב סוללה — דפי נתונים, לא מד-זרם |
 | [תוכנית HIL](https://swissystem7.github.io/SmartMount/hil/) | שלושה-עשר מקרים על השולחן. אפס רצו. HIL-10 אוסר טלוויזיה |
-| [חלופות](https://swissystem7.github.io/SmartMount/alts/) | צעד מול סרבו מול מפעיל קווי; יחס lux מול מוחלט; למה המסגרת |
-| [לוח בקרה](https://swissystem7.github.io/SmartMount/dashboard/) | סליידרי lux על `control.js` — בלי Cloud ובלי חשבון |
+
+**הוצאו מהניווט ב-28.9.2026** (נשארים באוויר לקישור ישיר; התוכן המרכזי עבר לעמוד אחר, כדי שהתיק ייקרא ב-90 שניות):
+
+| עמוד | מה יש בו | איפה התוכן המרכזי |
+|---|---|---|
+| [תקציב הספק](https://swissystem7.github.io/SmartMount/power/) | זרם idle / תנועה / WiFi וחישוב סוללה — דפי נתונים, לא מד-זרם | תזמון והספק |
+| [חלופות](https://swissystem7.github.io/SmartMount/alts/) | צעד מול סרבו מול מפעיל קווי; יחס lux מול מוחלט; למה המסגרת | מקרה הנדסי |
+| [לוח בקרה](https://swissystem7.github.io/SmartMount/dashboard/) | סליידרי lux על `control.js` — בלי Cloud ובלי חשבון | מעבדה |
 
 קוד: [Swissystem7/SmartMount](https://github.com/Swissystem7/SmartMount).
 
