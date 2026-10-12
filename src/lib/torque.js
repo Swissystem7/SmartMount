@@ -91,11 +91,14 @@
     const factor = safetyFactor(availableNm, requiredNm);
     const powered = verdict({ factor, selfLocking, unpowered: false });
     const unpowered = verdict({ factor, selfLocking, unpowered: true });
+    const cosTilt = Math.cos((tiltFromVerticalDeg * Math.PI) / 180);
+    const maxMassKg = availableNm / (G * cogOffsetM * cosTilt);
 
     return {
       requiredNm,
       availableNm,
       safetyFactor: factor,
+      maxMassKg,
       powered,
       unpowered,
       selfLocking,
