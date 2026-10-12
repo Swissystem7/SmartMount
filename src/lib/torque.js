@@ -72,8 +72,12 @@
     }
     if (unpowered && !selfLocking) return 'drop-on-power-loss';
     if (factor < 1) return 'cannot-hold';
-    if (factor === 1) return 'holds';
-    if (factor < 2) return 'marginal';
+    if (factor < 2) {
+      // Energized stepper at rated hold (factor 1, no worm) still holds; a worm
+      // at factor 1 has zero margin (#36).
+      if (factor === 1 && !selfLocking) return 'holds';
+      return 'marginal';
+    }
     return 'holds';
   }
 
