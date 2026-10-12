@@ -111,9 +111,31 @@
     return { clamped: clamped, steps: steps, target: Math.fround(steps / STEPS_PER_DEGREE_F32) };
   }
 
+  // One auto-loop decision: law + deadband + step quantisation. Non-finite lux
+  // (noise, parse glitches, failed reads surfaced as Inf/NaN) must not move the
+  // mount or propagate bad angles — mirror calcOptimalAngle's isnan/isinf guard.
+  function compute({ luxTop, luxBot, panel = 'LED', targetAngle = 0 }) {
+    if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot)) {
+      return { error: true, move: false, angle: 0, targetAngle, steps: 0 };
+    }
+    const next = calcOptimalAngle(luxTop, luxBot, panel, targetAngle);
+    if (!shouldMove(targetAngle, next)) {
+      return { error: false, move: false, angle: next, targetAngle, steps: 0 };
+    }
+    const moved = moveToAngle(next, panel);
+    return {
+      error: false,
+      move: true,
+      angle: moved.clamped,
+      targetAngle: moved.target,
+      steps: moved.steps,
+    };
+  }
+
   // No schedule, cloud, or calibration — those are not in the .ino.
   return {
     calcOptimalAngle,
+    compute,
     glareRatio,
     shouldMove,
     clampToPanel,
