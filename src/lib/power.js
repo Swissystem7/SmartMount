@@ -40,7 +40,10 @@
     return n * I * I * R;
   }
 
-  function logicW({ wifiOn, sensorsOn, sensorCount }) {
+  function logicW({ wifiOn, sensorsOn, sensorCount, sleepMode }) {
+    if (sleepMode === true && wifiOn === false && sensorsOn === false) {
+      return 0.003;
+    }
     const wifi = wifiOn !== false;
     const sens = sensorsOn !== false;
     const n = Number(sensorCount != null ? sensorCount : 2);
