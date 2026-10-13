@@ -211,9 +211,10 @@
     const m = String(method || '').toUpperCase();
     const p = String(path || '');
     
-    // Check if the path exists but method is not allowed
+    // PUT on a registered path is 405; other wrong methods fall through to 404
+    // like WebServer onNotFound (GET /stop, DELETE /set-mode, POST /status).
     const routeExists = ROUTES.some(r => r.path === p);
-    if (routeExists && m !== 'GET' && m !== 'POST') {
+    if (routeExists && m === 'PUT') {
       return { status: 405, body: errorBody('method not allowed') };
     }
     
