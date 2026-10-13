@@ -110,7 +110,7 @@
     s.state = state;
     s.reason = reason;
     // Update angleErrorDeg when state changes
-    s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
+    s.angleErrorDeg = s.believedAngle - s.mechanicalAngle;
     return s;
   }
 
