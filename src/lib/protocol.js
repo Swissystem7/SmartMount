@@ -210,18 +210,23 @@
   function dispatch(method, path, args, state) {
     const m = String(method || '').toUpperCase();
     const p = String(path || '');
-    
-    // Check if the path exists but method is not allowed
-    const routeExists = ROUTES.some(r => r.path === p);
-    if (routeExists && m !== 'GET' && m !== 'POST') {
-      return { status: 405, body: errorBody('method not allowed') };
-    }
-    
+
     if (m === 'GET' && p === '/status') return handleStatus(state);
     if (m === 'POST' && p === '/set-angle') return handleSetAngle(args || {});
     if (m === 'POST' && p === '/set-panel') return handleSetPanel(args || {});
     if (m === 'POST' && p === '/set-mode') return handleSetMode(args || {});
     if (m === 'POST' && p === '/stop') return handleStop(args || {});
+
+    const route = ROUTES.find((r) => r.path === p);
+    if (route) {
+      if (m === 'GET' || m === 'POST') {
+        return { status: 404, body: errorBody('not found') };
+      }
+      if (route.method === 'GET') {
+        return { status: 405, body: errorBody('method not allowed') };
+      }
+      return { status: 404, body: errorBody('not found') };
+    }
     return { status: 404, body: errorBody('not found') };
   }
 
