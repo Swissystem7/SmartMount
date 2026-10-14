@@ -138,6 +138,14 @@
     return { clamped: clamped, steps: steps, target: Math.fround(steps / STEPS_PER_DEGREE_F32) };
   }
 
+  function validateControlParams(params) {
+    if (params === null || typeof params !== 'object' || Array.isArray(params)) {
+      throw new TypeError('params must be an object');
+    }
+    const { luxTop, luxBot } = params;
+    return Number.isFinite(luxTop) && Number.isFinite(luxBot);
+  }
+
   // One auto-loop decision: law + deadband + step quantisation. Non-finite lux
   // (noise, parse glitches, failed reads surfaced as Inf/NaN) must not move the
   // mount or propagate bad angles — mirror calcOptimalAngle's isnan/isinf guard.
@@ -162,6 +170,7 @@
   // No schedule, cloud, or calibration — those are not in the .ino.
   return {
     calcOptimalAngle,
+    validateControlParams,
     compute,
     glareRatio,
     shouldMove,
