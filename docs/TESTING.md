@@ -23,6 +23,7 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 | HIL | `test/hil.test.js`, `hil-example-1.test.js` | 13 מקרים, `STATUS=never-run`, HIL-10 אוסר טלוויזיה; `docs/HIL.md` כולל לפחות דוגמה אחת עם תוצאה צפויה ומדומה |
 | חלופות | `test/alts.test.js`, `alts-search.test.js` | הדמו בחר צעד+יחס+מסגרת+החזקה+שקר אפס; מפעיל קווי+תולעת+מפסק הם «למוצר» |
 | מקרה הנדסי | `test/case.test.js` | פסק דין portfolio-only; באגים «תוקנו במקור» לא «אומתו על חומרה»; HIL נשאר never-run |
+| דשבורד — זווית | `test/dashboard-target-step.test.js` | הסקריפט של `dashboard/` רץ ב־`node:vm` עם DOM מזויף: הזווית המוצגת היא הצעד המעוגל (`moveToAngle().target`, 12.3° → 12.24°) באוטו, בידני ובהחלפת פאנל; CLAMP נקבע מפלט החוק, כי גבול QLED מעוגל ל־29.88°; HOLD מחזיק את המוצג |
 | רשימת חלקים | `test/bom.test.js` | כל פריט עם מזהה ושם ייחודיים; `getBomItems` מחזיר עותק שאי אפשר להשחית דרכו |
 | בטיחות | `test/safety.test.js` | `getSafetyGuidelines` מחזיר הנחיות חשמל ומכניקה עם מזהה יציב ומיטיגציה, כעותקים שלא משחיתים את המקור; `safety.js` בתבנית UMD + `SM_SAFETY` |
 | משוב | `test/feedback.test.js` | `FEEDBACK_URL` שווה למחולל ונשאר קישור טופס קבוע בלי פרמטרים נוספים |
