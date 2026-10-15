@@ -137,3 +137,5 @@ a { color: var(--accent); }
     scroll-behavior: auto !important;
   }
 }
+
+.cut-note{background:#111120;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:10px 12px;margin:0 0 14px;font-size:.84rem;line-height:1.6;color:#c9d1d9}
