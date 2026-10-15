@@ -9,7 +9,7 @@ test('every HIL case is still never-run — the board has not been on a bench', 
   const s = H.summary();
   assert.equal(s.run, 0);
   assert.equal(s.neverRun, H.CASES.length);
-  assert.equal(s.cases, 12);
+  assert.equal(s.cases, 13);
   assert.ok(s.hazards.high >= 1);
 });
 
@@ -42,11 +42,24 @@ test('unhomed boot and missing endstop are first-class cases', () => {
   assert.equal(H.byFixture('dummy').length, 1);
 });
 
+test('POST /stop has a bench case and does not pass for an e-stop', () => {
+  const stop = H.byId('HIL-13');
+  assert.equal(stop.fixture, 'motor');
+  assert.match(stop.inject, /\/stop/);
+  assert.match(stop.expect, /auto=false/);
+  assert.match(stop.proves, /handleStop/);
+  assert.match(stop.cannotProve, /עצירת חירום/);
+  const ino = fs.readFileSync(path.join(__dirname, '../firmware/smart_mount.ino'), 'utf8');
+  assert.match(ino, /server\.on\("\/stop",\s*HTTP_POST, handleStop\)/);
+  assert.match(ino, /void handleStop\(\) \{[^}]*autoMode = false;[^}]*stepper\.stop\(\);/);
+});
+
 test('docs/HIL.md exists and refuses to claim a run', () => {
   const md = fs.readFileSync(path.join(__dirname, '../docs/HIL.md'), 'utf8');
   assert.match(md, /never-run/);
   assert.match(md, /אף מקרה למטה לא רץ/);
   assert.match(md, /HIL-10/);
+  assert.match(md, /HIL-13/);
   assert.match(md, /להכריז/);
   assert.doesNotMatch(md, /all cases passed/i);
 });

@@ -12,7 +12,14 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SM_OPTICS = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  const DEFAULT_THRESHOLD = 3;
+  // The glare threshold and lux floor are the firmware's, from
+  // config/control-params.json via the generated control-params.js, so
+  // the page and the board agree on when the law moves.
+  const P = (typeof module === 'object' && module.exports)
+    ? require('./control-params')
+    : globalThis.CONTROL_PARAMS;
+  const DEFAULT_THRESHOLD = P.glareThreshold;
+  const MIN_LUX = P.minLux;
   const SDR_CONTENT_NITS = 150;
   // Glossy cover glass ~4–8% per air-glass surface; matte / Glare Free is lower.
   const GLOSSY_R = 0.06;
@@ -48,7 +55,7 @@
     return L * R;
   }
 
-  function sensorRatio(luxTop, luxBot, minLux = 1) {
+  function sensorRatio(luxTop, luxBot, minLux = MIN_LUX) {
     if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot)) return null;
     if (luxTop < 0 || luxBot < 0) return null;
     return luxTop / Math.max(luxBot, minLux);
@@ -67,9 +74,16 @@
     contentNits = SDR_CONTENT_NITS,
   }) {
     const ratio = sensorRatio(luxTop, luxBot);
-    const lawMoves = ratio != null && ratio > threshold;
+    // A failed BH1750 read (null ratio) makes the firmware hold its target:
+    // the law neither moves nor stays quiet, so no case applies. A NaN
+    // threshold or content level would make every comparison false and
+    // report a quiet law or a clear eye that nobody measured.
+    if (ratio === null || !Number.isFinite(highlight) ||
+        !Number.isFinite(threshold) || !Number.isFinite(contentNits)) {
+      return 'unknown';
+    }
+    const lawMoves = ratio > threshold;
     const eye = viewerGlare(highlight, contentNits);
-    if (!Number.isFinite(highlight)) return 'unknown';
     if (!lawMoves && eye) return 'blind-but-quiet';
     if (lawMoves && !eye) return 'tilts-for-nothing';
     if (lawMoves && eye) return 'agrees-glare';
@@ -110,6 +124,7 @@
 
   return {
     DEFAULT_THRESHOLD,
+    MIN_LUX,
     SDR_CONTENT_NITS,
     GLOSSY_R,
     MATTE_R,

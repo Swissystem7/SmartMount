@@ -17,5 +17,8 @@
     stepsPerRev: 200,
     gearRatio: 5,
     stepsPerDegree: 2.7777777777777777,
+    maxSpeedSps: 500,
+    accelSps2: 200,
+    samplePeriodMs: 2000,
   });
 });

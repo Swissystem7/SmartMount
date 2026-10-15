@@ -3,7 +3,8 @@
  * Single source of truth: config/control-params.json
  * Generates:
  *   - marked block in firmware/smart_mount.ino  (npm test greps the block)
- *   - src/lib/control-params.js                 (browser + Node, no bundler)
+ *   - src/lib/control-params.js                 (browser + Node, no bundler;
+ *                                                read by control.js and timing.js)
  *
  * Edit the JSON, then: node scripts/sync-control-params.js
  */
@@ -35,6 +36,10 @@ const inoBlock = [
   `const float STEPS_PER_REV = ${spec.stepper.stepsPerRev.toFixed(1)}f;`,
   `const float GEAR_RATIO = ${spec.stepper.gearRatio.toFixed(1)}f;`,
   `const float STEPS_PER_DEGREE = (STEPS_PER_REV * GEAR_RATIO) / 360.0f;`,
+  `// ${spec.motion.comment}`,
+  `const float MAX_SPEED_SPS = ${spec.motion.maxSpeedSps.toFixed(1)}f;  // steps / s`,
+  `const float ACCEL_SPS2    = ${spec.motion.accelSps2.toFixed(1)}f;  // steps / s^2`,
+  `const unsigned long SAMPLE_PERIOD_MS = ${spec.motion.samplePeriodMs};`,
   END,
 ].join('\n');
 
@@ -70,6 +75,9 @@ const js = `// GENERATED from config/control-params.json by scripts/sync-control
     stepsPerRev: ${spec.stepper.stepsPerRev},
     gearRatio: ${spec.stepper.gearRatio},
     stepsPerDegree: ${stepsPerDegree},
+    maxSpeedSps: ${spec.motion.maxSpeedSps},
+    accelSps2: ${spec.motion.accelSps2},
+    samplePeriodMs: ${spec.motion.samplePeriodMs},
   });
 });
 `;

@@ -42,6 +42,7 @@
     'SET_ANGLE',
     'SET_MODE',
     'SET_PANEL',
+    'STOP',
     'TICK',
     'ARRIVE',
     'HOME_START',
@@ -64,6 +65,10 @@
 
   function law(luxTop, luxBot, panelIdx, held) {
     return control.calcOptimalAngle(luxTop, luxBot, panelName(panelIdx), held);
+  }
+
+  function computeAngleErrorDeg(mechanicalAngle, believedAngle) {
+    return mechanicalAngle - believedAngle;
   }
 
   function fresh(kind, extra) {
@@ -94,14 +99,14 @@
     }, extra || {});
     
     // Calculate and set angleErrorDeg for fresh state
-    state.angleErrorDeg = state.mechanicalAngle - state.believedAngle;
+    state.angleErrorDeg = computeAngleErrorDeg(state.mechanicalAngle, state.believedAngle);
     return state;
   }
 
   function copy(s) {
     const newState = Object.assign({}, s, { reject: null });
     // Ensure angleErrorDeg is carried over in copies
-    newState.angleErrorDeg = newState.mechanicalAngle - newState.believedAngle;
+    newState.angleErrorDeg = computeAngleErrorDeg(newState.mechanicalAngle, newState.believedAngle);
     return newState;
   }
 
@@ -109,7 +114,7 @@
     s.state = state;
     s.reason = reason;
     // Update angleErrorDeg when state changes
-    s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
+    s.angleErrorDeg = computeAngleErrorDeg(s.mechanicalAngle, s.believedAngle);
     return s;
   }
 
@@ -204,6 +209,19 @@
       startMove(s, s.targetAngle, 'החלפת פאנל מצמידה את היעד לגבול החדש — תנועה פעילה ממשיכה');
       return s;
     }
+    if (t === 'STOP') {
+      // ino handleStop: autoMode = false first (so the next SAMPLE cannot
+      // re-arm the move), then stepper.stop() — a deceleration ramp whose
+      // endpoint becomes the new target. The host has no speed, so the ramp
+      // is zero-length here: the target collapses onto the believed angle
+      // and the move ends. Never a moveTo() back — that reverses under load.
+      s.autoMode = false;
+      s.targetAngle = s.believedAngle;
+      s.moving = false;
+      s.moveElapsedMs = 0;
+      s.reason = 'stop: אוטו כבוי ואז stepper.stop() — האטה עד עצירה, היעד הוא סוף הרמפה (במודל: הזווית הנוכחית)';
+      return s;
+    }
 
     if (t === 'SAMPLE') {
       if (!s.autoMode) {
@@ -296,6 +314,39 @@
       }
       s.reason = 'פאנל עודכן';
       return s;
+    }
+
+    // Emergency stop is accepted in every live state and never auto-resumes:
+    // auto goes off, so SENSOR_OK / ARRIVE land in IDLE_MANUAL, not IDLE_AUTO.
+    // Mid-homing it aborts to UNHOMED (zero still unknown). Latched faults
+    // stay latched — nothing is moving there anyway.
+    if (t === 'STOP') {
+      if (s.state === 'BOOT' || s.state === 'UNHOMED') {
+        s.reason = s.state + ' — אין תנועה לעצור';
+        return s;
+      }
+      if (s.state === 'HOMING') {
+        s.moving = false;
+        s.homeElapsedMs = 0;
+        return go(s, 'UNHOMED', 'עצירה באמצע הומינג — האפס עדיין לא ידוע');
+      }
+      if (s.state === 'FAULT_HOME' || s.state === 'FAULT_STALL' || s.state === 'FAULT_LIMIT') {
+        s.reason = s.state + ' נעול עד CLEAR — אין תנועה';
+        return s;
+      }
+      s.autoMode = false;
+      s.lastIdle = 'IDLE_MANUAL';
+      if (s.state === 'FAULT_SENSOR') {
+        s.reason = 'אוטו כבוי — SENSOR_OK יחזיר ל-IDLE_MANUAL, לא ל-IDLE_AUTO';
+        return s;
+      }
+      if (s.state === 'MOVING') {
+        s.moving = false;
+        s.moveElapsedMs = 0;
+        s.targetAngle = s.believedAngle;
+        return go(s, 'IDLE_MANUAL', 'עצירת חירום — האטה עד עצירה, אוטו לא יחזור לבד');
+      }
+      return go(s, 'IDLE_MANUAL', s.state === 'IDLE_AUTO' ? 'אוטו כבוי — לא תהיה תנועה חדשה מ-SAMPLE' : 'כבר ידני ועומד');
     }
 
     if (s.state === 'BOOT') {
@@ -557,6 +608,15 @@
     return step(s, { type: 'BOOT_DONE', wifiOk: wifiOk !== false });
   }
 
+  // Host-side status for Gantt overlays on the control loop (dashboard / runtime).
+  function controlLoopFsmStatus(snapshot) {
+    if (!snapshot) return 'auto';
+    if (snapshot.dropped || snapshot.sensorFail) return 'hold';
+    if (snapshot.moving) return 'moving';
+    if (!snapshot.autoMode) return 'manual';
+    return 'auto';
+  }
+
   return {
     FIRMWARE_STATES,
     SAFE_STATES,
@@ -569,5 +629,7 @@
     applyAll,
     firmwareBoot,
     safeBoot,
+    controlLoopFsmStatus,
+    computeAngleErrorDeg,
   };
 });

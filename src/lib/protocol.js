@@ -48,6 +48,26 @@
   const SERIAL_WIFI_OK = 'IP: ';
   const SERIAL_WIFI_TIMEOUT = 'WiFi timeout — continuing in local auto mode';
 
+  // BH1750 I2C addresses: ADDR pin to GND is 0x23, to VCC is 0x5C. The .ino
+  // passes each one to the constructor and again to begin(mode, addr): the
+  // library's begin() defaults addr to 0x23 and overwrites the constructor
+  // value, so a bare begin() on the 0x5C sensor silently re-pointed it at the
+  // top sensor. begin() failing prints one line per sensor (before the WiFi
+  // line); nothing else on Serial.
+  const SENSOR_TOP_ADDR = 0x23;
+  const SENSOR_BOT_ADDR = 0x5C;
+  const SERIAL_SENSOR_TOP_MISSING = 'BH1750 top not found at 0x23';
+  const SERIAL_SENSOR_BOT_MISSING = 'BH1750 bot not found at 0x5C';
+
+  // The Serial lines setup() prints for the sensors, in order. Both found →
+  // nothing, like the board.
+  function serialOnSensorBegin(topOk, botOk) {
+    const lines = [];
+    if (!topOk) lines.push(SERIAL_SENSOR_TOP_MISSING);
+    if (!botOk) lines.push(SERIAL_SENSOR_BOT_MISSING);
+    return lines;
+  }
+
   function errorBody(msg) {
     return { ok: false, error: msg };
   }
@@ -119,6 +139,12 @@
     return Number.isInteger(type) && type >= 0 && type < 3;
   }
 
+  // statusLux — ino: setLux(). A failed BH1750 read (negative, NaN, inf) is
+  // reported as null, never as a lux value.
+  function statusLux(v) {
+    return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
+  }
+
   function handleStatus(state) {
     const s = state || {};
     const autoMode = s.autoMode !== undefined ? s.autoMode : s.auto;
@@ -129,8 +155,8 @@
         target: s.target,
         auto: autoMode,
         panel: s.panel,
-        lux_top: s.lux_top,
-        lux_bot: s.lux_bot,
+        lux_top: statusLux(s.lux_top),
+        lux_bot: statusLux(s.lux_bot),
       },
     };
   }
@@ -153,7 +179,10 @@
       return { status: 400, body: errorBody('missing type') };
     }
     const parsed = parseIntArg(args.type);
-    if (!parsed.ok || !isValidPanel(parsed.value)) {
+    if (!parsed.ok) {
+      return { status: 400, body: errorBody('invalid panel type') };
+    }
+    if (!isValidPanel(parsed.value)) {
       return { status: 400, body: errorBody('invalid panel type') };
     }
     return { status: 200, body: okBody(), effect: { panel: parsed.value } };
@@ -181,11 +210,22 @@
   function dispatch(method, path, args, state) {
     const m = String(method || '').toUpperCase();
     const p = String(path || '');
+
     if (m === 'GET' && p === '/status') return handleStatus(state);
     if (m === 'POST' && p === '/set-angle') return handleSetAngle(args || {});
     if (m === 'POST' && p === '/set-panel') return handleSetPanel(args || {});
     if (m === 'POST' && p === '/set-mode') return handleSetMode(args || {});
     if (m === 'POST' && p === '/stop') return handleStop(args || {});
+
+    // Nothing handled it. Classify the miss against the route table rather than
+    // ahead of the handlers, so a route can only ever be reached by the method
+    // it is declared with above. PUT on a registered path is 405; every other
+    // wrong method falls through to 404 like WebServer onNotFound does on the
+    // board (GET /stop, DELETE /set-mode, POST /status).
+    const route = ROUTES.find((r) => r.path === p);
+    if (route && m === 'PUT') {
+      return { status: 405, body: errorBody('method not allowed') };
+    }
     return { status: 404, body: errorBody('not found') };
   }
 
@@ -208,6 +248,11 @@
     WIFI_CONNECT_TIMEOUT_MS,
     SERIAL_WIFI_OK,
     SERIAL_WIFI_TIMEOUT,
+    SENSOR_TOP_ADDR,
+    SENSOR_BOT_ADDR,
+    SERIAL_SENSOR_TOP_MISSING,
+    SERIAL_SENSOR_BOT_MISSING,
+    serialOnSensorBegin,
     parseFloatArg,
     parseIntArg,
     isValidPanel,

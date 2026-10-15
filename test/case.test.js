@@ -42,10 +42,10 @@ test('open hazards include never-flashed and no homing', () => {
   assert.equal(C.openItem('plasma'), null);
 });
 
-test('FSM facts match the host model: 2 firmware states, 11 safe, 165 cells', () => {
+test('FSM facts match the host model: 2 firmware states, 11 safe, 176 cells', () => {
   assert.deepEqual(C.FSM.firmwareStates, ['BOOT', 'RUN']);
   assert.equal(C.FSM.safeStates.length, 11);
-  assert.equal(C.FSM.cells, 165);
+  assert.equal(C.FSM.cells, 176);
   assert.match(C.FSM.safeNote, /לא נכתבה ל-\.ino|לא רצה על ESP32/);
 });
 

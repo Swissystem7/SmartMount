@@ -12,5 +12,11 @@
   "stepper": {
     "stepsPerRev": 200,
     "gearRatio": 5
+  },
+  "motion": {
+    "comment": "AccelStepper envelope + auto-mode sample period. Mirrored by src/lib/timing.js.",
+    "maxSpeedSps": 500,
+    "accelSps2": 200,
+    "samplePeriodMs": 2000
   }
 }
