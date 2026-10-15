@@ -30,3 +30,8 @@ test('angle error is tracked and exposed correctly', () => {
   const firmwareBootState = F.firmwareBoot(true);
   assert.strictEqual(typeof firmwareBootState.angleErrorDeg, 'number');
 });
+
+test('computeAngleErrorDeg returns mechanicalAngle - believedAngle', () => {
+  assert.strictEqual(F.computeAngleErrorDeg(10, 4), 6);
+  assert.strictEqual(F.computeAngleErrorDeg(-5, 5), -10);
+});
