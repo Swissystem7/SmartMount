@@ -193,8 +193,8 @@ test('Serial on boot matches the two strings the firmware actually prints', () =
   assert.equal(P.serialOnBoot(true, '192.168.1.8'), 'IP: 192.168.1.8');
 });
 
-test('unsupported method on existing path is 404 like onNotFound, not 405', () => {
+test('unsupported method on existing path returns 405 Method Not Allowed', () => {
   const result = P.dispatch('PUT', '/status', {}, {});
-  assert.equal(result.status, 404);
-  assert.deepEqual(result.body, { ok: false, error: 'not found' });
+  assert.equal(result.status, 405);
+  assert.deepEqual(result.body, { ok: false, error: 'method not allowed' });
 });

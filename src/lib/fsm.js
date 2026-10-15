@@ -67,6 +67,10 @@
     return control.calcOptimalAngle(luxTop, luxBot, panelName(panelIdx), held);
   }
 
+  function computeAngleErrorDeg(mechanicalAngle, believedAngle) {
+    return mechanicalAngle - believedAngle;
+  }
+
   function fresh(kind, extra) {
     const state = Object.assign({
       kind: kind,
@@ -95,14 +99,14 @@
     }, extra || {});
     
     // Calculate and set angleErrorDeg for fresh state
-    state.angleErrorDeg = state.mechanicalAngle - state.believedAngle;
+    state.angleErrorDeg = computeAngleErrorDeg(state.mechanicalAngle, state.believedAngle);
     return state;
   }
 
   function copy(s) {
     const newState = Object.assign({}, s, { reject: null });
     // Ensure angleErrorDeg is carried over in copies
-    newState.angleErrorDeg = newState.mechanicalAngle - newState.believedAngle;
+    newState.angleErrorDeg = computeAngleErrorDeg(newState.mechanicalAngle, newState.believedAngle);
     return newState;
   }
 
@@ -110,7 +114,7 @@
     s.state = state;
     s.reason = reason;
     // Update angleErrorDeg when state changes
-    s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
+    s.angleErrorDeg = s.believedAngle - s.mechanicalAngle;
     return s;
   }
 
@@ -626,5 +630,6 @@
     firmwareBoot,
     safeBoot,
     controlLoopFsmStatus,
+    computeAngleErrorDeg,
   };
 });

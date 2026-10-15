@@ -72,7 +72,12 @@
     }
     if (unpowered && !selfLocking) return 'drop-on-power-loss';
     if (factor < 1) return 'cannot-hold';
-    if (factor < 2) return 'marginal';
+    if (factor < 2) {
+      // Energized stepper at rated hold (factor 1, no worm) still holds; a worm
+      // at factor 1 has zero margin (#36).
+      if (factor === 1 && !selfLocking) return 'holds';
+      return 'marginal';
+    }
     return 'holds';
   }
 
@@ -90,17 +95,19 @@
     const factor = safetyFactor(availableNm, requiredNm);
     const powered = verdict({ factor, selfLocking, unpowered: false });
     const unpowered = verdict({ factor, selfLocking, unpowered: true });
-    const cosTilt = Math.cos((tiltFromVerticalDeg * Math.PI) / 180);
-    const maxMassKg = availableNm / (G * cogOffsetM * cosTilt);
+
+    const tiltRad = (tiltFromVerticalDeg * Math.PI) / 180;
+    const momentArm = cogOffsetM * Math.cos(tiltRad);
+    const maxMassKg = momentArm === 0 ? Infinity : availableNm / (G * momentArm);
 
     return {
       requiredNm,
       availableNm,
       safetyFactor: factor,
-      maxMassKg,
       powered,
       unpowered,
       selfLocking,
+      maxMassKg,
     };
   }
 

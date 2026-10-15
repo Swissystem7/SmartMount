@@ -73,8 +73,8 @@ test('bad inputs are rejected rather than returning NaN', () => {
   assert.throws(() => T.gearedHoldingNm({ motorHoldingNm: 0.4, gearRatio: 0, efficiency: 0.8 }));
 });
 
-test('verdict returns marginal when factor is exactly 1.0 (#36)', () => {
-  assert.equal(T.verdict({ factor: 1.0, selfLocking: false, unpowered: false }), 'marginal');
+test('verdict returns holds when factor is exactly 1.0', () => {
+  assert.equal(T.verdict({ factor: 1.0, selfLocking: false, unpowered: false }), 'holds');
 });
 
 test('safetyFactor returns 0 when requiredNm is 0, regardless of availableNm', () => {

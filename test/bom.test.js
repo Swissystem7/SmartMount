@@ -102,6 +102,13 @@ test('the BOM is the hardware firmware/smart_mount.ino drives, not a different m
   assert.ok(!items.some((p) => /endstop/i.test(p.id + p.name)), 'endstops are an open problem, not a fitted part');
 });
 
+test('getBomItems()[0].suppliers must include Generic ESP32 Supplier', () => {
+  const bom = require('../src/lib/bom.js');
+  const getBomItems = bom.getBomItems || bom;
+  const items = getBomItems();
+  assert.deepStrictEqual(items[0].suppliers, ['Espressif', 'DOIT', 'AZ-Delivery', 'Generic ESP32 Supplier']);
+});
+
 const { getBomItemById } = require('../src/lib/bom.js');
 
 test('getBomItemById returns complete BOM item objects for given IDs', () => {
@@ -120,7 +127,7 @@ test('getBomItemById returns complete BOM item objects for given IDs', () => {
     name: 'ESP32 DevKit',
     specification: 'ESP32-WROOM-32 DevKit, WiFi, I2C on GPIO 21/22, STEP/DIR on GPIO 18/19',
     quantity: 1,
-    suppliers: ['Espressif', 'DOIT', 'AZ-Delivery'],
+    suppliers: ['Espressif', 'DOIT', 'AZ-Delivery', 'Generic ESP32 Supplier'],
   });
 
   assert.notStrictEqual(result1, result2, 'different IDs must return different object references');

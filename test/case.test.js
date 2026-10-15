@@ -12,13 +12,14 @@ test('verdict is portfolio-only and hardware is untested', () => {
   assert.doesNotMatch(C.VERDICT.hardwareHe, /נבדק על חומרה|רץ על הלוח|כויל מול מדידה הושלם/);
 });
 
-test('five reviewed bugs stay fixed-in-source or fixed-in-ui, never hardware-verified', () => {
+test('six reviewed bugs stay fixed-in-source or fixed-in-ui, never hardware-verified', () => {
   assert.deepEqual(C.BUGS.map((b) => b.id), [
     'sensor-fail-hold',
     'absolute-moveTo',
     'api-reject',
     'wifi-timeout',
     'dashboard-honesty',
+    'build-break',
   ]);
   for (const b of C.BUGS) {
     assert.match(b.status, /^fixed-in-(source|ui)$/);
@@ -32,6 +33,19 @@ test('five reviewed bugs stay fixed-in-source or fixed-in-ui, never hardware-ver
   assert.match(C.bug('api-reject').now, /toInt|foo|OLED/);
   assert.match(C.bug('api-reject').now, /strtol/);
   assert.doesNotMatch(C.bug('api-reject').now, /חור שנשאר/);
+});
+
+test('the case admits that a safety fix broke the build, and shows how it was caught', () => {
+  const b = C.bug('build-break');
+  assert.ok(b, 'missing build-break');
+  assert.equal(b.severity, 'build');
+  assert.match(b.was, /min\(float, double\)/);
+  assert.match(b.was, /bd675fd/);
+  assert.match(b.now, /arduino-cli/);
+  assert.match(b.provenBy, /firmware-build\.test\.js/);
+  const html = fs.readFileSync(path.join(__dirname, '..', 'case', 'index.html'), 'utf8');
+  assert.match(html, /build: 'הידור'/);
+  assert.match(html, /\.tag\.build\{/);
 });
 
 test('open hazards include never-flashed and no homing', () => {
@@ -71,4 +85,30 @@ test('MONETIZATION.md states the same verdict with check dates', () => {
   assert.match(md, /tindie\.com/);
   assert.match(md, /arxiv\.org\/abs\/2401\.02755/);
   assert.doesNotMatch(md, /לקנות עכשיו|הוסף לסל|ערכה זמינה למשלוח/);
+});
+
+test('landing states the measured compile, with the BUILD date, and still says not flashed', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const [y, m, d] = C.BUILD.date.split('-').map(Number);
+  const heDate = d + '.' + m + '.' + y;
+  const fact = (html.match(/<div><b>מתקמפל[\s\S]*?<\/div>/) || [''])[0];
+  assert.ok(fact, 'landing needs a "מתקמפל" fact box');
+  assert.ok(fact.includes(heDate), 'landing compile fact must carry the BUILD date ' + heDate);
+  assert.match(fact, /לא הועלה ללוח/);
+  assert.match(fact, /href="\.\/case\/#buildBox"/);
+  assert.doesNotMatch(fact, /רץ על|נבדק על חומרה/);
+});
+
+test('README has a short English summary for non-Hebrew reviewers that keeps the same honesty', () => {
+  const md = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
+  const en = (md.match(/## In English\n([\s\S]*?)(\n## |$)/) || [])[1];
+  assert.ok(en, 'README needs an "## In English" section');
+  assert.match(en, /compiles for ESP32/i);
+  assert.match(en, /never been flashed|not been flashed/i);
+  assert.match(en, /not calibrated/i);
+  assert.match(en, /PARK|not a product/i);
+  assert.match(en, /swissystem7\.github\.io\/SmartMount\/case\//);
+  assert.match(en, /issues\/new\?template=recruiter\.yml/);
+  assert.doesNotMatch(en, /tested on hardware|production[- ]ready|buy now/i);
+  assert.ok(en.split(/\s+/).length < 220, 'keep it short');
 });
