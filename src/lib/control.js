@@ -75,7 +75,13 @@
     if (panel === 'CUSTOM' && customLimit !== undefined) {
       return { panel, limit: customLimit };
     }
-    const limit = PANEL_LIMITS ? PANEL_LIMITS[panel] : undefined;
+    // PANEL_LIMITS is a plain object, so PANEL_LIMITS['toString'] is an inherited FUNCTION, not
+    // undefined: the guard used to wave it through and the control law then returned NaN - a
+    // NaN angle is a NaN step count at the stepper. Look the key up on the object itself only.
+    const own = PANEL_LIMITS && Object.prototype.hasOwnProperty.call(PANEL_LIMITS, panel)
+      ? PANEL_LIMITS[panel]
+      : undefined;
+    const limit = typeof own === 'number' && Number.isFinite(own) ? own : undefined;
     return { panel, limit };
   }
 
