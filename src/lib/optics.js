@@ -74,10 +74,14 @@
     contentNits = SDR_CONTENT_NITS,
   }) {
     const ratio = sensorRatio(luxTop, luxBot);
-    // No valid lux pair (failed BH1750 / non-finite) is not "quiet sensors" —
-    // same unknown bucket as a non-finite highlight. Otherwise a dead top
-    // sensor with a hot spot would be mislabeled blind-but-quiet.
-    if (ratio == null || !Number.isFinite(highlight)) return 'unknown';
+    // A failed BH1750 read (null ratio) makes the firmware hold its target:
+    // the law neither moves nor stays quiet, so no case applies. A NaN
+    // threshold or content level would make every comparison false and
+    // report a quiet law or a clear eye that nobody measured.
+    if (ratio === null || !Number.isFinite(highlight) ||
+        !Number.isFinite(threshold) || !Number.isFinite(contentNits)) {
+      return 'unknown';
+    }
     const lawMoves = ratio > threshold;
     const eye = viewerGlare(highlight, contentNits);
     if (!lawMoves && eye) return 'blind-but-quiet';

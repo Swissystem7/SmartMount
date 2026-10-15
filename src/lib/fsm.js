@@ -67,6 +67,10 @@
     return control.calcOptimalAngle(luxTop, luxBot, panelName(panelIdx), held);
   }
 
+  function computeAngleErrorDeg(mechanicalAngle, believedAngle) {
+    return mechanicalAngle - believedAngle;
+  }
+
   function fresh(kind, extra) {
     const state = Object.assign({
       kind: kind,
@@ -95,14 +99,14 @@
     }, extra || {});
     
     // Calculate and set angleErrorDeg for fresh state
-    state.angleErrorDeg = state.mechanicalAngle - state.believedAngle;
+    state.angleErrorDeg = computeAngleErrorDeg(state.mechanicalAngle, state.believedAngle);
     return state;
   }
 
   function copy(s) {
     const newState = Object.assign({}, s, { reject: null });
     // Ensure angleErrorDeg is carried over in copies
-    newState.angleErrorDeg = newState.mechanicalAngle - newState.believedAngle;
+    newState.angleErrorDeg = computeAngleErrorDeg(newState.mechanicalAngle, newState.believedAngle);
     return newState;
   }
 
@@ -110,7 +114,7 @@
     s.state = state;
     s.reason = reason;
     // Update angleErrorDeg when state changes
-    s.angleErrorDeg = s.mechanicalAngle - s.believedAngle;
+    s.angleErrorDeg = computeAngleErrorDeg(s.mechanicalAngle, s.believedAngle);
     return s;
   }
 
@@ -604,6 +608,15 @@
     return step(s, { type: 'BOOT_DONE', wifiOk: wifiOk !== false });
   }
 
+  // Host-side status for Gantt overlays on the control loop (dashboard / runtime).
+  function controlLoopFsmStatus(snapshot) {
+    if (!snapshot) return 'auto';
+    if (snapshot.dropped || snapshot.sensorFail) return 'hold';
+    if (snapshot.moving) return 'moving';
+    if (!snapshot.autoMode) return 'manual';
+    return 'auto';
+  }
+
   return {
     FIRMWARE_STATES,
     SAFE_STATES,
@@ -616,5 +629,7 @@
     applyAll,
     firmwareBoot,
     safeBoot,
+    controlLoopFsmStatus,
+    computeAngleErrorDeg,
   };
 });

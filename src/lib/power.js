@@ -40,7 +40,10 @@
     return n * I * I * R;
   }
 
-  function logicW({ wifiOn, sensorsOn, sensorCount }) {
+  function logicW({ wifiOn, sensorsOn, sensorCount, sleepMode }) {
+    if (sleepMode === true && wifiOn === false && sensorsOn === false) {
+      return 0.003;
+    }
     const wifi = wifiOn !== false;
     const sens = sensorsOn !== false;
     const n = Number(sensorCount != null ? sensorCount : 2);
@@ -78,7 +81,10 @@
     const hold = windingHoldW({ phaseA, phaseOhm });
     const moveW = hold * 1.15;
     const movingHours = (moves * moveSec) / 3600;
-    const idleHours = Math.max(0, 24 - movingHours);
+    // A day has 24 hours. More moving time than that is a bad schedule, not
+    // a day whose motor energy keeps growing while idle is clamped to 0.
+    if (movingHours > 24) throw new Error('invalid daily-energy inputs: moving time exceeds 24 h');
+    const idleHours = 24 - movingHours;
 
     const coilsIdle = selfLocking || disableCoilsWhenIdle ? 0 : hold;
     const motorWh = moveW * movingHours + coilsIdle * idleHours;
@@ -125,7 +131,7 @@
   // current is P/V — not the 1.5 A phase rating. Peak coil current is
   // the thing a PSU / pack must survive for a few hundred ms.
   function currentDraw(input) {
-    const wifiOn = input && input.wifiOn !== false;
+    const wifiOn = !input || input.wifiOn !== false;
     const sensorsOn = !input || input.sensorsOn !== false;
     const sensorCount = Number(input && input.sensorCount != null ? input.sensorCount : 2);
     const holding = Boolean(input && input.holding);
