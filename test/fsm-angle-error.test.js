@@ -35,3 +35,20 @@ test('computeAngleErrorDeg returns mechanicalAngle - believedAngle', () => {
   assert.strictEqual(F.computeAngleErrorDeg(10, 4), 6);
   assert.strictEqual(F.computeAngleErrorDeg(-5, 5), -10);
 });
+
+test('transitions that end in go() keep the computeAngleErrorDeg sign (regression for #111)', () => {
+  // BOOT_DONE on the as-written firmware model ends in go(s, 'RUN', ...)
+  let s = F.fresh('firmware', { mechanicalAngle: 15 });
+  s = F.step(s, {type:'BOOT_DONE', wifiOk:true});
+  assert.strictEqual(s.state, 'RUN');
+  assert.strictEqual(s.angleErrorDeg, F.computeAngleErrorDeg(s.mechanicalAngle, s.believedAngle));
+  assert.strictEqual(s.angleErrorDeg, 15);
+
+  // HOME_START on the safe model ends in go(s, 'HOMING', ...)
+  let q = F.safeBoot(true, true);
+  q.mechanicalAngle = 15;
+  q = F.step(q, {type:'HOME_START'});
+  assert.strictEqual(q.state, 'HOMING');
+  assert.strictEqual(q.angleErrorDeg, F.computeAngleErrorDeg(q.mechanicalAngle, q.believedAngle));
+  assert.strictEqual(q.angleErrorDeg, 15);
+});
