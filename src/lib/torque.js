@@ -96,6 +96,10 @@
     const powered = verdict({ factor, selfLocking, unpowered: false });
     const unpowered = verdict({ factor, selfLocking, unpowered: true });
 
+    const tiltRad = (tiltFromVerticalDeg * Math.PI) / 180;
+    const momentArm = cogOffsetM * Math.cos(tiltRad);
+    const maxMassKg = momentArm === 0 ? Infinity : availableNm / (G * momentArm);
+
     return {
       requiredNm,
       availableNm,
@@ -103,6 +107,7 @@
       powered,
       unpowered,
       selfLocking,
+      maxMassKg,
     };
   }
 
