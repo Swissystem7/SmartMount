@@ -74,9 +74,16 @@
     contentNits = SDR_CONTENT_NITS,
   }) {
     const ratio = sensorRatio(luxTop, luxBot);
-    const lawMoves = ratio != null && ratio > threshold;
+    // A failed BH1750 read (null ratio) makes the firmware hold its target:
+    // the law neither moves nor stays quiet, so no case applies. A NaN
+    // threshold or content level would make every comparison false and
+    // report a quiet law or a clear eye that nobody measured.
+    if (ratio === null || !Number.isFinite(highlight) ||
+        !Number.isFinite(threshold) || !Number.isFinite(contentNits)) {
+      return 'unknown';
+    }
+    const lawMoves = ratio > threshold;
     const eye = viewerGlare(highlight, contentNits);
-    if (!Number.isFinite(highlight)) return 'unknown';
     if (!lawMoves && eye) return 'blind-but-quiet';
     if (lawMoves && !eye) return 'tilts-for-nothing';
     if (lawMoves && eye) return 'agrees-glare';

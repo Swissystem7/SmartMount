@@ -27,23 +27,70 @@
   const DEADBAND_DEG = P.deadbandDeg;
   const MIN_LUX = P.minLux;
 
+  // Labels for one cooperative loop() pass — shared with timing.loopPhases ids.
+  const LOOP_PHASE_LABELS = Object.freeze({
+    waitSample: 'המתנה לדגימה',
+    handleClient: 'handleClient()',
+    i2c: 'BH1750 ×2',
+    law: 'calcOptimalAngle',
+    moveTo: 'moveToAngle',
+    run: 'stepper.run()',
+    motor: 'מעטפת מנוע',
+  });
+
+  function loopPhaseGanttStatus(phaseId, fsmStatus) {
+    if (fsmStatus === 'hold' && (phaseId === 'law' || phaseId === 'moveTo' || phaseId === 'motor')) {
+      return 'hold';
+    }
+    if (phaseId === 'waitSample') return 'delay';
+    if (phaseId === 'law' || phaseId === 'moveTo') return 'control';
+    if (phaseId === 'motor') return 'moving';
+    return 'busy';
+  }
+
   function glareRatio(luxTop, luxBot) {
     if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot)) return null;
     // A BH1750 reports a negative value when a read fails; treat that as
     // "no reading" rather than as darkness, which would look like glare.
     if (luxTop < 0 || luxBot < 0) return null;
+    // Both sensors at zero lux is absolute darkness, not "infinite glare" via
+    // MIN_LUX — callers must not treat 0/1 as a meaningful ratio.
+    if (luxTop === 0 && luxBot === 0) return null;
     return luxTop / Math.max(luxBot, MIN_LUX);
   }
 
-  function calcOptimalAngle(luxTop, luxBot, panel = 'LED', targetAngle = 0) {
-    const limit = PANEL_LIMITS[panel];
-    if (limit === undefined) throw new Error('unknown panel type: ' + panel);
+  function getPanelLimit(panel, customLimit) {
+    if (typeof panel === 'object' && panel !== null) {
+      if (customLimit === undefined) {
+        customLimit = panel.limit ?? panel.maxAngle ?? panel.max;
+      }
+      panel = panel.type ?? panel.panel ?? panel.name ?? 'CUSTOM';
+    }
+    if (typeof customLimit === 'object' && customLimit !== null) {
+      customLimit = customLimit.limit ?? customLimit.maxAngle ?? customLimit.max;
+    }
+    if (typeof customLimit === 'number' && Number.isFinite(customLimit)) {
+      return { panel, limit: customLimit };
+    }
+    if (panel === 'CUSTOM' && customLimit !== undefined) {
+      return { panel, limit: customLimit };
+    }
+    const limit = PANEL_LIMITS ? PANEL_LIMITS[panel] : undefined;
+    return { panel, limit };
+  }
+
+  function calcOptimalAngle(luxTop, luxBot, panel = 'LED', targetAngle = 0, customLimit) {
+    const { panel: panelType, limit } = getPanelLimit(panel, customLimit);
+    if (limit === undefined) throw new Error('unknown panel type: ' + panelType);
 
     const ratio = glareRatio(luxTop, luxBot);
     // Firmware returns targetAngle — the commanded target — on a failed BH1750
     // read (hold, never slam). Mid-move currentAngle lags the target, and
     // returning it would make loop() reverse the stepper under load (#41).
-    if (ratio === null) return targetAngle;
+    if (ratio === null) {
+      if (luxTop === 0 && luxBot === 0) return 0;
+      return targetAngle;
+    }
     if (ratio <= GLARE_THRESHOLD) return 0;
 
     return Math.min((ratio - GLARE_THRESHOLD) * GAIN_DEG_PER_RATIO, limit);
@@ -54,9 +101,9 @@
     return Math.abs(targetAngle - currentAngle) > DEADBAND_DEG;
   }
 
-  function clampToPanel(angle, panel = 'LED') {
-    const limit = PANEL_LIMITS[panel];
-    if (limit === undefined) throw new Error('unknown panel type: ' + panel);
+  function clampToPanel(angle, panel = 'LED', customLimit) {
+    const { panel: panelType, limit } = getPanelLimit(panel, customLimit);
+    if (limit === undefined) throw new Error('unknown panel type: ' + panelType);
     if (Number.isNaN(angle)) return 0;
     return Math.min(Math.max(angle, -limit), limit);
   }
@@ -85,15 +132,37 @@
   // the commanded step divided by the float STEPS_PER_DEGREE (long / float is
   // a float), so a request of 12.3° on a 1000-step rev reports 12.24 (as a
   // float32) and equals currentAngle, computed the same way, once the move ends.
-  function moveToAngle(deg, panel = 'LED') {
-    const clamped = clampToPanel(deg, panel);
+  function moveToAngle(deg, panel = 'LED', customLimit) {
+    const clamped = clampToPanel(deg, panel, customLimit);
     const steps = stepsFor(clamped);
     return { clamped: clamped, steps: steps, target: Math.fround(steps / STEPS_PER_DEGREE_F32) };
+  }
+
+  // One auto-loop decision: law + deadband + step quantisation. Non-finite lux
+  // (noise, parse glitches, failed reads surfaced as Inf/NaN) must not move the
+  // mount or propagate bad angles — mirror calcOptimalAngle's isnan/isinf guard.
+  function compute({ luxTop, luxBot, panel = 'LED', targetAngle = 0 }) {
+    if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot)) {
+      return { error: true, move: false, angle: 0, targetAngle, steps: 0 };
+    }
+    const next = calcOptimalAngle(luxTop, luxBot, panel, targetAngle);
+    if (!shouldMove(targetAngle, next)) {
+      return { error: false, move: false, angle: next, targetAngle, steps: 0 };
+    }
+    const moved = moveToAngle(next, panel);
+    return {
+      error: false,
+      move: true,
+      angle: moved.clamped,
+      targetAngle: moved.target,
+      steps: moved.steps,
+    };
   }
 
   // No schedule, cloud, or calibration — those are not in the .ino.
   return {
     calcOptimalAngle,
+    compute,
     glareRatio,
     shouldMove,
     clampToPanel,
@@ -105,5 +174,7 @@
     GLARE_THRESHOLD,
     GAIN_DEG_PER_RATIO,
     DEADBAND_DEG,
+    LOOP_PHASE_LABELS,
+    loopPhaseGanttStatus,
   };
 });

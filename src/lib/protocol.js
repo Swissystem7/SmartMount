@@ -179,7 +179,10 @@
       return { status: 400, body: errorBody('missing type') };
     }
     const parsed = parseIntArg(args.type);
-    if (!parsed.ok || !isValidPanel(parsed.value)) {
+    if (!parsed.ok) {
+      return { status: 400, body: errorBody('invalid panel type') };
+    }
+    if (!isValidPanel(parsed.value)) {
       return { status: 400, body: errorBody('invalid panel type') };
     }
     return { status: 200, body: okBody(), effect: { panel: parsed.value } };
@@ -207,11 +210,22 @@
   function dispatch(method, path, args, state) {
     const m = String(method || '').toUpperCase();
     const p = String(path || '');
+
     if (m === 'GET' && p === '/status') return handleStatus(state);
     if (m === 'POST' && p === '/set-angle') return handleSetAngle(args || {});
     if (m === 'POST' && p === '/set-panel') return handleSetPanel(args || {});
     if (m === 'POST' && p === '/set-mode') return handleSetMode(args || {});
     if (m === 'POST' && p === '/stop') return handleStop(args || {});
+
+    // Nothing handled it. Classify the miss against the route table rather than
+    // ahead of the handlers, so a route can only ever be reached by the method
+    // it is declared with above. PUT on a registered path is 405; every other
+    // wrong method falls through to 404 like WebServer onNotFound does on the
+    // board (GET /stop, DELETE /set-mode, POST /status).
+    const route = ROUTES.find((r) => r.path === p);
+    if (route && m === 'PUT') {
+      return { status: 405, body: errorBody('method not allowed') };
+    }
     return { status: 404, body: errorBody('not found') };
   }
 
