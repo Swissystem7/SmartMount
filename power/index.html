@@ -69,7 +69,7 @@ td.num{font-variant-numeric:tabular-nums}
 
   <div class="card">
     <h2>ארבעה מצבים — לא מדידה</h2>
-    <div class="modes" id="modes" role="list"></div>
+    <div class="modes" id="modes" role="group" aria-label="מצבי צריכת זרם"></div>
     <svg id="rails" viewBox="0 0 640 220" role="img" aria-labelledby="railsTitle" dir="ltr">
       <title id="railsTitle">זרם ממוצע על 3.3 V מול 12 V</title>
     </svg>
@@ -164,7 +164,28 @@ function paintRails(draw) {
       draw.totalW.toFixed(2) + ' W</text>';
 }
 
-function renderModes() {
+function updateModeMetrics() {
+  const modes = SM_POWER.drawModes();
+  const draw = modes[modeId];
+  paintRails(draw);
+  $('kLogic').textContent = draw.logic3v3Ma.toFixed(1) + ' mA · ' + draw.logicW.toFixed(2) + ' W';
+  $('kMotor').textContent = draw.motor12vAvgMa.toFixed(0) + ' mA · ' + draw.motorW.toFixed(2) + ' W';
+  $('kPeak').textContent = draw.motorPhasePeakMa.toFixed(0) + ' mA';
+  $('kUsb').textContent = draw.usbCanFeed ? 'מספיק למצב הזה' : 'לא מספיק';
+}
+
+function selectMode(id) {
+  modeId = id;
+  const box = $('modes');
+  box.querySelectorAll('button').forEach((b) => {
+    const on = b.getAttribute('data-mode') === modeId;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  updateModeMetrics();
+}
+
+function initModes() {
   const modes = SM_POWER.drawModes();
   const box = $('modes');
   box.textContent = '';
@@ -173,17 +194,13 @@ function renderModes() {
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'mode' + (id === modeId ? ' on' : '');
-    el.setAttribute('role', 'listitem');
+    el.setAttribute('data-mode', id);
+    el.setAttribute('aria-pressed', id === modeId ? 'true' : 'false');
     el.innerHTML = '<b>' + d.totalW.toFixed(2) + ' W</b><span>' + MODE_HE[id] + '</span>';
-    el.addEventListener('click', () => { modeId = id; all(); });
+    el.addEventListener('click', () => { selectMode(id); });
     box.appendChild(el);
   });
-  const draw = modes[modeId];
-  paintRails(draw);
-  $('kLogic').textContent = draw.logic3v3Ma.toFixed(1) + ' mA · ' + draw.logicW.toFixed(2) + ' W';
-  $('kMotor').textContent = draw.motor12vAvgMa.toFixed(0) + ' mA · ' + draw.motorW.toFixed(2) + ' W';
-  $('kPeak').textContent = draw.motorPhasePeakMa.toFixed(0) + ' mA';
-  $('kUsb').textContent = draw.usbCanFeed ? 'מספיק למצב הזה' : 'לא מספיק';
+  updateModeMetrics();
 }
 
 function paintHours(r) {
@@ -243,29 +260,39 @@ function battery() {
   v.textContent = text[r.kind] || r.kind;
 }
 
-function packs() {
+function selectPack(id) {
+  packId = id;
+  const box = $('packs');
+  box.querySelectorAll('button').forEach((b) => {
+    const on = b.getAttribute('data-pack') === packId;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  battery();
+}
+
+function initPacks() {
   const box = $('packs');
   box.textContent = '';
   SM_POWER.PACKS.forEach((p) => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'btn' + (p.id === packId ? ' on' : '');
+    b.setAttribute('data-pack', p.id);
+    b.setAttribute('aria-pressed', p.id === packId ? 'true' : 'false');
     b.textContent = p.label;
-    b.addEventListener('click', () => { packId = p.id; all(); });
+    b.addEventListener('click', () => { selectPack(p.id); });
     box.appendChild(b);
   });
 }
 
-function all() {
-  packs();
-  renderModes();
-  battery();
-}
+initModes();
+initPacks();
+battery();
 
 ['moves', 'worm', 'wifiOn', 'hoursWanted'].forEach((id) => {
-  $(id).addEventListener('input', all);
+  $(id).addEventListener('input', battery);
 });
-all();
 </script>
 </body>
 </html>
