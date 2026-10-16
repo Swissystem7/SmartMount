@@ -22,7 +22,7 @@
 .m b{display:block;font-size:1.1rem;font-variant-numeric:tabular-nums}
 .m span{font-size:.7rem;color:var(--muted)}
 label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
-input[type=range]{width:100%;accent-color:#58a6ff}
+input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .fine{font-size:.78rem;color:var(--muted);line-height:1.6;margin-top:10px}
 .hold b{color:#f59e0b}
@@ -69,29 +69,35 @@ input[type=range]{width:100%;accent-color:#58a6ff}
           <div class="tv-base"></div>
         </div>
       </div>
-      <div class="angle" id="angleVal">0°</div>
+      <div class="angle" id="angleVal" aria-live="polite" aria-atomic="true">0°</div>
     </section>
     <section class="card">
       <h2>קריאות ופאנל</h2>
       <div class="metrics">
-        <div class="m" id="mRatio"><b>—</b><span>יחס בוהק</span></div>
-        <div class="m" id="mDec"><b>—</b><span>החלטה</span></div>
+        <div class="m" id="mRatio" aria-live="polite" aria-atomic="true"><b>—</b><span>יחס בוהק</span></div>
+        <div class="m" id="mDec" aria-live="polite" aria-atomic="true"><b>—</b><span>החלטה</span></div>
       </div>
       <div class="row" role="group" aria-label="סוג פאנל">
         <button type="button" class="btn" data-panel="OLED" aria-pressed="false">OLED</button>
         <button type="button" class="btn" data-panel="QLED" aria-pressed="false">QLED</button>
         <button type="button" class="btn on" data-panel="LED" aria-pressed="true">LED</button>
       </div>
+      <div class="row" role="group" aria-label="תרחישים מהירים" id="presetRow">
+        <button type="button" class="btn" data-preset="glare" aria-pressed="false">בוהק חזק</button>
+        <button type="button" class="btn" data-preset="balance" aria-pressed="false">אור מאוזן</button>
+        <button type="button" class="btn" data-preset="fault" aria-pressed="false">כשל עליון (−1)</button>
+        <button type="button" class="btn" data-preset="dark" aria-pressed="false">חדר חשוך</button>
+      </div>
       <label class="sl" for="luxTop">חיישן עליון: <span id="luxTopVal">400</span> lux</label>
-      <input type="range" id="luxTop" min="-1" max="2000" value="400">
+      <input type="range" id="luxTop" min="-1" max="2000" value="400" dir="ltr" aria-valuemin="-1" aria-valuemax="2000" aria-valuenow="400" aria-valuetext="400 lux">
       <label class="sl" for="luxBot">חיישן תחתון: <span id="luxBotVal">200</span> lux</label>
-      <input type="range" id="luxBot" min="-1" max="2000" value="200">
+      <input type="range" id="luxBot" min="-1" max="2000" value="200" dir="ltr" aria-valuemin="-1" aria-valuemax="2000" aria-valuenow="200" aria-valuetext="200 lux">
       <p class="fine">ערך <code>−1</code> מדמה כשל BH1750. החוק מחזיק זווית — לא מטיח לגבול.</p>
-      <div class="row">
+      <div class="row" role="group" aria-label="מצב בקרה">
         <button type="button" class="btn on" id="modeBtn" aria-pressed="true">אוטומטי</button>
       </div>
       <label class="sl" for="manual">זווית ידנית: <span id="manualVal">0</span>°</label>
-      <input type="range" id="manual" min="-40" max="40" value="0" disabled>
+      <input type="range" id="manual" min="-40" max="40" value="0" disabled dir="ltr" aria-valuemin="-20" aria-valuemax="20" aria-valuenow="0" aria-valuetext="0°">
       <p class="fine">ידני עובר דרך <code>moveToAngle</code> — הצמדה לגבול ועיגול לצעד, כמו בקושחה: הזווית המוצגת היא ה־<code>target</code> ש־<code>/status</code> מחזיר.</p>
     </section>
   </div>
@@ -125,6 +131,15 @@ input[type=range]{width:100%;accent-color:#58a6ff}
     manEl.max = String(limit);
     if (Number(manEl.value) > limit) manEl.value = String(limit);
     if (Number(manEl.value) < -limit) manEl.value = String(-limit);
+
+    topEl.setAttribute('aria-valuenow', String(luxTop));
+    topEl.setAttribute('aria-valuetext', luxTop < 0 ? 'כשל חיישן' : luxTop + ' lux');
+    botEl.setAttribute('aria-valuenow', String(luxBot));
+    botEl.setAttribute('aria-valuetext', luxBot < 0 ? 'כשל חיישן' : luxBot + ' lux');
+    manEl.setAttribute('aria-valuenow', String(manEl.value));
+    manEl.setAttribute('aria-valuetext', manEl.value + '°');
+    manEl.setAttribute('aria-valuemin', String(-limit));
+    manEl.setAttribute('aria-valuemax', String(limit));
 
     let next;
     const ratio = glareRatio(luxTop, luxBot);
@@ -183,8 +198,41 @@ input[type=range]{width:100%;accent-color:#58a6ff}
     paint();
   });
 
-  topEl.addEventListener('input', paint);
-  botEl.addEventListener('input', paint);
+  const PRESETS = {
+    glare: { top: 1200, bot: 200 },
+    balance: { top: 400, bot: 400 },
+    fault: { top: -1, bot: 200 },
+    dark: { top: 0, bot: 0 },
+  };
+
+  const presetBtns = document.querySelectorAll('[data-preset]');
+  function syncPresets(activeKey) {
+    presetBtns.forEach(function (btn) {
+      const on = btn.getAttribute('data-preset') === activeKey;
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  presetBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const key = btn.getAttribute('data-preset');
+      const p = PRESETS[key];
+      if (!p) return;
+      topEl.value = String(p.top);
+      botEl.value = String(p.bot);
+      syncPresets(key);
+      paint();
+    });
+  });
+
+  function onSliderInput() {
+    syncPresets(null);
+    paint();
+  }
+
+  topEl.addEventListener('input', onSliderInput);
+  botEl.addEventListener('input', onSliderInput);
   manEl.addEventListener('input', paint);
 
   document.querySelectorAll('[data-panel]').forEach(function (b) {
