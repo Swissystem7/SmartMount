@@ -85,10 +85,10 @@ input[type=range]{width:100%;accent-color:#58a6ff}
     </div>
     <div class="card">
       <h2>תנאי גאומטריה</h2>
-      <div class="row">
-        <button type="button" class="btn on" id="scOver">מנורה מעל</button>
-        <button type="button" class="btn" id="scFace">חלון ממול</button>
-        <button type="button" class="btn" id="scLow">בוהק מלמטה</button>
+      <div class="row" role="group" aria-label="תרחיש גאומטריה">
+        <button type="button" class="btn on" id="scOver" aria-pressed="true">מנורה מעל</button>
+        <button type="button" class="btn" id="scFace" aria-pressed="false">חלון ממול</button>
+        <button type="button" class="btn" id="scLow" aria-pressed="false">בוהק מלמטה</button>
       </div>
       <label class="sl" for="lightX">אור אופקי: <span id="lightXVal">280</span></label>
       <input type="range" id="lightX" min="40" max="780" value="280">
@@ -122,10 +122,10 @@ input[type=range]{width:100%;accent-color:#58a6ff}
         יחידות שונות, תלות שונה במרחק: E ∝ 1/r², L של המקור לא.
         מקור קטן ובוהק יכול להחטיא את שני החיישנים ועדיין לשים כתם של אלפי ניט בעין.
       </p>
-      <div class="row">
-        <button type="button" class="btn on" id="optGlint">השתקפות שמש קטנה</button>
-        <button type="button" class="btn" id="optWindow">חלון גדול</button>
-        <button type="button" class="btn" id="optMatte">ציפוי מט</button>
+      <div class="row" role="group" aria-label="סוג מקור בוהק">
+        <button type="button" class="btn on" id="optGlint" aria-pressed="true">השתקפות שמש קטנה</button>
+        <button type="button" class="btn" id="optWindow" aria-pressed="false">חלון גדול</button>
+        <button type="button" class="btn" id="optMatte" aria-pressed="false">ציפוי מט</button>
       </div>
       <label class="sl" for="srcNits">בהירות מקור: <span id="srcNitsVal">20000</span> cd/m²</label>
       <input type="range" id="srcNits" min="200" max="25000" step="100" value="20000">
@@ -210,6 +210,8 @@ function distPointRay(px, py, ox, oy, dx, dy) {
 }
 
 function draw() {
+  updateSceneButtons();
+  syncGeomSliders();
   const g = screenGeom();
   const sg = document.getElementById('screen');
   sg.innerHTML = '';
@@ -367,18 +369,43 @@ function bindArrows(id, obj) {
 bindArrows('light', light);
 bindArrows('eye', eye);
 
+function updateSceneButtons() {
+  const isOver = Math.round(light.x) === 280 && Math.round(light.y) === 36 &&
+                 Math.round(eye.x) === 560 && Math.round(eye.y) === 268;
+  const isFace = Math.round(light.x) === 760 && Math.round(light.y) === 140 &&
+                 Math.round(eye.x) === 520 && Math.round(eye.y) === 250;
+  const isLow  = Math.round(light.x) === 240 && Math.round(light.y) === 370 &&
+                 Math.round(eye.x) === 560 && Math.round(eye.y) === 230;
+
+  if (isOver) scene = 'over';
+  else if (isFace) scene = 'face';
+  else if (isLow) scene = 'low';
+  else scene = 'custom';
+
+  const overBtn = document.getElementById('scOver');
+  const faceBtn = document.getElementById('scFace');
+  const lowBtn  = document.getElementById('scLow');
+
+  if (overBtn) {
+    overBtn.classList.toggle('on', isOver);
+    overBtn.setAttribute('aria-pressed', isOver ? 'true' : 'false');
+  }
+  if (faceBtn) {
+    faceBtn.classList.toggle('on', isFace);
+    faceBtn.setAttribute('aria-pressed', isFace ? 'true' : 'false');
+  }
+  if (lowBtn) {
+    lowBtn.classList.toggle('on', isLow);
+    lowBtn.setAttribute('aria-pressed', isLow ? 'true' : 'false');
+  }
+}
+
 function applyScene(name) {
-  scene = name;
-  document.getElementById('scOver').classList.toggle('on', name === 'over');
-  document.getElementById('scFace').classList.toggle('on', name === 'face');
-  document.getElementById('scLow').classList.toggle('on', name === 'low');
   if (name === 'over') {
     light = { x: 280, y: 36 }; eye = { x: 560, y: 268 }; tilt = 0;
   } else if (name === 'face') {
-    document.getElementById('scFace').classList.add('on');
     light = { x: 760, y: 140 }; eye = { x: 520, y: 250 }; tilt = 0;
-  } else {
-    document.getElementById('scLow').classList.add('on');
+  } else if (name === 'low') {
     light = { x: 240, y: 370 }; eye = { x: 560, y: 230 }; tilt = 0;
   }
   document.getElementById('tilt').value = tilt;
@@ -389,7 +416,36 @@ document.getElementById('scOver').onclick = () => applyScene('over');
 document.getElementById('scFace').onclick = () => applyScene('face');
 document.getElementById('scLow').onclick = () => applyScene('low');
 
+function updateOptButtons() {
+  const sourceNits = Number(document.getElementById('srcNits').value);
+  const areaCm2 = Number(document.getElementById('srcArea').value);
+  const dist = Number(document.getElementById('srcDist').value);
+  const reflectance = Number(document.getElementById('refl').value);
+
+  const isGlint  = sourceNits === 20000 && areaCm2 === 4 && Math.abs(dist - 2) < 0.05 && Math.abs(reflectance - 0.06) < 0.001;
+  const isWindow = sourceNits === 4000 && areaCm2 === 12000 && Math.abs(dist - 1.4) < 0.05 && Math.abs(reflectance - 0.06) < 0.001;
+  const isMatte  = sourceNits === 4000 && areaCm2 === 12000 && Math.abs(dist - 1.4) < 0.05 && Math.abs(reflectance - 0.015) < 0.001;
+
+  const glintBtn  = document.getElementById('optGlint');
+  const winBtn    = document.getElementById('optWindow');
+  const matBtn    = document.getElementById('optMatte');
+
+  if (glintBtn) {
+    glintBtn.classList.toggle('on', isGlint);
+    glintBtn.setAttribute('aria-pressed', isGlint ? 'true' : 'false');
+  }
+  if (winBtn) {
+    winBtn.classList.toggle('on', isWindow);
+    winBtn.setAttribute('aria-pressed', isWindow ? 'true' : 'false');
+  }
+  if (matBtn) {
+    matBtn.classList.toggle('on', isMatte);
+    matBtn.setAttribute('aria-pressed', isMatte ? 'true' : 'false');
+  }
+}
+
 function paintOptics(rayHitsEye) {
+  updateOptButtons();
   const sourceNits = Number(document.getElementById('srcNits').value);
   const areaCm2 = Number(document.getElementById('srcArea').value);
   const dist = Number(document.getElementById('srcDist').value);
@@ -433,9 +489,6 @@ function paintOptics(rayHitsEye) {
 }
 
 function setOptPreset(name) {
-  document.getElementById('optGlint').classList.toggle('on', name === 'glint');
-  document.getElementById('optWindow').classList.toggle('on', name === 'window');
-  document.getElementById('optMatte').classList.toggle('on', name === 'matte');
   if (name === 'glint') {
     document.getElementById('srcNits').value = 20000;
     document.getElementById('srcArea').value = 4;
@@ -446,7 +499,7 @@ function setOptPreset(name) {
     document.getElementById('srcArea').value = 12000;
     document.getElementById('srcDist').value = 1.4;
     document.getElementById('refl').value = 0.06;
-  } else {
+  } else if (name === 'matte') {
     document.getElementById('srcNits').value = 4000;
     document.getElementById('srcArea').value = 12000;
     document.getElementById('srcDist').value = 1.4;
