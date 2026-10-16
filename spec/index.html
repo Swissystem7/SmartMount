@@ -301,17 +301,26 @@ const row = $('presetRow');
 SM_TORQUE.PRESETS.forEach((p) => {
   const b = document.createElement('button');
   b.type = 'button';
-  b.className = 'btn' + (p.id === '55' ? ' on' : '');
+  const isInitial = p.id === '55';
+  b.className = 'btn' + (isInitial ? ' on' : '');
+  b.setAttribute('aria-pressed', isInitial ? 'true' : 'false');
   b.textContent = p.label + ' · ' + p.massKg + ' ק״ג';
   b.addEventListener('click', () => {
-    row.querySelectorAll('.btn').forEach((x) => x.classList.remove('on'));
-    b.classList.add('on');
     $('massKg').value = p.massKg;
     $('cogCm').value = p.cogCm;
     recalc();
   });
   row.appendChild(b);
 });
+
+function syncPresetButtons(massKg, cogCm) {
+  const matching = SM_TORQUE.PRESETS.find((p) => p.massKg === massKg && p.cogCm === cogCm);
+  row.querySelectorAll('.btn').forEach((b, i) => {
+    const isMatch = matching ? SM_TORQUE.PRESETS[i].id === matching.id : false;
+    b.classList.toggle('on', isMatch);
+    b.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+  });
+}
 
 function recalc() {
   const massKg = Number($('massKg').value);
@@ -320,6 +329,7 @@ function recalc() {
   $('massLbl').textContent = massKg;
   $('cogLbl').textContent = cogCm;
   $('tiltLbl').textContent = tilt;
+  syncPresetButtons(massKg, cogCm);
   const r = SM_TORQUE.sizeMount({
     massKg,
     cogOffsetM: cogCm / 100,
