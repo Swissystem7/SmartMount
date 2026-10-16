@@ -56,6 +56,10 @@ a.primary{background:linear-gradient(135deg,#38bdf8,#8b5cf6);border:0;color:#fff
 table{width:100%;border-collapse:collapse;font-size:.84rem}
 th,td{text-align:right;padding:8px 10px;border-bottom:1px solid #21262d;vertical-align:top}
 th{color:var(--muted);font-weight:600;font-size:.75rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tag-count{opacity:.8;font-size:.72rem;margin-inline-start:4px}
+.empty{background:#111120;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:16px;text-align:center;color:var(--muted);font-size:.85rem}
 </style>
 </head>
 <body>
@@ -108,6 +112,15 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
 
   <h2 id="bugs">באגים שנמצאו בסקירה — ותוקנו במקור</h2>
   <p class="fine">אלה ממצאי קריאה של <code>smart_mount.ino</code>, לא באגים שנתפסו על אוסצילוסקופ. הסטטוס הוא «תוקן במקור», לא «אומת על חומרה».</p>
+  <div class="row" id="bugFilters" role="group" aria-label="סינון באגים לפי חומרה">
+    <button type="button" class="btn on" data-severity="all" id="btn-all" aria-pressed="true">הכול <span class="tag-count">6</span></button>
+    <button type="button" class="btn" data-severity="safety" id="btn-safety" aria-pressed="false">בטיחות <span class="tag-count">2</span></button>
+    <button type="button" class="btn" data-severity="contract" id="btn-contract" aria-pressed="false">חוזה <span class="tag-count">1</span></button>
+    <button type="button" class="btn" data-severity="availability" id="btn-availability" aria-pressed="false">זמינות <span class="tag-count">1</span></button>
+    <button type="button" class="btn" data-severity="honesty" id="btn-honesty" aria-pressed="false">כנות <span class="tag-count">1</span></button>
+    <button type="button" class="btn" data-severity="build" id="btn-build" aria-pressed="false">הידור <span class="tag-count">1</span></button>
+  </div>
+  <p id="bugFilterCount" class="fine" aria-live="polite" style="margin-top:-4px;margin-bottom:10px">מציג 6 מתוך 6 ממצאי סקירה</p>
   <div id="bugsList"></div>
 
   <h2 id="open">מה עדיין פתוח — בכוונה גלויה</h2>
@@ -137,12 +150,14 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
 
   <h2 id="tradeoffs">פשרות תכנון</h2>
   <div class="card">
-    <table>
-      <thead>
-        <tr><th>שאלה</th><th>מה נבחר לדמו</th><th>למה</th><th>מה היה נכון למוצר</th></tr>
-      </thead>
-      <tbody id="tradeBody"></tbody>
-    </table>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>שאלה</th><th>מה נבחר לדמו</th><th>למה</th><th>מה היה נכון למוצר</th></tr>
+        </thead>
+        <tbody id="tradeBody"></tbody>
+      </table>
+    </div>
   </div>
   <p class="fine">הפירוט המלא, כולל סרבו / lux מוחלט / מיקום חיישן: <a href="../alts/">חלופות שנדחו</a>.</p>
 
@@ -225,20 +240,67 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
 
   const sevHe = { safety: 'בטיחות', contract: 'חוזה', availability: 'זמינות', honesty: 'כנות', build: 'הידור' };
 
+  let activeSeverity = 'all';
   const bugs = document.getElementById('bugsList');
-  C.BUGS.forEach(function (b) {
-    const el = document.createElement('article');
-    el.className = 'card';
-    el.innerHTML =
-      '<h3>' + b.title +
-      ' <span class="tag ' + b.severity + '">' + (sevHe[b.severity] || b.severity) + '</span></h3>' +
-      '<div class="pair">' +
-      '<div class="was"><b>לפני</b>' + b.was + '</div>' +
-      '<div class="now"><b>אחרי (במקור)</b>' + b.now + '</div>' +
-      '</div>' +
-      '<p class="meta"><code>' + b.where + '</code> · ' + b.provenBy + '</p>';
-    bugs.appendChild(el);
+
+  function renderBugs() {
+    bugs.textContent = '';
+    const filtered = activeSeverity === 'all'
+      ? C.BUGS
+      : C.BUGS.filter(function (b) { return b.severity === activeSeverity; });
+
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'אין באגים בקטגוריה זו.';
+      bugs.appendChild(empty);
+    } else {
+      filtered.forEach(function (b) {
+        const el = document.createElement('article');
+        el.className = 'card';
+        el.setAttribute('data-bug-severity', b.severity);
+        el.innerHTML =
+          '<h3>' + b.title +
+          ' <span class="tag ' + b.severity + '">' + (sevHe[b.severity] || b.severity) + '</span></h3>' +
+          '<div class="pair">' +
+          '<div class="was"><b>לפני</b>' + b.was + '</div>' +
+          '<div class="now"><b>אחרי (במקור)</b>' + b.now + '</div>' +
+          '</div>' +
+          '<p class="meta"><code>' + b.where + '</code> · ' + b.provenBy + '</p>';
+        bugs.appendChild(el);
+      });
+    }
+
+    const countEl = document.getElementById('bugFilterCount');
+    if (countEl) {
+      if (activeSeverity === 'all') {
+        countEl.textContent = 'מציג ' + filtered.length + ' מתוך ' + C.BUGS.length + ' ממצאי סקירה';
+      } else {
+        const label = sevHe[activeSeverity] || activeSeverity;
+        countEl.textContent = 'מציג ' + filtered.length + ' מתוך ' + C.BUGS.length + ' ממצאי סקירה (' + label + ')';
+      }
+    }
+  }
+
+  function setSeverityFilter(sev) {
+    activeSeverity = sev;
+    const filterBtns = document.querySelectorAll('#bugFilters [data-severity]');
+    filterBtns.forEach(function (btn) {
+      const on = btn.getAttribute('data-severity') === activeSeverity;
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    renderBugs();
+  }
+
+  const filterBtns = document.querySelectorAll('#bugFilters [data-severity]');
+  filterBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setSeverityFilter(btn.getAttribute('data-severity'));
+    });
   });
+
+  renderBugs();
 
   const open = document.getElementById('openList');
   C.OPEN.forEach(function (o) {
