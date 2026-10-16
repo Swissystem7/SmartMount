@@ -20,7 +20,7 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 | מעבדה — יעד | `test/lab-target-mirror.test.js` | הסקריפט של `lab/` רץ ב־`node:vm` עם DOM מזויף: היעד הוא הצעד המעוגל (`angle == target` בהגעה), `/set-panel` באמצע מהלך מצמיד את היעד ולא את הזווית המפגרת, דגימה בתוך הדד-בנד לא משכתבת `targetAngle`, HOLD מחזיק את היעד בזמן שהזרוע ממשיכה |
 | תזמון | `test/timing.test.js`, `timing-summary.test.js`, `runtime-presets.test.js` | `setMaxSpeed(MAX_SPEED_SPS)` / `SAMPLE_PERIOD_MS` בקושחה, הערכים מ־`config/control-params.json` (500 / 2000 ms) ו־`timing.js` קורא אותם משם; 20–40° הם משולש; HTTP 20 ms מרעיב פולסים; הבזק 400 ms מתפספס ב־80%; סנכרון כפתורי פריסט תזמון ופאנל עם הסליידרים ומצב aria-pressed |
 | הספק | `test/power.test.js`, `power-best-pack.test.js`, `power-peak-phase.test.js` | I²R החזקה > USB 5 V; סלילים 24 שעות הם מחמם; פאוורבנק לא מזין 12 V; תולעת הופכת 3S ל־UPS; שיא `motorPhasePeakMa` הוא זרם הפאזה של הקורא ולא תווית 17HS4401 |
-| HIL | `test/hil.test.js`, `hil-example-1.test.js` | 13 מקרים, `STATUS=never-run`, HIL-10 אוסר טלוויזיה; `docs/HIL.md` כולל לפחות דוגמה אחת עם תוצאה צפויה ומדומה |
+| HIL | `test/hil.test.js`, `hil-example-1.test.js`, `hil-ui.test.js` | 13 מקרים, `STATUS=never-run`, HIL-10 אוסר טלוויזיה; `docs/HIL.md` כולל לפחות דוגמה אחת עם תוצאה צפויה ומדומה; סנכרון כפתורי סינון מתקן HIL עם מצב aria-pressed, שימור DOM ומצב ריק |
 | חלופות | `test/alts.test.js`, `alts-search.test.js` | הדמו בחר צעד+יחס+מסגרת+החזקה+שקר אפס; מפעיל קווי+תולעת+מפסק הם «למוצר» |
 | הידור | `test/firmware-build.test.js` | אין `min(float, double)`; רשומת ההידור תואמת ל-sha256 של ה-`.ino` |
 | מקרה הנדסי | `test/case.test.js` | פסק דין portfolio-only; באגים «תוקנו במקור» לא «אומתו על חומרה»; HIL נשאר never-run |
