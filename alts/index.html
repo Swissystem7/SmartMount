@@ -135,18 +135,23 @@ function emptyCard(term) {
   const card = document.createElement('section');
   card.className = 'card empty-state';
   card.setAttribute('aria-label', 'אין תוצאות');
-  card.innerHTML =
-    '<p>לא נמצאו חלופות התואמות לחיפוש «' + term + '»</p>' +
-    '<p class="fine">נסו מונח אחר (תריס חכם, זרוע מוניטור, סרבו, תולעת) או לחצו לאיפוס.</p>' +
-    '<button type="button" class="btn reset-search-btn">הצג את כל החלופות</button>';
-  const resetBtn = card.querySelector('.reset-search-btn');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      q.value = '';
-      render();
-      q.focus();
-    });
-  }
+  const lead = document.createElement('p');
+  lead.textContent = 'לא נמצאו חלופות התואמות לחיפוש «' + term + '»';
+  const hint = document.createElement('p');
+  hint.className = 'fine';
+  hint.textContent = 'נסו מונח אחר (תריס חכם, זרוע מוניטור, סרבו, תולעת) או לחצו לאיפוס.';
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.className = 'btn reset-search-btn';
+  resetBtn.textContent = 'הצג את כל החלופות';
+  resetBtn.addEventListener('click', () => {
+    q.value = '';
+    render();
+    q.focus();
+  });
+  card.appendChild(lead);
+  card.appendChild(hint);
+  card.appendChild(resetBtn);
   return card;
 }
 
