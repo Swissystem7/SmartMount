@@ -160,7 +160,7 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
       <div class="fault">
         <h3>1. הרוג חיישן</h3>
         <p>BH1750 מחזיר ערך שלילי. חוק נאיבי רואה «חושך» ומכה למקסימום. החוק האמיתי מחזיק.</p>
-        <div class="row" style="margin:0">
+        <div class="row" role="group" aria-label="סימולציית כשל חיישנים" style="margin:0">
           <button type="button" class="btn danger" id="failTop" aria-pressed="false">כשל עליון</button>
           <button type="button" class="btn danger" id="failBot" aria-pressed="false">כשל תחתון</button>
           <button type="button" class="btn danger" id="failI2c" aria-pressed="false">כשל אוטובוס I²C</button>
@@ -169,7 +169,7 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
       <div class="fault">
         <h3>2. נתק WiFi</h3>
         <p>אחרי timeout הקושחה מדפיסה שורה אחת וממשיכה אוטו מקומי. HTTP מרחוק הופך לבלתי-הגעה — המנוע לא «נתקע».</p>
-        <div class="row" style="margin:0">
+        <div class="row" role="group" aria-label="בקרת רשת וחוק נאיבי" style="margin:0">
           <button type="button" class="btn danger" id="cutWifi" aria-pressed="false">נתק WiFi</button>
           <button type="button" class="btn" id="showNaive" aria-pressed="false">הצג חוק נאיבי</button>
         </div>
@@ -187,10 +187,10 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
           ובהגעה <code>angle == target</code>. החלפת פאנל באמצע מהלך מצמידה את <strong>היעד</strong> לגבול החדש, לא את הזווית המפגרת,
           והדד-בנד של האוטו נמדד מול היעד — דגימה בתוכו לא משכתבת אותו.
         </p>
-        <div class="row" style="margin:0">
+        <div class="row" role="group" aria-label="פקודות תנועה ועצירת חירום" style="margin:0">
           <button type="button" class="btn" id="cmdOver">שלח deg=99</button>
           <button type="button" class="btn danger" id="cmdStop">POST /stop</button>
-          <button type="button" class="btn" id="cmdAuto">החזר אוטו</button>
+          <button type="button" class="btn on" id="cmdAuto" aria-pressed="true">החזר אוטו</button>
         </div>
       </div>
       <div class="fault">
@@ -200,7 +200,7 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
           <code>moveTo(15)</code> דוחף 15° <em>נוספים</em>. פירוט:
           <a href="../fsm/">מכונת מצבים</a>.
         </p>
-        <div class="row" style="margin:0">
+        <div class="row" role="group" aria-label="שקר אתחול וכיול" style="margin:0">
           <button type="button" class="btn danger" id="bootLie" aria-pressed="false">אתחל כאילו 0°</button>
           <button type="button" class="btn" id="cmd15">שלח deg=15</button>
         </div>
@@ -213,7 +213,7 @@ pre.mono{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:1
       </div>
       <div>
         <h2>HTTP אחרון (סימולציית WebServer)</h2>
-        <pre class="mono" id="httpLog">אין בקשה עדיין</pre>
+        <pre class="mono" id="httpLog" aria-live="polite">אין בקשה עדיין</pre>
       </div>
     </div>
   </div>
@@ -318,6 +318,13 @@ function paintBadges() {
   const dead = failTop && failBot;
   i.textContent = dead ? 'I²C FAIL' : 'I²C OK';
   i.className = 'badge ' + (dead ? 'off' : 'on');
+
+  const cmdAutoBtn = document.getElementById('cmdAuto');
+  if (cmdAutoBtn) toggleBtn(cmdAutoBtn, autoMode);
+  const failI2cBtn = document.getElementById('failI2c');
+  if (failI2cBtn) toggleBtn(failI2cBtn, dead);
+  const cutWifiBtn = document.getElementById('cutWifi');
+  if (cutWifiBtn) toggleBtn(cutWifiBtn, !wifiUp);
 }
 
 function httpCall(method, path, args) {
@@ -558,14 +565,25 @@ document.getElementById('cmdAuto').addEventListener('click', function () {
   addLog('set-mode auto=1 — הלולאה חוזרת לחוק הבוהק');
 });
 document.getElementById('bootLie').addEventListener('click', function () {
+  if (lieOffset !== 0) {
+    const visualNow = currentAngle + lieOffset;
+    lieOffset = 0;
+    currentAngle = visualNow;
+    targetAngle = visualNow;
+    currentSteps = Math.round(visualNow * STEPS_PER_DEGREE);
+    targetSteps = currentSteps;
+    toggleBtn(this, false);
+    addLog('איפוס שקר אתחול: כיול אמת שוחזר ל־' + visualNow.toFixed(1) + '°');
+    return;
+  }
   const visualNow = currentAngle + lieOffset;
-  lieOffset = visualNow;
+  lieOffset = visualNow !== 0 ? visualNow : 15;
   currentAngle = 0;
   currentSteps = 0;
   targetAngle = 0;
   targetSteps = 0;
-  toggleBtn(this, lieOffset !== 0);
-  addLog('setup() שיקר: believed=0°, הזרוע נשארה ב־' + visualNow.toFixed(1) + '°. moveTo עכשיו יוסיף מעל זה.');
+  toggleBtn(this, true);
+  addLog('setup() שיקר: believed=0°, הזרוע נשארה ב־' + lieOffset.toFixed(1) + '°. moveTo עכשיו יוסיף מעל זה.');
 });
 document.getElementById('cmd15').addEventListener('click', function () {
   httpCall('POST', '/set-angle', { deg: '15' });
