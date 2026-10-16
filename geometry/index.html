@@ -377,11 +377,6 @@ function updateSceneButtons() {
   const isLow  = Math.round(light.x) === 240 && Math.round(light.y) === 370 &&
                  Math.round(eye.x) === 560 && Math.round(eye.y) === 230;
 
-  if (isOver) scene = 'over';
-  else if (isFace) scene = 'face';
-  else if (isLow) scene = 'low';
-  else scene = 'custom';
-
   const overBtn = document.getElementById('scOver');
   const faceBtn = document.getElementById('scFace');
   const lowBtn  = document.getElementById('scLow');
@@ -401,6 +396,7 @@ function updateSceneButtons() {
 }
 
 function applyScene(name) {
+  scene = name;
   if (name === 'over') {
     light = { x: 280, y: 36 }; eye = { x: 560, y: 268 }; tilt = 0;
   } else if (name === 'face') {

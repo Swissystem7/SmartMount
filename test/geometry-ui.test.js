@@ -139,7 +139,7 @@ function loadGeometryPage() {
   const scriptContent = html.slice(open + '<script>'.length, close);
   vm.runInContext(scriptContent, ctx);
 
-  return { scenarioButtons, opticsButtons, sliders, elements };
+  return { scenarioButtons, opticsButtons, sliders, elements, ctx };
 }
 
 test('geometry page HTML contains scenario and optics buttons with initial role="group", aria-label and aria-pressed attributes', () => {
@@ -319,4 +319,20 @@ test('moving optics sliders deactivates optics preset buttons (no false active s
     assert.equal(b.classList.contains('on'), false);
     assert.equal(b.getAttribute('aria-pressed'), 'false');
   }
+});
+
+test('nudging geometry after a scenario keeps that scenario model (button clears, scene stays)', () => {
+  const { scenarioButtons, sliders, ctx } = loadGeometryPage();
+
+  scenarioButtons.scFace.fire('click');
+  sliders.lightX.value = '750';
+  sliders.lightX.fire('input');
+  assert.equal(scenarioButtons.scFace.getAttribute('aria-pressed'), 'false');
+  assert.equal(vm.runInContext('scene', ctx), 'face',
+    'the window stays an extended source after a nudge; only the preset highlight clears');
+
+  scenarioButtons.scLow.fire('click');
+  sliders.eyeY.value = '240';
+  sliders.eyeY.fire('input');
+  assert.equal(vm.runInContext('scene', ctx), 'low');
 });
