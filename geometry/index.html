@@ -232,7 +232,7 @@ function draw() {
 
   const I = norm(g.c.x - light.x, g.c.y - light.y);
   const facing = dot(I, g.n);
-  const R = facing < 0 ? { x: 0, y: 0 } : reflect(I, g.n);
+  const R = facing > 0 ? { x: 0, y: 0 } : reflect(I, g.n);
 
   const nEnd = { x: g.c.x + g.n.x * 56, y: g.c.y + g.n.y * 56 };
   document.getElementById('normal').setAttribute('x1', g.c.x);
@@ -254,13 +254,13 @@ function draw() {
   document.getElementById('light').setAttribute('transform', 'translate(' + light.x + ' ' + light.y + ')');
   document.getElementById('eye').setAttribute('transform', 'translate(' + eye.x + ' ' + eye.y + ')');
 
-  const incDeg = facing < 0 ? NaN : Math.acos(clamp(-facing, -1, 1)) * 180 / Math.PI;
+  const incDeg = facing > 0 ? NaN : Math.acos(clamp(-facing, -1, 1)) * 180 / Math.PI;
   document.getElementById('kInc').textContent = Number.isFinite(incDeg) ? incDeg.toFixed(0) + '°' : 'מאחורי הפאנל';
   document.getElementById('kRef').textContent = Number.isFinite(incDeg) ? incDeg.toFixed(0) + '°' : '—';
 
   const v = document.getElementById('verdict');
   const refl = document.getElementById('reflected');
-  if (facing < 0) {
+  if (facing > 0) {
     v.className = 'verdict meh';
     v.textContent = 'האור מאחורי הפאנל — אין השתקפות לכיוון החדר.';
     refl.setAttribute('stroke', '#30363d');
@@ -278,7 +278,7 @@ function draw() {
     samples.forEach(sy => {
       const src = { x: light.x, y: clamp(sy, 30, 360) };
       const Ii = norm(g.c.x - src.x, g.c.y - src.y);
-      if (dot(Ii, g.n) < 0) return;
+      if (dot(Ii, g.n) > 0) return;
       const Ri = reflect(Ii, g.n);
       const d = distPointRay(eye.x, eye.y, g.c.x, g.c.y, Ri.x, Ri.y);
       if (d < 22) extraHits++;
