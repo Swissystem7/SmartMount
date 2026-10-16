@@ -110,6 +110,6 @@ test('auto mode never returns a negative angle', () => {
   }
 });
 
-test('NaN angle is handled gracefully and returns 0', () => {
-  assert.equal(clampToPanel(NaN, 'LED'), 0);
+test('NaN angle is rejected like other non-finite control inputs', () => {
+  assert.throws(() => clampToPanel(NaN, 'LED'), TypeError);
 });
