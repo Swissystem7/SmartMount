@@ -84,9 +84,9 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
     <div class="card">
       <h2>זווית ומספרים מהקושחה</h2>
       <div class="row" role="group" aria-label="פריסט פאנל">
-        <button type="button" class="btn" data-deg="20">LED 20°</button>
-        <button type="button" class="btn" data-deg="30">QLED 30°</button>
-        <button type="button" class="btn on" data-deg="40">OLED 40°</button>
+        <button type="button" class="btn" data-deg="20" aria-pressed="false">LED 20°</button>
+        <button type="button" class="btn" data-deg="30" aria-pressed="false">QLED 30°</button>
+        <button type="button" class="btn on" data-deg="40" aria-pressed="true">OLED 40°</button>
       </div>
       <label class="sl" for="fromDeg">מ־ (°): <span id="fromLbl">0</span></label>
       <input type="range" id="fromDeg" min="0" max="40" step="1" value="0">
@@ -251,11 +251,20 @@ function paintPlot(p, lat) {
   $('sampleLbl').setAttribute('x', Math.min(sx + 8, 560));
 }
 
+function syncPresetButtons(fromDeg, toDeg) {
+  document.querySelectorAll('[data-deg]').forEach((b) => {
+    const isMatch = fromDeg === 0 && Number(b.dataset.deg) === toDeg;
+    b.classList.toggle('on', isMatch);
+    b.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+  });
+}
+
 function timing() {
   const fromDeg = Number($('fromDeg').value);
   const toDeg = Number($('toDeg').value);
   $('fromLbl').textContent = fromDeg;
   $('toLbl').textContent = toDeg;
+  syncPresetButtons(fromDeg, toDeg);
   const p = SM_TIMING.moveProfile({ fromDeg, toDeg });
   const lat = SM_TIMING.glareLatency({ moveSec: p.tTotalSec });
   paintPlot(p, lat);
@@ -426,8 +435,7 @@ function all() {
 
 document.querySelectorAll('[data-deg]').forEach((b) => {
   b.addEventListener('click', () => {
-    document.querySelectorAll('[data-deg]').forEach((x) => x.classList.remove('on'));
-    b.classList.add('on');
+    $('fromDeg').value = '0';
     $('toDeg').value = b.dataset.deg;
     all();
   });
