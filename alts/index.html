@@ -27,9 +27,17 @@
 .q{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#58a6ff;margin-bottom:8px}
 .search{margin:14px 0 6px}
 .search label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:6px}
-.search input{width:100%;max-width:420px;background:#0d1117;border:1px solid #30363d;border-radius:10px;
-  color:inherit;font:inherit;font-size:.9rem;padding:9px 12px}
-.search input:focus{outline:2px solid #58a6ff;outline-offset:1px}
+.search-row{display:flex;gap:8px;align-items:center;max-width:480px}
+.search-row input{flex:1;min-width:0;width:100%;background:#0d1117;border:1px solid #30363d;border-radius:10px;
+  color:inherit;font:inherit;font-size:.9rem;padding:9px 12px;min-height:44px}
+.search-row input:focus{outline:2px solid #58a6ff;outline-offset:1px}
+.clear-btn{min-height:44px;white-space:nowrap;padding:8px 14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{min-height:36px;border-radius:20px;padding:6px 14px;font-size:.82rem}
+.empty-state{text-align:center;padding:28px 16px;margin:18px 0;background:#0d1117;border:1px solid #21262d;border-radius:14px}
+.empty-state p{font-size:.92rem;color:var(--text);margin-bottom:8px}
+.empty-state .fine{margin-bottom:14px;color:var(--muted)}
+.empty-state .btn{padding:8px 16px}
 .count{font-size:.78rem;color:var(--muted);margin:0 0 14px}
 </style>
 </head>
@@ -68,7 +76,18 @@
   </div>
   <form class="search" role="search" onsubmit="return false">
     <label for="q">חיפוש חלופה לפי מילת מפתח</label>
-    <input id="q" type="search" autocomplete="off" placeholder="למשל: תריס חכם, זרוע מוניטור, סרבו, תולעת">
+    <div class="search-row">
+      <input id="q" type="search" autocomplete="off" placeholder="למשל: תריס חכם, זרוע מוניטור, סרבו, תולעת">
+      <button type="button" id="clearBtn" class="btn clear-btn" aria-label="נקה חיפוש" hidden>✕ נקה</button>
+    </div>
+    <div class="chips" role="toolbar" aria-label="חיפושים נפוצים">
+      <button type="button" class="btn chip on" data-term="" aria-pressed="true">הכל</button>
+      <button type="button" class="btn chip" data-term="תריס חכם" aria-pressed="false">תריס חכם</button>
+      <button type="button" class="btn chip" data-term="זרוע מוניטור" aria-pressed="false">זרוע מוניטור</button>
+      <button type="button" class="btn chip" data-term="סרבו" aria-pressed="false">סרבו</button>
+      <button type="button" class="btn chip" data-term="תולעת" aria-pressed="false">תולעת</button>
+      <button type="button" class="btn chip" data-term="צעד" aria-pressed="false">מנוע צעד</button>
+    </div>
   </form>
   <p id="count" class="count" aria-live="polite"></p>
   <div id="list"></div>
@@ -100,6 +119,36 @@ function optClass(v) {
 const list = document.getElementById('list');
 const count = document.getElementById('count');
 const q = document.getElementById('q');
+const clearBtn = document.getElementById('clearBtn');
+const chips = Array.from(document.querySelectorAll('.chips .chip'));
+
+function syncChips(term) {
+  chips.forEach((btn) => {
+    const btnTerm = btn.getAttribute('data-term') || '';
+    const isMatch = term === btnTerm;
+    btn.classList.toggle('on', isMatch);
+    btn.setAttribute('aria-pressed', String(isMatch));
+  });
+}
+
+function emptyCard(term) {
+  const card = document.createElement('section');
+  card.className = 'card empty-state';
+  card.setAttribute('aria-label', 'אין תוצאות');
+  card.innerHTML =
+    '<p>לא נמצאו חלופות התואמות לחיפוש «' + term + '»</p>' +
+    '<p class="fine">נסו מונח אחר (תריס חכם, זרוע מוניטור, סרבו, תולעת) או לחצו לאיפוס.</p>' +
+    '<button type="button" class="btn reset-search-btn">הצג את כל החלופות</button>';
+  const resetBtn = card.querySelector('.reset-search-btn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      q.value = '';
+      render();
+      q.focus();
+    });
+  }
+  return card;
+}
 
 function cardFor(question, options) {
   const card = document.createElement('section');
@@ -135,6 +184,8 @@ function groupHits(hits) {
 
 function render() {
   const term = q.value.trim();
+  syncChips(term);
+  if (clearBtn) clearBtn.hidden = !term;
   list.textContent = '';
   if (!term) {
     count.textContent = '';
@@ -145,11 +196,29 @@ function render() {
   groupHits(hits).forEach((g) => list.appendChild(cardFor(g.question, g.options)));
   if (!hits.length) {
     count.textContent = 'אין חלופה שמכילה «' + term + '». נסו: תריס חכם, זרוע מוניטור, תולעת.';
+    list.appendChild(emptyCard(term));
   } else if (hits.length === 1) {
     count.textContent = 'נמצאה חלופה אחת עבור «' + term + '»';
   } else {
     count.textContent = 'נמצאו ' + hits.length + ' חלופות עבור «' + term + '»';
   }
+}
+
+chips.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const term = btn.getAttribute('data-term') || '';
+    q.value = term;
+    render();
+    btn.focus();
+  });
+});
+
+if (clearBtn) {
+  clearBtn.addEventListener('click', () => {
+    q.value = '';
+    render();
+    q.focus();
+  });
 }
 
 q.addEventListener('input', render);
