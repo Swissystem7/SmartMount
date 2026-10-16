@@ -7,6 +7,11 @@ const vm = require('node:vm');
 const root = path.join(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
 
+function assertPressed(btn, on) {
+  assert.equal(btn.classList.contains('on'), on);
+  assert.equal(btn.getAttribute('aria-pressed'), String(on));
+}
+
 function fakeElement(id, initial = {}) {
   const listeners = {};
   const attrs = { ...initial.attrs };
@@ -144,73 +149,33 @@ function loadGeometryPage() {
 
 test('geometry page HTML contains scenario and optics buttons with initial role="group", aria-label and aria-pressed attributes', () => {
   const html = read('geometry/index.html');
-  assert.match(
-    html,
-    /<div class="row" role="group" aria-label="תרחיש גאומטריה">/,
-    'scenario buttons row must have role="group" and aria-label'
-  );
-  assert.match(
-    html,
-    /<button type="button" class="btn on" id="scOver" aria-pressed="true">/,
-    'scOver button must start with class "btn on" and aria-pressed="true"'
-  );
-  assert.match(
-    html,
-    /<button type="button" class="btn" id="scFace" aria-pressed="false">/,
-    'scFace button must start with aria-pressed="false"'
-  );
-  assert.match(
-    html,
-    /<button type="button" class="btn" id="scLow" aria-pressed="false">/,
-    'scLow button must start with aria-pressed="false"'
-  );
-  assert.match(
-    html,
-    /<div class="row" role="group" aria-label="סוג מקור בוהק">/,
-    'optics buttons row must have role="group" and aria-label'
-  );
-  assert.match(
-    html,
-    /<button type="button" class="btn on" id="optGlint" aria-pressed="true">/,
-    'optGlint button must start with class "btn on" and aria-pressed="true"'
-  );
-  assert.match(
-    html,
-    /<button type="button" class="btn" id="optWindow" aria-pressed="false">/,
-    'optWindow button must start with aria-pressed="false"'
-  );
-  assert.match(
-    html,
-    /<button type="button" class="btn" id="optMatte" aria-pressed="false">/,
-    'optMatte button must start with aria-pressed="false"'
-  );
+  for (const label of ['תרחיש גאומטריה', 'סוג מקור בוהק']) {
+    assert.ok(html.includes(`<div class="row" role="group" aria-label="${label}">`), label + ' row must be a labelled group');
+  }
+  const initial = { scOver: true, scFace: false, scLow: false, optGlint: true, optWindow: false, optMatte: false };
+  for (const [id, on] of Object.entries(initial)) {
+    const tag = `<button type="button" class="btn${on ? ' on' : ''}" id="${id}" aria-pressed="${on}">`;
+    assert.ok(html.includes(tag), id + ' must start with ' + tag);
+  }
 });
 
 test('geometry page initializes scenario buttons with scOver active and optics buttons with optGlint active', () => {
   const { scenarioButtons, opticsButtons } = loadGeometryPage();
-  assert.equal(scenarioButtons.scOver.classList.contains('on'), true);
-  assert.equal(scenarioButtons.scOver.getAttribute('aria-pressed'), 'true');
-  assert.equal(scenarioButtons.scFace.classList.contains('on'), false);
-  assert.equal(scenarioButtons.scFace.getAttribute('aria-pressed'), 'false');
-  assert.equal(scenarioButtons.scLow.classList.contains('on'), false);
-  assert.equal(scenarioButtons.scLow.getAttribute('aria-pressed'), 'false');
+  assertPressed(scenarioButtons.scOver, true);
+  assertPressed(scenarioButtons.scFace, false);
+  assertPressed(scenarioButtons.scLow, false);
 
-  assert.equal(opticsButtons.optGlint.classList.contains('on'), true);
-  assert.equal(opticsButtons.optGlint.getAttribute('aria-pressed'), 'true');
-  assert.equal(opticsButtons.optWindow.classList.contains('on'), false);
-  assert.equal(opticsButtons.optWindow.getAttribute('aria-pressed'), 'false');
-  assert.equal(opticsButtons.optMatte.classList.contains('on'), false);
-  assert.equal(opticsButtons.optMatte.getAttribute('aria-pressed'), 'false');
+  assertPressed(opticsButtons.optGlint, true);
+  assertPressed(opticsButtons.optWindow, false);
+  assertPressed(opticsButtons.optMatte, false);
 });
 
 test('clicking scenario buttons updates active and aria-pressed states and sliders', () => {
   const { scenarioButtons, sliders } = loadGeometryPage();
 
   scenarioButtons.scFace.fire('click');
-  assert.equal(scenarioButtons.scFace.classList.contains('on'), true);
-  assert.equal(scenarioButtons.scFace.getAttribute('aria-pressed'), 'true');
-  assert.equal(scenarioButtons.scOver.classList.contains('on'), false);
-  assert.equal(scenarioButtons.scOver.getAttribute('aria-pressed'), 'false');
+  assertPressed(scenarioButtons.scFace, true);
+  assertPressed(scenarioButtons.scOver, false);
   assert.equal(sliders.lightX.value, '760');
   assert.equal(sliders.lightY.value, '140');
   assert.equal(sliders.eyeX.value, '520');
@@ -218,20 +183,16 @@ test('clicking scenario buttons updates active and aria-pressed states and slide
   assert.equal(sliders.tilt.value, '0');
 
   scenarioButtons.scLow.fire('click');
-  assert.equal(scenarioButtons.scLow.classList.contains('on'), true);
-  assert.equal(scenarioButtons.scLow.getAttribute('aria-pressed'), 'true');
-  assert.equal(scenarioButtons.scFace.classList.contains('on'), false);
-  assert.equal(scenarioButtons.scFace.getAttribute('aria-pressed'), 'false');
+  assertPressed(scenarioButtons.scLow, true);
+  assertPressed(scenarioButtons.scFace, false);
   assert.equal(sliders.lightX.value, '240');
   assert.equal(sliders.lightY.value, '370');
   assert.equal(sliders.eyeX.value, '560');
   assert.equal(sliders.eyeY.value, '230');
 
   scenarioButtons.scOver.fire('click');
-  assert.equal(scenarioButtons.scOver.classList.contains('on'), true);
-  assert.equal(scenarioButtons.scOver.getAttribute('aria-pressed'), 'true');
-  assert.equal(scenarioButtons.scLow.classList.contains('on'), false);
-  assert.equal(scenarioButtons.scLow.getAttribute('aria-pressed'), 'false');
+  assertPressed(scenarioButtons.scOver, true);
+  assertPressed(scenarioButtons.scLow, false);
   assert.equal(sliders.lightX.value, '280');
   assert.equal(sliders.lightY.value, '36');
 });
@@ -239,27 +200,23 @@ test('clicking scenario buttons updates active and aria-pressed states and slide
 test('moving geometry sliders deactivates scenario buttons (no false active state)', () => {
   const { scenarioButtons, sliders } = loadGeometryPage();
 
-  assert.equal(scenarioButtons.scOver.classList.contains('on'), true);
-  assert.equal(scenarioButtons.scOver.getAttribute('aria-pressed'), 'true');
+  assertPressed(scenarioButtons.scOver, true);
 
   sliders.lightX.value = '500';
   sliders.lightX.fire('input');
   for (const b of Object.values(scenarioButtons)) {
-    assert.equal(b.classList.contains('on'), false);
-    assert.equal(b.getAttribute('aria-pressed'), 'false');
+    assertPressed(b, false);
   }
 
   // Restoring coordinates reactivates the preset button
   sliders.lightX.value = '280';
   sliders.lightX.fire('input');
-  assert.equal(scenarioButtons.scOver.classList.contains('on'), true);
-  assert.equal(scenarioButtons.scOver.getAttribute('aria-pressed'), 'true');
+  assertPressed(scenarioButtons.scOver, true);
 
   sliders.eyeY.value = '100';
   sliders.eyeY.fire('input');
   for (const b of Object.values(scenarioButtons)) {
-    assert.equal(b.classList.contains('on'), false);
-    assert.equal(b.getAttribute('aria-pressed'), 'false');
+    assertPressed(b, false);
   }
 });
 
@@ -267,27 +224,21 @@ test('clicking optics preset buttons updates active and aria-pressed states and 
   const { opticsButtons, sliders } = loadGeometryPage();
 
   opticsButtons.optWindow.fire('click');
-  assert.equal(opticsButtons.optWindow.classList.contains('on'), true);
-  assert.equal(opticsButtons.optWindow.getAttribute('aria-pressed'), 'true');
-  assert.equal(opticsButtons.optGlint.classList.contains('on'), false);
-  assert.equal(opticsButtons.optGlint.getAttribute('aria-pressed'), 'false');
+  assertPressed(opticsButtons.optWindow, true);
+  assertPressed(opticsButtons.optGlint, false);
   assert.equal(sliders.srcNits.value, '4000');
   assert.equal(sliders.srcArea.value, '12000');
   assert.equal(sliders.srcDist.value, '1.4');
   assert.equal(sliders.refl.value, '0.06');
 
   opticsButtons.optMatte.fire('click');
-  assert.equal(opticsButtons.optMatte.classList.contains('on'), true);
-  assert.equal(opticsButtons.optMatte.getAttribute('aria-pressed'), 'true');
-  assert.equal(opticsButtons.optWindow.classList.contains('on'), false);
-  assert.equal(opticsButtons.optWindow.getAttribute('aria-pressed'), 'false');
+  assertPressed(opticsButtons.optMatte, true);
+  assertPressed(opticsButtons.optWindow, false);
   assert.equal(sliders.refl.value, '0.015');
 
   opticsButtons.optGlint.fire('click');
-  assert.equal(opticsButtons.optGlint.classList.contains('on'), true);
-  assert.equal(opticsButtons.optGlint.getAttribute('aria-pressed'), 'true');
-  assert.equal(opticsButtons.optMatte.classList.contains('on'), false);
-  assert.equal(opticsButtons.optMatte.getAttribute('aria-pressed'), 'false');
+  assertPressed(opticsButtons.optGlint, true);
+  assertPressed(opticsButtons.optMatte, false);
   assert.equal(sliders.srcNits.value, '20000');
   assert.equal(sliders.srcArea.value, '4');
   assert.equal(sliders.srcDist.value, '2');
@@ -297,27 +248,23 @@ test('clicking optics preset buttons updates active and aria-pressed states and 
 test('moving optics sliders deactivates optics preset buttons (no false active state)', () => {
   const { opticsButtons, sliders } = loadGeometryPage();
 
-  assert.equal(opticsButtons.optGlint.classList.contains('on'), true);
-  assert.equal(opticsButtons.optGlint.getAttribute('aria-pressed'), 'true');
+  assertPressed(opticsButtons.optGlint, true);
 
   sliders.srcNits.value = '15000';
   sliders.srcNits.fire('input');
   for (const b of Object.values(opticsButtons)) {
-    assert.equal(b.classList.contains('on'), false);
-    assert.equal(b.getAttribute('aria-pressed'), 'false');
+    assertPressed(b, false);
   }
 
   // Restoring preset value reactivates the preset button
   sliders.srcNits.value = '20000';
   sliders.srcNits.fire('input');
-  assert.equal(opticsButtons.optGlint.classList.contains('on'), true);
-  assert.equal(opticsButtons.optGlint.getAttribute('aria-pressed'), 'true');
+  assertPressed(opticsButtons.optGlint, true);
 
   sliders.refl.value = '0.09';
   sliders.refl.fire('input');
   for (const b of Object.values(opticsButtons)) {
-    assert.equal(b.classList.contains('on'), false);
-    assert.equal(b.getAttribute('aria-pressed'), 'false');
+    assertPressed(b, false);
   }
 });
 
