@@ -30,8 +30,13 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap;color:#c9d1d9}
 .total b{color:#f59e0b}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
-input[type=range],input[type=number]{accent-color:#58a6ff}
+input[type=range],input[type=number]{accent-color:#58a6ff;direction:ltr}
 input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:#e8e8f0;border-radius:8px;padding:8px 10px;font:600 .9rem inherit}
+.tag-count{opacity:.8;font-size:.72rem;margin-inline-start:4px}
+.safety-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:700px){.safety-grid{grid-template-columns:1fr}}
+.safety-item{margin-bottom:0}
+.empty{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:16px;text-align:center;color:var(--muted);font-size:.85rem;grid-column:1/-1}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:640px){.fields{grid-template-columns:1fr}}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
@@ -253,15 +258,15 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
     <div class="fields">
       <div>
         <label class="sl" for="massKg">מסת מסך (ק״ג): <span id="massLbl">18</span></label>
-        <input type="range" id="massKg" min="4" max="45" step="1" value="18">
+        <input type="range" id="massKg" min="4" max="45" step="1" value="18" dir="ltr" aria-valuemin="4" aria-valuemax="45" aria-valuenow="18">
       </div>
       <div>
         <label class="sl" for="cogCm">מרחק CoG מהציר (ס״מ): <span id="cogLbl">8</span></label>
-        <input type="range" id="cogCm" min="3" max="18" step="0.5" value="8">
+        <input type="range" id="cogCm" min="3" max="18" step="0.5" value="8" dir="ltr" aria-valuemin="3" aria-valuemax="18" aria-valuenow="8">
       </div>
       <div>
         <label class="sl" for="tiltDeg">הטיה מאונך (°): <span id="tiltLbl">0</span></label>
-        <input type="range" id="tiltDeg" min="0" max="40" step="1" value="0">
+        <input type="range" id="tiltDeg" min="0" max="40" step="1" value="0" dir="ltr" aria-valuemin="0" aria-valuemax="40" aria-valuenow="0">
       </div>
       <div>
         <label class="sl" for="gearRatio">יחס תמסורת (הקושחה = 5)</label>
@@ -292,6 +297,21 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
       NEMA17 0.45 N·m × 5 × 0.85 ≈ 1.9 N·m. מקדם בטיחות ≈ 0.13.
       Vogel's / MantelMount עולות מאות דולרים כי הן פותרות את המספר הזה, לא כי יש להן BH1750.
     </p>
+  </div>
+
+  <h2>הנחיות בטיחות והרכבה</h2>
+  <div class="card" id="safetyCard">
+    <p class="note" style="margin-top:0">
+      אזהרות והנחיות עבודה מ־<code>src/lib/safety.js</code> עבור שלב החיווט ובניית המנגנון.
+      אינו תחליף לתקן רשמי (UL/TÜV) — אלא מיטיגציות מעשיות לפני חיבור מתח לחומרה.
+    </p>
+    <div class="row" role="group" aria-label="סינון הנחיות בטיחות" id="safetyFilterRow">
+      <button type="button" class="btn on" data-category="all" id="sfAll" aria-pressed="true">הכול <span class="tag-count">8</span></button>
+      <button type="button" class="btn" data-category="electrical" id="sfElec" aria-pressed="false">חשמל וחיווט <span class="tag-count">4</span></button>
+      <button type="button" class="btn" data-category="mechanical" id="sfMech" aria-pressed="false">מכניקה והרכבה <span class="tag-count">4</span></button>
+    </div>
+    <p id="safetyCount" class="note" aria-live="polite" style="margin-top:-4px;margin-bottom:12px">מציג 8 מתוך 8 הנחיות בטיחות</p>
+    <div id="safetyList" class="safety-grid"></div>
   </div>
 </main>
 <script src="../src/lib/torque.js"></script>
@@ -329,6 +349,9 @@ function recalc() {
   $('massLbl').textContent = massKg;
   $('cogLbl').textContent = cogCm;
   $('tiltLbl').textContent = tilt;
+  if ($('massKg').setAttribute) $('massKg').setAttribute('aria-valuenow', String(massKg));
+  if ($('cogCm').setAttribute) $('cogCm').setAttribute('aria-valuenow', String(cogCm));
+  if ($('tiltDeg').setAttribute) $('tiltDeg').setAttribute('aria-valuenow', String(tilt));
   syncPresetButtons(massKg, cogCm);
   const r = SM_TORQUE.sizeMount({
     massKg,
@@ -368,6 +391,114 @@ function recalc() {
   $(id).addEventListener('input', recalc);
 });
 recalc();
+</script>
+<script src="../src/lib/safety.js"></script>
+<script>
+(function () {
+  const S = (typeof window !== 'undefined' && window.SM_SAFETY) || (typeof globalThis !== 'undefined' && globalThis.SM_SAFETY);
+  if (!S || typeof S.getSafetyGuidelines !== 'function') return;
+
+  const CAT_NAMES = {
+    electrical: 'חשמל וחיווט',
+    mechanical: 'מכניקה והרכבה',
+  };
+
+  const CAT_TAGS = {
+    electrical: 'tag warn',
+    mechanical: 'tag ok',
+  };
+
+  const guidelines = S.getSafetyGuidelines();
+  const allItems = [
+    ...(guidelines.electrical || []),
+    ...(guidelines.mechanical || []),
+  ];
+
+  let currentCategory = 'all';
+
+  function labeledParagraph(label, body) {
+    const p = document.createElement('p');
+    const strong = document.createElement('strong');
+    strong.textContent = label;
+    p.appendChild(strong);
+    p.appendChild(document.createTextNode(' ' + body));
+    return p;
+  }
+
+  function renderSafety() {
+    const list = document.getElementById('safetyList');
+    const countEl = document.getElementById('safetyCount');
+    if (!list) return;
+
+    list.textContent = '';
+    const filtered = currentCategory === 'all'
+      ? allItems
+      : allItems.filter((item) => item.category === currentCategory);
+
+    if (countEl) {
+      if (currentCategory === 'all') {
+        countEl.textContent = 'מציג ' + filtered.length + ' מתוך ' + allItems.length + ' הנחיות בטיחות';
+      } else {
+        countEl.textContent = 'מציג ' + filtered.length + ' מתוך ' + allItems.length + ' הנחיות בטיחות (' + (CAT_NAMES[currentCategory] || currentCategory) + ')';
+      }
+    }
+
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.id = 'safetyEmpty';
+      empty.className = 'empty';
+      empty.textContent = 'אין הנחיות התואמות לסינון זה.';
+      list.appendChild(empty);
+      return;
+    }
+
+    filtered.forEach((item) => {
+      const card = document.createElement('article');
+      card.className = 'q safety-item';
+      card.setAttribute('data-category', item.category);
+
+      const header = document.createElement('div');
+      header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:6px';
+
+      const h3 = document.createElement('h3');
+      h3.textContent = item.id;
+
+      const tag = document.createElement('span');
+      tag.className = CAT_TAGS[item.category] || 'tag';
+      tag.textContent = CAT_NAMES[item.category] || item.category;
+
+      header.appendChild(h3);
+      header.appendChild(tag);
+      card.appendChild(header);
+
+      card.appendChild(labeledParagraph('סיכון:', item.hazard));
+
+      const mitigation = labeledParagraph('מיטיגציה:', item.mitigation);
+      mitigation.style.marginTop = '4px';
+      card.appendChild(mitigation);
+
+      list.appendChild(card);
+    });
+  }
+
+  function setSafetyFilter(cat) {
+    currentCategory = cat;
+    document.querySelectorAll('#safetyFilterRow [data-category]').forEach((btn) => {
+      const on = btn.getAttribute('data-category') === currentCategory;
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    renderSafety();
+  }
+
+  document.querySelectorAll('#safetyFilterRow [data-category]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setSafetyFilter(btn.getAttribute('data-category'));
+    });
+  });
+
+  renderSafety();
+})();
 </script>
 </body>
 </html>
