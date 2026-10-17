@@ -181,36 +181,40 @@ table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
     </div>
     <div class="group">
       <h3>דגימה ופקודות</h3>
-      <div class="row">
-        <button type="button" class="btn" data-ev="GLARE">SAMPLE בוהק 10×</button>
-        <button type="button" class="btn" data-ev="CLEAR_ROOM">SAMPLE חדר רגוע</button>
-        <button type="button" class="btn" data-ev="DEG12">POST deg=12</button>
-        <button type="button" class="btn" data-ev="DEG99">POST deg=99</button>
-        <button type="button" class="btn" data-ev="AUTO">set-mode auto=1</button>
-        <button type="button" class="btn" data-ev="MANUAL">set-mode auto=0</button>
-        <button type="button" class="btn" data-ev="PANEL0">set-panel OLED</button>
-        <button type="button" class="btn danger" data-ev="STOP">POST /stop</button>
+      <div class="row" role="group" aria-label="דגימה ופקודות">
+        <button type="button" class="btn" data-ev="GLARE" aria-pressed="false">SAMPLE בוהק 10×</button>
+        <button type="button" class="btn" data-ev="CLEAR_ROOM" aria-pressed="false">SAMPLE חדר רגוע</button>
+        <button type="button" class="btn" data-ev="DEG12" aria-pressed="false">POST deg=12</button>
+        <button type="button" class="btn" data-ev="DEG99" aria-pressed="false">POST deg=99</button>
+        <button type="button" class="btn" data-ev="AUTO" aria-pressed="false">set-mode auto=1</button>
+        <button type="button" class="btn" data-ev="MANUAL" aria-pressed="false">set-mode auto=0</button>
+        <button type="button" class="btn" data-ev="PANEL0" aria-pressed="false">set-panel OLED</button>
+        <button type="button" class="btn danger" data-ev="STOP" aria-pressed="false">POST /stop</button>
       </div>
     </div>
     <div class="group">
       <h3>תנועה והומינג</h3>
-      <div class="row">
-        <button type="button" class="btn" data-ev="ARRIVE">ARRIVE</button>
-        <button type="button" class="btn" data-ev="TICK">TICK 1s</button>
-        <button type="button" class="btn" data-ev="HOME_START">HOME_START</button>
-        <button type="button" class="btn" data-ev="HOME_FOUND">HOME_FOUND</button>
+      <div class="row" role="group" aria-label="תנועה והומינג">
+        <button type="button" class="btn" data-ev="ARRIVE" aria-pressed="false">ARRIVE</button>
+        <button type="button" class="btn" data-ev="TICK" aria-pressed="false">TICK 1s</button>
+        <button type="button" class="btn" data-ev="HOME_START" aria-pressed="false">HOME_START</button>
+        <button type="button" class="btn" data-ev="HOME_FOUND" aria-pressed="false">HOME_FOUND</button>
       </div>
     </div>
     <div class="group">
       <h3>כשלים</h3>
-      <div class="row">
-        <button type="button" class="btn danger" data-ev="SENSOR_FAIL">SENSOR_FAIL</button>
-        <button type="button" class="btn" data-ev="SENSOR_OK">SENSOR_OK</button>
-        <button type="button" class="btn danger" data-ev="STALL">STALL</button>
-        <button type="button" class="btn danger" data-ev="LIMIT">LIMIT</button>
-        <button type="button" class="btn danger" data-ev="POWER">POWER_LOSS</button>
-        <button type="button" class="btn" data-ev="CLEAR">CLEAR</button>
+      <div class="row" role="group" aria-label="כשלים">
+        <button type="button" class="btn danger" data-ev="SENSOR_FAIL" aria-pressed="false">SENSOR_FAIL</button>
+        <button type="button" class="btn" data-ev="SENSOR_OK" aria-pressed="false">SENSOR_OK</button>
+        <button type="button" class="btn danger" data-ev="STALL" aria-pressed="false">STALL</button>
+        <button type="button" class="btn danger" data-ev="LIMIT" aria-pressed="false">LIMIT</button>
+        <button type="button" class="btn danger" data-ev="POWER" aria-pressed="false">POWER_LOSS</button>
+        <button type="button" class="btn" data-ev="CLEAR" aria-pressed="false">CLEAR</button>
       </div>
+    </div>
+    <div class="log-bar" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+      <span class="fine" id="logCount" style="margin:0">0 אירועים ביומן</span>
+      <button type="button" class="btn" id="clearLog" aria-label="נקה יומן אירועים" style="padding:4px 10px;font-size:.74rem">נקה יומן</button>
     </div>
     <div class="log" id="log" role="log" aria-live="polite" aria-relevant="additions"></div>
     <p class="fine">
@@ -294,12 +298,29 @@ function render() {
   paintMatrix();
 }
 
+function updateLogCount() {
+  const el = document.getElementById('log');
+  const countEl = document.getElementById('logCount');
+  if (!countEl) return;
+  const count = el && el.children ? el.children.length : 0;
+  countEl.textContent = count === 0 ? 'אין אירועים ביומן' : (count === 1 ? 'אירוע 1 ביומן' : count + ' אירועים ביומן');
+}
+
 function addLog(line) {
   const el = document.getElementById('log');
   const row = document.createElement('div');
   row.textContent = line;
   el.prepend(row);
   while (el.children.length > 16) el.lastChild.remove();
+  updateLogCount();
+}
+
+function setActiveEvent(evKey) {
+  document.querySelectorAll('[data-ev]').forEach((b) => {
+    const on = b.dataset && b.dataset.ev === evKey;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
 }
 
 function syncOpts() {
@@ -344,6 +365,7 @@ const EV = {
 
 const SCENARIO_IDS = ['scReset', 'scLie', 'scSensor', 'scHome', 'scStall'];
 function setScenario(id) {
+  if (id) setActiveEvent(null);
   SCENARIO_IDS.forEach((bid) => {
     const b = document.getElementById(bid);
     if (!b) return;
@@ -356,6 +378,7 @@ function setScenario(id) {
 document.querySelectorAll('[data-ev]').forEach((b) => {
   b.addEventListener('click', () => {
     setScenario(null);
+    setActiveEvent(b.dataset ? b.dataset.ev : null);
     const pair = EV[b.dataset.ev];
     send(pair[0], pair[1]);
   });
@@ -367,6 +390,8 @@ function resetBoth(mech) {
   fw = SM_FSM.fresh('firmware', { mechanicalAngle: mech, selfLocking: lock });
   sf = SM_FSM.fresh('safe', { mechanicalAngle: mech, selfLocking: lock, hasEndstop: end });
   document.getElementById('log').textContent = '';
+  setActiveEvent(null);
+  updateLogCount();
   addLog('איפוס — מכני ' + mech + '° · believed עדיין לא קיים עד BOOT_DONE');
   render();
 }
@@ -454,6 +479,7 @@ function paintMatrix() {
     td.style.cursor = 'pointer';
     td.addEventListener('click', () => {
       setScenario(null);
+      setActiveEvent(null);
       const ev = SM_FSM_TABLE.defaultEvent(td.dataset.ev);
       send(ev, td.dataset.from + ' × ' + td.dataset.ev);
     });
@@ -475,6 +501,16 @@ document.getElementById('mxSf').addEventListener('click', () => {
   document.getElementById('mxFw').setAttribute('aria-pressed', 'false');
   paintMatrix();
 });
+
+const clearLogBtn = document.getElementById('clearLog');
+if (clearLogBtn) {
+  clearLogBtn.addEventListener('click', () => {
+    const logEl = document.getElementById('log');
+    if (logEl) logEl.textContent = '';
+    updateLogCount();
+    setActiveEvent(null);
+  });
+}
 
 resetBoth(0);
 </script>
