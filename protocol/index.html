@@ -123,28 +123,42 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
 
     <div class="card">
       <h2>שחקן חוזה</h2>
-      <div class="row" role="group" aria-label="נתיב">
-        <button type="button" class="btn on" data-route="status" id="rStatus">GET /status</button>
-        <button type="button" class="btn" data-route="angle" id="rAngle">POST /set-angle</button>
-        <button type="button" class="btn" data-route="panel" id="rPanel">POST /set-panel</button>
-        <button type="button" class="btn" data-route="mode" id="rMode">POST /set-mode</button>
-        <button type="button" class="btn" data-route="stop" id="rStop">POST /stop</button>
+      <label class="sl">שיטת HTTP:</label>
+      <div class="row" role="group" aria-label="שיטת HTTP" id="methodGroup">
+        <button type="button" class="btn on" data-method="GET" id="mGet" aria-pressed="true">GET</button>
+        <button type="button" class="btn" data-method="POST" id="mPost" aria-pressed="false">POST</button>
+        <button type="button" class="btn" data-method="PUT" id="mPut" aria-pressed="false">PUT (405)</button>
+        <button type="button" class="btn" data-method="DELETE" id="mDelete" aria-pressed="false">DELETE (404)</button>
+      </div>
+      <label class="sl">נתיב API:</label>
+      <div class="row" role="group" aria-label="נתיב API" id="routeGroup">
+        <button type="button" class="btn on" data-route="status" id="rStatus" aria-pressed="true">GET /status</button>
+        <button type="button" class="btn" data-route="angle" id="rAngle" aria-pressed="false">POST /set-angle</button>
+        <button type="button" class="btn" data-route="panel" id="rPanel" aria-pressed="false">POST /set-panel</button>
+        <button type="button" class="btn" data-route="mode" id="rMode" aria-pressed="false">POST /set-mode</button>
+        <button type="button" class="btn" data-route="stop" id="rStop" aria-pressed="false">POST /stop</button>
       </div>
       <div id="argBox">
         <label class="sl" for="argVal">ערך ארגומנט</label>
-        <input type="text" id="argVal" value="" autocomplete="off" placeholder="אין ארגומנט ל־/status">
+        <input type="text" id="argVal" value="" autocomplete="off" dir="ltr" placeholder="אין ארגומנט ל־/status">
       </div>
-      <div class="row" style="margin-top:12px">
+      <div class="row" style="margin-top:12px" role="group" aria-label="פעולות ובדיקות מהירות">
         <button type="button" class="btn on" id="sendBtn">שלח (סימולציה)</button>
-        <button type="button" class="btn" id="exBad">דוגמת 400</button>
-        <button type="button" class="btn" id="exQuirk">type=foo</button>
+        <button type="button" class="btn" id="exBad">דוגמת 400 (deg)</button>
+        <button type="button" class="btn" id="exQuirk">type=foo (400)</button>
+        <button type="button" class="btn" id="ex405">דוגמת 405 (PUT)</button>
+        <button type="button" class="btn" id="ex404">דוגמת 404 (שיטה)</button>
+        <button type="button" class="btn" id="exReset">איפוס לוח</button>
       </div>
       <div class="kv">
-        <div><b class="mono" id="reqLine">GET /status</b><span>בקשה (query string, כמו הלוח)</span></div>
-        <div><b id="resCode">—</b><span>קוד תשובה</span></div>
+        <div><b class="mono" id="reqLine" dir="ltr">GET /status</b><span>בקשה (query string, כמו הלוח)</span></div>
+        <div><b id="resCode" aria-live="polite" aria-atomic="true">—</b><span>קוד תשובה</span></div>
       </div>
-      <pre id="resBody" aria-live="polite">{}</pre>
-      <p class="fine" id="effectNote">אין לוח. <code>src/lib/protocol.js</code> מריץ את אותם כללי ולידציה.</p>
+      <pre id="resBody" dir="ltr" aria-live="polite">{}</pre>
+      <p class="fine" id="effectNote" aria-live="polite">אין לוח. <code>src/lib/protocol.js</code> מריץ את אותם כללי ולידציה.</p>
+      <div class="fine" id="stateSummary" style="margin-top:8px" aria-live="polite">
+        מצב לוח מדומה: <span id="stAngle">0.00°</span> (יעד: <span id="stTarget">0.00°</span>) · מצב: <span id="stAuto">אוטומטי</span> · פאנל: <span id="stPanel">LED (2)</span>
+      </div>
     </div>
   </div>
 
@@ -203,6 +217,7 @@ const state = {
   lux_top: 180, lux_bot: 70,
 };
 let route = 'status';
+let method = 'GET';
 
 const ARG = {
   status: { method: 'GET', path: '/status', key: null, sample: '' },
@@ -220,31 +235,74 @@ function panelName() {
 function argsOf() {
   const spec = ARG[route];
   if (!spec.key) return {};
-  return { [spec.key]: document.getElementById('argVal').value };
+  const argInput = document.getElementById('argVal');
+  return { [spec.key]: argInput ? argInput.value : '' };
+}
+
+function syncButtons() {
+  document.querySelectorAll('[data-route]').forEach((b) => {
+    if (!b || !b.dataset || !b.dataset.route) return;
+    const on = b.dataset.route === route;
+    if (b.classList && b.classList.toggle) b.classList.toggle('on', on);
+    if (b.setAttribute) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('[data-method]').forEach((b) => {
+    if (!b || !b.dataset || !b.dataset.method) return;
+    const on = b.dataset.method === method;
+    if (b.classList && b.classList.toggle) b.classList.toggle('on', on);
+    if (b.setAttribute) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function updateStateDisplay() {
+  const stAngle = document.getElementById('stAngle');
+  const stTarget = document.getElementById('stTarget');
+  const stAuto = document.getElementById('stAuto');
+  const stPanel = document.getElementById('stPanel');
+  if (stAngle) stAngle.textContent = state.angle.toFixed(2) + '°';
+  if (stTarget) stTarget.textContent = state.target.toFixed(2) + '°';
+  if (stAuto) stAuto.textContent = state.auto ? 'אוטומטי' : 'ידני';
+  if (stPanel) stPanel.textContent = panelName() + ' (' + state.panel + ')';
 }
 
 function paintRequest() {
   const spec = ARG[route];
-  document.getElementById('reqLine').textContent = SM_PROTOCOL.requestLine(spec.method, spec.path, argsOf());
-  document.getElementById('argVal').disabled = !spec.key;
-  document.getElementById('argVal').placeholder = spec.key ? spec.key : 'אין ארגומנט ל־' + spec.path;
+  syncButtons();
+  const reqEl = document.getElementById('reqLine');
+  if (reqEl) reqEl.textContent = SM_PROTOCOL.requestLine(method, spec.path, argsOf());
+  const argEl = document.getElementById('argVal');
+  if (argEl) {
+    argEl.disabled = !spec.key;
+    argEl.placeholder = spec.key ? spec.key : 'אין ארגומנט ל־' + spec.path;
+  }
 }
 
 function show(res, extra) {
   const el = document.getElementById('resCode');
-  el.textContent = res.status;
-  el.className = res.status === 200 ? 'ok' : 'bad';
-  document.getElementById('resBody').textContent = JSON.stringify(res.body, null, 2);
-  document.getElementById('effectNote').textContent = extra || 'תשובה לפי חוקי firmware/smart_mount.ino';
+  if (el) {
+    el.textContent = res.status;
+    el.className = res.status === 200 ? 'ok' : 'bad';
+  }
+  const bodyEl = document.getElementById('resBody');
+  if (bodyEl) bodyEl.textContent = JSON.stringify(res.body, null, 2);
+  const noteEl = document.getElementById('effectNote');
+  if (noteEl) noteEl.textContent = extra || 'תשובה לפי חוקי firmware/smart_mount.ino';
+  updateStateDisplay();
 }
 
 function send() {
   const spec = ARG[route];
   const args = argsOf();
-  const res = SM_PROTOCOL.dispatch(spec.method, spec.path, args, state);
+  const res = SM_PROTOCOL.dispatch(method, spec.path, args, state);
   let note = '';
-  if (res.status === 400 && spec.key === 'type') {
+  if (res.status === 405) {
+    note = '405 Method Not Allowed — הלוח דוחה כל בקשת PUT (שיטה לא מורשית).';
+  } else if (res.status === 404 && method !== spec.method) {
+    note = '404 Not Found — שיטת ' + method + ' לא רשומה עבור נתיב ' + spec.path + ' (כמו WebServer onNotFound).';
+  } else if (res.status === 400 && spec.key === 'type') {
     note = 'strtol לא צרך את כל type, או שהוא מחוץ ל־0..2 — 400 בלי שינוי מצב. בעבר toInt("foo")=0 בחר OLED בשקט.';
+  } else if (res.status === 400 && spec.key === 'deg') {
+    note = 'ערך deg לא חוקי או חסר — 400 Bad Request בלי תנועה.';
   }
   if (res.effect) {
     if (res.effect.autoMode !== undefined) {
@@ -280,31 +338,97 @@ function send() {
 }
 
 document.querySelectorAll('[data-route]').forEach((btn) => {
+  if (!btn || !btn.addEventListener || !btn.dataset || !btn.dataset.route) return;
   btn.addEventListener('click', () => {
     route = btn.dataset.route;
-    document.querySelectorAll('[data-route]').forEach((b) => b.classList.toggle('on', b === btn));
+    method = ARG[route].method;
     const spec = ARG[route];
-    document.getElementById('argVal').value = spec.sample;
+    const argEl = document.getElementById('argVal');
+    if (argEl) argEl.value = spec.sample;
     paintRequest();
   });
 });
-document.getElementById('argVal').addEventListener('input', paintRequest);
-document.getElementById('sendBtn').addEventListener('click', send);
-document.getElementById('exBad').addEventListener('click', () => {
-  route = 'angle';
-  document.querySelectorAll('[data-route]').forEach((b) => b.classList.toggle('on', b.dataset.route === 'angle'));
-  document.getElementById('argVal').value = '12deg';
-  paintRequest();
-  send();
+
+document.querySelectorAll('[data-method]').forEach((btn) => {
+  if (!btn || !btn.addEventListener || !btn.dataset || !btn.dataset.method) return;
+  btn.addEventListener('click', () => {
+    method = btn.dataset.method;
+    paintRequest();
+  });
 });
-document.getElementById('exQuirk').addEventListener('click', () => {
-  route = 'panel';
-  document.querySelectorAll('[data-route]').forEach((b) => b.classList.toggle('on', b.dataset.route === 'panel'));
-  document.getElementById('argVal').value = 'foo';
-  paintRequest();
-  send();
-});
+
+const argInput = document.getElementById('argVal');
+if (argInput && argInput.addEventListener) argInput.addEventListener('input', paintRequest);
+
+const sendButton = document.getElementById('sendBtn');
+if (sendButton && sendButton.addEventListener) sendButton.addEventListener('click', send);
+
+const exBadButton = document.getElementById('exBad');
+if (exBadButton && exBadButton.addEventListener) {
+  exBadButton.addEventListener('click', () => {
+    route = 'angle';
+    method = 'POST';
+    const argEl = document.getElementById('argVal');
+    if (argEl) argEl.value = '12deg';
+    paintRequest();
+    send();
+  });
+}
+
+const exQuirkButton = document.getElementById('exQuirk');
+if (exQuirkButton && exQuirkButton.addEventListener) {
+  exQuirkButton.addEventListener('click', () => {
+    route = 'panel';
+    method = 'POST';
+    const argEl = document.getElementById('argVal');
+    if (argEl) argEl.value = 'foo';
+    paintRequest();
+    send();
+  });
+}
+
+const ex405Button = document.getElementById('ex405');
+if (ex405Button && ex405Button.addEventListener) {
+  ex405Button.addEventListener('click', () => {
+    route = 'angle';
+    method = 'PUT';
+    const argEl = document.getElementById('argVal');
+    if (argEl) argEl.value = '12.5';
+    paintRequest();
+    send();
+  });
+}
+
+const ex404Button = document.getElementById('ex404');
+if (ex404Button && ex404Button.addEventListener) {
+  ex404Button.addEventListener('click', () => {
+    route = 'status';
+    method = 'DELETE';
+    const argEl = document.getElementById('argVal');
+    if (argEl) argEl.value = '';
+    paintRequest();
+    send();
+  });
+}
+
+const exResetButton = document.getElementById('exReset');
+if (exResetButton && exResetButton.addEventListener) {
+  exResetButton.addEventListener('click', () => {
+    state.angle = 0;
+    state.target = 0;
+    state.auto = true;
+    state.panel = 2;
+    route = 'status';
+    method = 'GET';
+    const argEl = document.getElementById('argVal');
+    if (argEl) argEl.value = '';
+    paintRequest();
+    send();
+  });
+}
+
 paintRequest();
+updateStateDisplay();
 </script>
 </body>
 </html>
