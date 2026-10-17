@@ -13,7 +13,7 @@
 @media(max-width:860px){.grid{grid-template-columns:1fr}}
 .card{margin-bottom:16px}
 label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
-input[type=range],input[type=number]{accent-color:#58a6ff}
+input[type=range],input[type=number]{accent-color:#58a6ff;direction:ltr}
 input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:#e8e8f0;border-radius:8px;padding:8px 10px;font:600 .9rem inherit}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:640px){.fields{grid-template-columns:1fr}}
@@ -112,14 +112,19 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
         AccelStepper חייב לרוץ לפני מועד הצעד הבא. אין <code>esp_task_wdt</code> בקושחה.
         תקיעת I²C יכולה להרעיב גם פולסים וגם את ה־WDT של הליבה.
       </p>
+      <div class="row" role="group" aria-label="תרחישי לולאה" id="loopPresets">
+        <button type="button" class="btn on" data-loop="typical" aria-pressed="true">טיפוסי (8ms / 2ms)</button>
+        <button type="button" class="btn" data-loop="starve" aria-pressed="false">הרעבת פולסים (18ms HTTP)</button>
+        <button type="button" class="btn" data-loop="wire" aria-pressed="false">מתיחת I²C (25ms)</button>
+      </div>
       <div class="fields">
         <div>
           <label class="sl" for="httpMs">handleClient (ms): <span id="httpLbl">8</span></label>
-          <input type="range" id="httpMs" min="0" max="40" step="1" value="8">
+          <input type="range" id="httpMs" min="0" max="40" step="1" value="8" dir="ltr" aria-valuemin="0" aria-valuemax="40" aria-valuenow="8">
         </div>
         <div>
           <label class="sl" for="i2cMs">קריאת I²C (ms): <span id="i2cLbl">2</span></label>
-          <input type="range" id="i2cMs" min="0" max="30" step="1" value="2">
+          <input type="range" id="i2cMs" min="0" max="30" step="1" value="2" dir="ltr" aria-valuemin="0" aria-valuemax="30" aria-valuenow="2">
         </div>
       </div>
       <div class="kv">
@@ -290,11 +295,29 @@ function timing() {
   loop(p);
 }
 
+const LOOP_PRESETS = {
+  typical: { http: 8, i2c: 2 },
+  starve:  { http: 18, i2c: 2 },
+  wire:    { http: 8, i2c: 25 },
+};
+
+function syncLoopPresets(http, i2c) {
+  document.querySelectorAll('[data-loop]').forEach((b) => {
+    const p = LOOP_PRESETS[b.dataset.loop];
+    const isMatch = p && p.http === http && p.i2c === i2c;
+    b.classList.toggle('on', isMatch);
+    b.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+  });
+}
+
 function loop(p) {
   const http = Number($('httpMs').value);
   const i2c = Number($('i2cMs').value);
   $('httpLbl').textContent = http;
   $('i2cLbl').textContent = i2c;
+  $('httpMs').setAttribute('aria-valuenow', String(http));
+  $('i2cMs').setAttribute('aria-valuenow', String(i2c));
+  syncLoopPresets(http, i2c);
   const b = SM_TIMING.loopBudget({
     handleClientMs: http,
     i2cReadMs: i2c,
@@ -438,6 +461,16 @@ document.querySelectorAll('[data-deg]').forEach((b) => {
     $('fromDeg').value = '0';
     $('toDeg').value = b.dataset.deg;
     all();
+  });
+});
+document.querySelectorAll('[data-loop]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const p = LOOP_PRESETS[b.dataset.loop];
+    if (p) {
+      $('httpMs').value = String(p.http);
+      $('i2cMs').value = String(p.i2c);
+      all();
+    }
   });
 });
 ['fromDeg', 'toDeg', 'httpMs', 'i2cMs', 'wifiMs', 'moves', 'worm', 'wifiOn', 'thisSample', 'phase', 'flash'].forEach((id) => {
