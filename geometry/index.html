@@ -18,7 +18,11 @@
 .btn{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:8px;cursor:pointer;padding:8px 12px;font:600 .8rem inherit}
 .btn.on{background:#1f4068;border-color:#58a6ff;color:#58a6ff}
 label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
-input[type=range]{width:100%;accent-color:#58a6ff}
+input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}
+#light,#eye{cursor:grab;outline:none}
+#light:focus-visible,#eye:focus-visible{outline:2px solid #58a6ff;outline-offset:4px}
+#light:focus circle:first-child,#light:focus-visible circle:first-child,
+#eye:focus circle:first-child,#eye:focus-visible circle:first-child{stroke:#58a6ff;stroke-width:2.5px;filter:drop-shadow(0 0 6px rgba(88,166,255,.8))}
 .verdict{border-radius:10px;padding:12px 14px;margin-top:8px;font-size:.88rem;line-height:1.55;border:1px solid #21262d}
 .verdict.hit{background:#3a1010;border-color:#f85149;color:#ffb4b0}
 .verdict.miss{background:#1a3a2a;border-color:#238636;color:#7ee787}
@@ -72,11 +76,11 @@ input[type=range]{width:100%;accent-color:#58a6ff}
         <line id="reflected" x1="0" y1="0" x2="0" y2="0" stroke="#f85149" stroke-width="2.2"/>
         <line id="normal" x1="0" y1="0" x2="0" y2="0" stroke="#8b949e" stroke-width="1" stroke-dasharray="4 3"/>
         <g id="screen"></g>
-        <g id="light" style="cursor:grab" tabindex="0" role="img" aria-label="מקור אור">
+        <g id="light" tabindex="0" role="slider" aria-label="מקור אור — הזזה במקשי חצים" aria-valuemin="40" aria-valuemax="780" aria-valuenow="280" aria-valuetext="אופקי 280, אנכי 36">
           <circle r="16" fill="#fde68a"/>
           <circle r="26" fill="#f59e0b" fill-opacity=".25"/>
         </g>
-        <g id="eye" style="cursor:grab" tabindex="0" role="img" aria-label="עין הצופה">
+        <g id="eye" tabindex="0" role="slider" aria-label="עין הצופה — הזזה במקשי חצים" aria-valuemin="40" aria-valuemax="780" aria-valuenow="560" aria-valuetext="אופקי 560, אנכי 268">
           <circle r="14" fill="#1f4068" stroke="#58a6ff" stroke-width="2"/>
           <circle cx="4" cy="-2" r="4" fill="#e8e8f0"/>
         </g>
@@ -91,15 +95,15 @@ input[type=range]{width:100%;accent-color:#58a6ff}
         <button type="button" class="btn" id="scLow" aria-pressed="false">בוהק מלמטה</button>
       </div>
       <label class="sl" for="lightX">אור אופקי: <span id="lightXVal">280</span></label>
-      <input type="range" id="lightX" min="40" max="780" value="280">
+      <input type="range" id="lightX" min="40" max="780" value="280" dir="ltr">
       <label class="sl" for="lightY">אור אנכי: <span id="lightYVal">36</span></label>
-      <input type="range" id="lightY" min="20" max="380" value="36">
+      <input type="range" id="lightY" min="20" max="380" value="36" dir="ltr">
       <label class="sl" for="eyeX">עין אופקית: <span id="eyeXVal">560</span></label>
-      <input type="range" id="eyeX" min="40" max="780" value="560">
+      <input type="range" id="eyeX" min="40" max="780" value="560" dir="ltr">
       <label class="sl" for="eyeY">עין אנכית: <span id="eyeYVal">268</span></label>
-      <input type="range" id="eyeY" min="20" max="380" value="268">
+      <input type="range" id="eyeY" min="20" max="380" value="268" dir="ltr">
       <label class="sl" for="tilt">הטיית מסך: <span id="tiltVal">0°</span> (ידני — לא חיישן)</label>
-      <input type="range" id="tilt" min="-20" max="40" value="0">
+      <input type="range" id="tilt" min="-20" max="40" value="0" dir="ltr">
       <div class="kv">
         <div><b id="kInc">—</b><span>זווית פגיעה</span></div>
         <div><b id="kRef">—</b><span>זווית החזרה</span></div>
@@ -128,13 +132,13 @@ input[type=range]{width:100%;accent-color:#58a6ff}
         <button type="button" class="btn" id="optMatte" aria-pressed="false">ציפוי מט</button>
       </div>
       <label class="sl" for="srcNits">בהירות מקור: <span id="srcNitsVal">20000</span> cd/m²</label>
-      <input type="range" id="srcNits" min="200" max="25000" step="100" value="20000">
+      <input type="range" id="srcNits" min="200" max="25000" step="100" value="20000" dir="ltr">
       <label class="sl" for="srcArea">שטח מקור: <span id="srcAreaVal">4</span> סמ״ר</label>
-      <input type="range" id="srcArea" min="1" max="20000" step="1" value="4">
+      <input type="range" id="srcArea" min="1" max="20000" step="1" value="4" dir="ltr">
       <label class="sl" for="srcDist">מרחק לחיישן עליון: <span id="srcDistVal">2.0</span> מ׳</label>
-      <input type="range" id="srcDist" min="0.4" max="4" step="0.1" value="2">
+      <input type="range" id="srcDist" min="0.4" max="4" step="0.1" value="2" dir="ltr">
       <label class="sl" for="refl">החזר ספקולרי: <span id="reflVal">0.06</span></label>
-      <input type="range" id="refl" min="0.005" max="0.12" step="0.005" value="0.06">
+      <input type="range" id="refl" min="0.005" max="0.12" step="0.005" value="0.06" dir="ltr">
     </div>
     <div class="card">
       <h2>שני מדדים, שתי החלטות</h2>
@@ -251,8 +255,18 @@ function draw() {
   document.getElementById('reflected').setAttribute('x2', g.c.x + R.x * far);
   document.getElementById('reflected').setAttribute('y2', g.c.y + R.y * far);
 
-  document.getElementById('light').setAttribute('transform', 'translate(' + light.x + ' ' + light.y + ')');
-  document.getElementById('eye').setAttribute('transform', 'translate(' + eye.x + ' ' + eye.y + ')');
+  const lEl = document.getElementById('light');
+  if (lEl) {
+    lEl.setAttribute('transform', 'translate(' + light.x + ' ' + light.y + ')');
+    lEl.setAttribute('aria-valuenow', String(Math.round(light.x)));
+    lEl.setAttribute('aria-valuetext', 'אופקי ' + Math.round(light.x) + ', אנכי ' + Math.round(light.y));
+  }
+  const eEl = document.getElementById('eye');
+  if (eEl) {
+    eEl.setAttribute('transform', 'translate(' + eye.x + ' ' + eye.y + ')');
+    eEl.setAttribute('aria-valuenow', String(Math.round(eye.x)));
+    eEl.setAttribute('aria-valuetext', 'אופקי ' + Math.round(eye.x) + ', אנכי ' + Math.round(eye.y));
+  }
 
   const incDeg = facing > 0 ? NaN : Math.acos(clamp(-facing, -1, 1)) * 180 / Math.PI;
   document.getElementById('kInc').textContent = Number.isFinite(incDeg) ? incDeg.toFixed(0) + '°' : 'מאחורי הפאנל';
@@ -358,12 +372,14 @@ document.getElementById('eyeY').addEventListener('input', function () {
   eye.y = Number(this.value); draw();
 });
 function bindArrows(id, obj) {
-  document.getElementById(id).addEventListener('keydown', function (e) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('keydown', function (e) {
     const step = e.shiftKey ? 24 : 12;
     if (e.key === 'ArrowLeft') { obj.x = clamp(obj.x - step, 40, 780); e.preventDefault(); draw(); }
-    if (e.key === 'ArrowRight') { obj.x = clamp(obj.x + step, 40, 780); e.preventDefault(); draw(); }
-    if (e.key === 'ArrowUp') { obj.y = clamp(obj.y - step, 20, 380); e.preventDefault(); draw(); }
-    if (e.key === 'ArrowDown') { obj.y = clamp(obj.y + step, 20, 380); e.preventDefault(); draw(); }
+    else if (e.key === 'ArrowRight') { obj.x = clamp(obj.x + step, 40, 780); e.preventDefault(); draw(); }
+    else if (e.key === 'ArrowUp') { obj.y = clamp(obj.y - step, 20, 380); e.preventDefault(); draw(); }
+    else if (e.key === 'ArrowDown') { obj.y = clamp(obj.y + step, 20, 380); e.preventDefault(); draw(); }
   });
 }
 bindArrows('light', light);
