@@ -46,7 +46,6 @@ test('every page is Hebrew RTL with a skip-link, #main, and a honesty banner', (
 
 test('site nav names the engineering pages from every surface', () => {
   for (const rel of pages) {
-    if (rel === '404.html') continue;
     const html = read(rel);
     assert.match(html, /מקרה הנדסי/, rel);
     assert.match(html, /מכונת מצבים/, rel);
