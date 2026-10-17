@@ -46,6 +46,7 @@ table.matrix td.change{background:#1f4068;color:#79c0ff}
 table.matrix td.fault{background:#3a1010;color:#f85149}
 table.matrix td.reject{box-shadow:inset 0 0 0 1px #e3b341}
 table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
+table.matrix td:focus-visible{outline:2px solid #58a6ff;outline-offset:-1px;position:relative;z-index:2}
 </style>
 </head>
 <body>
@@ -227,7 +228,7 @@ table.matrix td.here{outline:2px solid #58a6ff;outline-offset:-2px}
       לחיצה על תא בשורה של המצב הנוכחי שולחת את האירוע לשתי המכונות.
     </p>
     <div class="row" role="group" aria-label="איזו מכונה בטבלה">
-      <button type="button" class="btn" id="mxFw" aria-pressed="false">קושחה (30 תאים)</button>
+      <button type="button" class="btn" id="mxFw" aria-pressed="false">קושחה (32 תאים)</button>
       <button type="button" class="btn on" id="mxSf" aria-pressed="true">מוצע (176 תאים)</button>
     </div>
     <p class="fine" id="mxCounts">—</p>
@@ -443,7 +444,8 @@ function paintMatrix() {
       else cls.push('stay');
       if (cell.reject) cls.push('reject');
       if (st === here) cls.push('here');
-      html += '<td class="' + cls.join(' ') + '" data-from="' + st + '" data-ev="' + ev + '">' +
+      const actionTitle = st + ' × ' + ev.replace('_', ' ') + ' → ' + cell.to + (cell.reject ? ' [' + cell.reject + ']' : '');
+      html += '<td class="' + cls.join(' ') + '" data-from="' + st + '" data-ev="' + ev + '" tabindex="0" role="button" aria-label="' + actionTitle + '" title="' + actionTitle + '">' +
         short(cell.to) + (cell.reject ? '*' : '') + '</td>';
     });
     html += '</tr>';
@@ -452,10 +454,17 @@ function paintMatrix() {
   table.innerHTML = html;
   table.querySelectorAll('td[data-ev]').forEach((td) => {
     td.style.cursor = 'pointer';
-    td.addEventListener('click', () => {
+    const trigger = () => {
       setScenario(null);
       const ev = SM_FSM_TABLE.defaultEvent(td.dataset.ev);
       send(ev, td.dataset.from + ' × ' + td.dataset.ev);
+    };
+    td.addEventListener('click', trigger);
+    td.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        trigger();
+      }
     });
   });
 }

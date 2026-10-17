@@ -264,3 +264,19 @@ test('matrix toggle buttons switch active and aria-pressed states', () => {
   assert.equal(matrixButtons.mxFw.classList.contains('on'), false);
   assert.equal(matrixButtons.mxFw.getAttribute('aria-pressed'), 'false');
 });
+
+test('matrix button mxFw specifies 32 cells (2x16 states)', () => {
+  const html = read('fsm/index.html');
+  assert.match(html, /id="mxFw"[^>]*>קושחה \(32 תאים\)<\/button>/);
+  assert.doesNotMatch(html, /30 תאים/);
+});
+
+test('matrix table cells render with role="button", tabindex="0", aria-label and title for accessibility', () => {
+  const { elements } = loadFsmPage();
+  const matrixHtml = elements.matrix.innerHTML;
+  assert.ok(matrixHtml.includes('role="button"'), 'matrix cells must have role="button"');
+  assert.ok(matrixHtml.includes('tabindex="0"'), 'matrix cells must have tabindex="0"');
+  assert.ok(matrixHtml.includes('aria-label='), 'matrix cells must have aria-label');
+  assert.ok(matrixHtml.includes('title='), 'matrix cells must have title');
+});
+
