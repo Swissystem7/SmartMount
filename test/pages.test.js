@@ -180,3 +180,10 @@ test('375px: wide tables scroll inside their box and grid columns may shrink (Ch
   assert.match(proto, /\.grid\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
   assert.match(proto, /\.grid\{grid-template-columns:minmax\(0,1fr\)\}/);
 });
+
+test('nav-more dropdown list is anchored with inset-inline-end so it does not overflow left in RTL', () => {
+  const css = read('assets/site.css');
+  assert.match(css, /\.nav-more-list\s*\{[\s\S]*?inset-inline-end:\s*0/);
+  assert.doesNotMatch(css, /\.nav-more-list\s*\{[\s\S]*?inset-inline-start:\s*0/);
+});
+
