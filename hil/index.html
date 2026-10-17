@@ -68,8 +68,14 @@
     <div><b id="nHigh">—</b><span>סיכון גבוה</span></div>
     <div><b>never-run</b><span>סטטוס קשיח בקוד</span></div>
   </div>
-  <div class="row" id="filters" role="group" aria-label="סינון לפי מתקן"></div>
-  <div id="list"></div>
+  <div class="row" id="filters" role="group" aria-label="סינון לפי מתקן">
+    <button type="button" class="btn on" data-fixture="all" aria-pressed="true">הכול</button>
+    <button type="button" class="btn" data-fixture="usb" aria-pressed="false">ESP32 על USB-UART בלבד</button>
+    <button type="button" class="btn" data-fixture="sensors" aria-pressed="false">ESP32 + שני BH1750</button>
+    <button type="button" class="btn" data-fixture="motor" aria-pressed="false">מנוע על שולחן, בלי מסך</button>
+    <button type="button" class="btn" data-fixture="dummy" aria-pressed="false">מסה מדומה על הזרוע — לא טלוויזיה</button>
+  </div>
+  <div id="list" role="region" aria-live="polite"></div>
   <p class="fine">
     המקור: <code>src/lib/hil.js</code>. הבדיקות נועלות שאין מקרה «עבר»,
     ש־HIL-10 אוסר טלוויזיה, וש־HIL-07 הוא שקר האפס מהמעבדה.
@@ -85,27 +91,26 @@ function tag(cls, text) {
   return '<span class="tag ' + cls + '">' + text + '</span>';
 }
 
-function render() {
+function renderStats() {
   const s = SM_HIL.summary();
   document.getElementById('nCases').textContent = String(s.cases);
   document.getElementById('nRun').textContent = String(s.run);
   document.getElementById('nHigh').textContent = String(s.hazards.high || 0);
+}
 
-  const filters = document.getElementById('filters');
-  filters.textContent = '';
-  const opts = [{ id: 'all', label: 'הכול' }].concat(SM_HIL.FIXTURES);
-  opts.forEach((f) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'btn' + (filter === f.id ? ' on' : '');
-    b.textContent = f.label;
-    b.addEventListener('click', () => { filter = f.id; render(); });
-    filters.appendChild(b);
-  });
-
+function renderCases() {
   const list = document.getElementById('list');
   list.textContent = '';
-  SM_HIL.CASES.filter((c) => filter === 'all' || c.fixture === filter).forEach((c) => {
+  const filtered = SM_HIL.CASES.filter((c) => filter === 'all' || c.fixture === filter);
+  if (!filtered.length) {
+    const empty = document.createElement('p');
+    empty.className = 'fine';
+    empty.id = 'emptyMsg';
+    empty.textContent = 'אין מקרים התואמים לסינון שנבחר.';
+    list.appendChild(empty);
+    return;
+  }
+  filtered.forEach((c) => {
     const el = document.createElement('article');
     el.className = 'case';
     el.innerHTML =
@@ -123,7 +128,47 @@ function render() {
     list.appendChild(el);
   });
 }
-render();
+
+function updateFilterButtons() {
+  document.querySelectorAll('#filters [data-fixture]').forEach((btn) => {
+    const on = btn.getAttribute('data-fixture') === filter;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function setFilter(newFilter) {
+  filter = newFilter;
+  updateFilterButtons();
+  renderCases();
+}
+
+function initFilters() {
+  const container = document.getElementById('filters');
+  let buttons = container.querySelectorAll('[data-fixture]');
+  if (!buttons.length) {
+    const opts = [{ id: 'all', label: 'הכול' }].concat(SM_HIL.FIXTURES);
+    opts.forEach((f) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn' + (filter === f.id ? ' on' : '');
+      b.setAttribute('data-fixture', f.id);
+      b.setAttribute('aria-pressed', filter === f.id ? 'true' : 'false');
+      b.textContent = f.label;
+      container.appendChild(b);
+    });
+    buttons = container.querySelectorAll('[data-fixture]');
+  }
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setFilter(btn.getAttribute('data-fixture'));
+    });
+  });
+}
+
+renderStats();
+initFilters();
+renderCases();
 </script>
 </body>
 </html>
