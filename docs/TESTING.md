@@ -25,7 +25,7 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 | הידור | `test/firmware-build.test.js` | אין `min(float, double)`; רשומת ההידור תואמת ל-sha256 של ה-`.ino` |
 | מקרה הנדסי | `test/case.test.js` | פסק דין portfolio-only; באגים «תוקנו במקור» לא «אומתו על חומרה»; HIL נשאר never-run |
 | דשבורד — זווית | `test/dashboard-target-step.test.js` | הסקריפט של `dashboard/` רץ ב־`node:vm` עם DOM מזויף: הזווית המוצגת היא הצעד המעוגל (`moveToAngle().target`, 12.3° → 12.24°) באוטו, בידני ובהחלפת פאנל; CLAMP נקבע מפלט החוק, כי גבול QLED מעוגל ל־29.88°; HOLD מחזיק את המוצג |
-| רשימת חלקים | `test/bom.test.js` | כל פריט עם מזהה ושם ייחודיים; `getBomItems` מחזיר עותק שאי אפשר להשחית דרכו |
+| רשימת חלקים | `test/bom.test.js`, `spec-bom-filter.test.js` | כל פריט עם מזהה ושם ייחודיים; `getBomItems` מחזיר עותק שאי אפשר להשחית דרכו; סנכרון כפתורי סינון חומרים ב-spec עם aria-pressed והודעות aria-live |
 | בטיחות | `test/safety.test.js` | `getSafetyGuidelines` מחזיר הנחיות חשמל ומכניקה עם מזהה יציב ומיטיגציה, כעותקים שלא משחיתים את המקור; `safety.js` בתבנית UMD + `SM_SAFETY` |
 | משוב | `test/feedback.test.js` | `FEEDBACK_URL` שווה למחולל ונשאר קישור טופס קבוע בלי פרמטרים נוספים |
 | עמודים | `test/pages.test.js` | כל עמוד RTL עם skip-link ובאנר כנות; הדשבורד והמעבדה מריצים את חוק הבקרה המשותף; אין מוצר ענן מזויף |
