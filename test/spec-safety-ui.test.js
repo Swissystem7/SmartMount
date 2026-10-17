@@ -26,7 +26,6 @@ function fakeElement(id, initial = {}) {
   const classes = new Set(initial.classes || []);
   const children = [];
   let text = initial.text || '';
-  let html = '';
   return {
     id,
     attrs,
@@ -37,11 +36,6 @@ function fakeElement(id, initial = {}) {
     set textContent(v) {
       text = String(v);
       if (v === '') children.length = 0;
-    },
-    get innerHTML() { return html || text; },
-    set innerHTML(v) {
-      html = String(v);
-      text = String(v).replace(/<[^>]+>/g, '');
     },
     get className() { return [...classes].join(' '); },
     set className(v) {
@@ -115,6 +109,7 @@ function loadSpecSafetyUI() {
       el.tag = tag;
       return el;
     },
+    createTextNode: (data) => ({ nodeType: 3, textContent: String(data) }),
   };
 
   const window = {};

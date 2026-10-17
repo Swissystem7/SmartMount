@@ -416,6 +416,15 @@ recalc();
 
   let currentCategory = 'all';
 
+  function labeledParagraph(label, body) {
+    const p = document.createElement('p');
+    const strong = document.createElement('strong');
+    strong.textContent = label;
+    p.appendChild(strong);
+    p.appendChild(document.createTextNode(' ' + body));
+    return p;
+  }
+
   function renderSafety() {
     const list = document.getElementById('safetyList');
     const countEl = document.getElementById('safetyCount');
@@ -462,13 +471,10 @@ recalc();
       header.appendChild(tag);
       card.appendChild(header);
 
-      const hazard = document.createElement('p');
-      hazard.innerHTML = '<strong>סיכון:</strong> ' + item.hazard;
-      card.appendChild(hazard);
+      card.appendChild(labeledParagraph('סיכון:', item.hazard));
 
-      const mitigation = document.createElement('p');
+      const mitigation = labeledParagraph('מיטיגציה:', item.mitigation);
       mitigation.style.marginTop = '4px';
-      mitigation.innerHTML = '<strong>מיטיגציה:</strong> ' + item.mitigation;
       card.appendChild(mitigation);
 
       list.appendChild(card);
