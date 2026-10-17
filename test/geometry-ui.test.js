@@ -100,8 +100,28 @@ function loadGeometryPage() {
     normal: fakeElement('normal'),
     incident: fakeElement('incident'),
     reflected: fakeElement('reflected'),
-    light: fakeElement('light'),
-    eye: fakeElement('eye'),
+    light: fakeElement('light', {
+      attrs: {
+        tabindex: '0',
+        role: 'slider',
+        'aria-label': 'מקור אור — הזזה במקשי חצים',
+        'aria-valuemin': '40',
+        'aria-valuemax': '780',
+        'aria-valuenow': '280',
+        'aria-valuetext': 'אופקי 280, אנכי 36',
+      },
+    }),
+    eye: fakeElement('eye', {
+      attrs: {
+        tabindex: '0',
+        role: 'slider',
+        'aria-label': 'עין הצופה — הזזה במקשי חצים',
+        'aria-valuemin': '40',
+        'aria-valuemax': '780',
+        'aria-valuenow': '560',
+        'aria-valuetext': 'אופקי 560, אנכי 268',
+      },
+    }),
     extraRays: fakeElement('extraRays'),
     kInc: fakeElement('kInc'),
     kRef: fakeElement('kRef'),
@@ -283,3 +303,100 @@ test('nudging geometry after a scenario keeps that scenario model (button clears
   sliders.eyeY.fire('input');
   assert.equal(vm.runInContext('scene', ctx), 'low');
 });
+
+test('geometry page HTML includes focus styling and slider accessibility attributes for light and eye', () => {
+  const html = read('geometry/index.html');
+  assert.ok(html.includes('#light:focus-visible,#eye:focus-visible'), 'CSS must include focus-visible styles for scene targets');
+  assert.ok(html.includes('input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}'), 'CSS must specify direction:ltr on range inputs');
+  assert.ok(html.includes('id="light" tabindex="0" role="slider"'), 'light must have tabindex 0 and slider role');
+  assert.ok(html.includes('id="eye" tabindex="0" role="slider"'), 'eye must have tabindex 0 and slider role');
+  assert.ok(html.includes('aria-label="מקור אור — הזזה במקשי חצים"'), 'light must have accessible label mentioning arrow navigation');
+  assert.ok(html.includes('aria-label="עין הצופה — הזזה במקשי חצים"'), 'eye must have accessible label mentioning arrow navigation');
+});
+
+test('keyboard arrow navigation on light element moves coordinates, calls preventDefault, clamps bounds, and updates sliders', () => {
+  const { elements, sliders } = loadGeometryPage();
+  const light = elements.light;
+
+  let prevented = false;
+  const preventDefault = () => { prevented = true; };
+
+  // Initial: light is at (280, 36)
+  assert.equal(light.getAttribute('aria-valuenow'), '280');
+  assert.equal(light.getAttribute('aria-valuetext'), 'אופקי 280, אנכי 36');
+
+  // ArrowLeft decreases x by 12 (to 268)
+  prevented = false;
+  light.fire('keydown', { key: 'ArrowLeft', preventDefault });
+  assert.ok(prevented, 'ArrowLeft must call preventDefault');
+  assert.equal(sliders.lightX.value, '268');
+  assert.equal(light.getAttribute('aria-valuenow'), '268');
+  assert.equal(light.getAttribute('aria-valuetext'), 'אופקי 268, אנכי 36');
+
+  // ArrowRight increases x by 12 (back to 280)
+  prevented = false;
+  light.fire('keydown', { key: 'ArrowRight', preventDefault });
+  assert.ok(prevented);
+  assert.equal(sliders.lightX.value, '280');
+
+  // ArrowDown increases y by 12 (to 48)
+  prevented = false;
+  light.fire('keydown', { key: 'ArrowDown', preventDefault });
+  assert.ok(prevented);
+  assert.equal(sliders.lightY.value, '48');
+  assert.equal(light.getAttribute('aria-valuetext'), 'אופקי 280, אנכי 48');
+
+  // ArrowUp decreases y by 12 (back to 36)
+  prevented = false;
+  light.fire('keydown', { key: 'ArrowUp', preventDefault });
+  assert.ok(prevented);
+  assert.equal(sliders.lightY.value, '36');
+
+  // Shift+ArrowRight steps by 24 (to 304)
+  light.fire('keydown', { key: 'ArrowRight', shiftKey: true, preventDefault });
+  assert.equal(sliders.lightX.value, '304');
+
+  // Clamping: cannot move below min x (40)
+  for (let i = 0; i < 30; i++) {
+    light.fire('keydown', { key: 'ArrowLeft', shiftKey: true, preventDefault });
+  }
+  assert.equal(sliders.lightX.value, '40');
+  assert.equal(light.getAttribute('aria-valuenow'), '40');
+});
+
+test('keyboard arrow navigation on eye element moves coordinates, updates sliders and ARIA labels', () => {
+  const { elements, sliders } = loadGeometryPage();
+  const eye = elements.eye;
+
+  let prevented = false;
+  const preventDefault = () => { prevented = true; };
+
+  // Initial: eye is at (560, 268)
+  assert.equal(eye.getAttribute('aria-valuenow'), '560');
+  assert.equal(eye.getAttribute('aria-valuetext'), 'אופקי 560, אנכי 268');
+
+  // ArrowRight increases x by 12 (to 572)
+  eye.fire('keydown', { key: 'ArrowRight', preventDefault });
+  assert.ok(prevented);
+  assert.equal(sliders.eyeX.value, '572');
+  assert.equal(eye.getAttribute('aria-valuenow'), '572');
+  assert.equal(eye.getAttribute('aria-valuetext'), 'אופקי 572, אנכי 268');
+
+  // ArrowUp decreases y by 12 (to 256)
+  eye.fire('keydown', { key: 'ArrowUp', preventDefault });
+  assert.ok(prevented);
+  assert.equal(sliders.eyeY.value, '256');
+  assert.equal(eye.getAttribute('aria-valuetext'), 'אופקי 572, אנכי 256');
+});
+
+test('keyboard navigation on light element deactivates active scenario preset (no false active state)', () => {
+  const { elements, scenarioButtons } = loadGeometryPage();
+  assertPressed(scenarioButtons.scOver, true);
+
+  elements.light.fire('keydown', { key: 'ArrowRight', preventDefault() {} });
+  assertPressed(scenarioButtons.scOver, false);
+
+  elements.light.fire('keydown', { key: 'ArrowLeft', preventDefault() {} });
+  assertPressed(scenarioButtons.scOver, true);
+});
+
