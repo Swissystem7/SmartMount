@@ -15,7 +15,11 @@
 .kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
 .kv b{display:block;font-size:1.05rem;font-variant-numeric:tabular-nums}
 .kv span{font-size:.7rem;color:var(--muted)}
-.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.kv div.clickable{cursor:pointer;transition:border-color .15s, background .15s}
+.kv div.clickable:hover,.kv div.clickable:focus{border-color:#58a6ff;outline:none}
+.kv div.clickable.on{border-color:#f85149;background:#200d11}
+.filter-title{font-size:.75rem;color:var(--muted);font-weight:600;margin:10px 0 6px}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
 .case{background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:14px 16px;margin-bottom:10px}
 .case h3{font-size:.95rem;margin-bottom:6px}
 .case p{font-size:.84rem;color:var(--muted);line-height:1.6;margin:4px 0}
@@ -26,6 +30,9 @@
 .tag.none{background:#21262d;color:#8b949e}
 .tag.low{background:#2d1f00;color:#e3b341}
 .tag.high{background:#3a1010;color:#f85149}
+.count-summary{font-size:.8rem;color:var(--muted);margin:8px 0 12px}
+.empty-state{background:#0d1117;border:1px dashed #30363d;border-radius:12px;padding:24px;text-align:center;margin:14px 0}
+.empty-state p{font-size:.88rem;color:var(--muted);margin-bottom:12px}
 .fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
 .note-warn{background:#2d1f00;border:1px solid #9e6a03;color:#e3b341;border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;margin:12px 0}
 </style>
@@ -65,11 +72,26 @@
   <div class="kv">
     <div><b id="nCases">—</b><span>מקרים</span></div>
     <div><b id="nRun">0</b><span>רצו על לוח</span></div>
-    <div><b id="nHigh">—</b><span>סיכון גבוה</span></div>
+    <div id="cardHigh" class="clickable" tabindex="0" role="button" aria-pressed="false" aria-label="סינון מהיר לסיכון גבוה"><b id="nHigh">—</b><span>סיכון גבוה</span></div>
     <div><b>never-run</b><span>סטטוס קשיח בקוד</span></div>
   </div>
-  <div class="row" id="filters" role="group" aria-label="סינון לפי מתקן"></div>
-  <div id="list"></div>
+  <div class="filter-title">סינון לפי מתקן בדיקה</div>
+  <div class="row" id="filters" role="group" aria-label="סינון לפי מתקן">
+    <button type="button" class="btn on" data-fixture="all" aria-pressed="true">הכול</button>
+    <button type="button" class="btn" data-fixture="usb" aria-pressed="false">ESP32 על USB-UART בלבד</button>
+    <button type="button" class="btn" data-fixture="sensors" aria-pressed="false">ESP32 + שני BH1750</button>
+    <button type="button" class="btn" data-fixture="motor" aria-pressed="false">מנוע על שולחן, בלי מסך</button>
+    <button type="button" class="btn" data-fixture="dummy" aria-pressed="false">מסה מדומה על הזרוע — לא טלוויזיה</button>
+  </div>
+  <div class="filter-title">סינון לפי רמת סיכון בטיחותי</div>
+  <div class="row" id="hazardFilters" role="group" aria-label="סינון לפי רמת סיכון">
+    <button type="button" class="btn on" data-hazard="all" aria-pressed="true">כל רמות הסיכון</button>
+    <button type="button" class="btn" data-hazard="high" aria-pressed="false">סיכון גבוה (<span id="countHigh">1</span>)</button>
+    <button type="button" class="btn" data-hazard="low" aria-pressed="false">סיכון נמוך (<span id="countLow">5</span>)</button>
+    <button type="button" class="btn" data-hazard="none" aria-pressed="false">ללא סיכון (<span id="countNone">7</span>)</button>
+  </div>
+  <p class="count-summary" id="countSummary" aria-live="polite">מוצגים 13 מתוך 13 מקרי HIL</p>
+  <div id="list" role="region" aria-live="polite"></div>
   <p class="fine">
     המקור: <code>src/lib/hil.js</code>. הבדיקות נועלות שאין מקרה «עבר»,
     ש־HIL-10 אוסר טלוויזיה, וש־HIL-07 הוא שקר האפס מהמעבדה.
@@ -79,33 +101,88 @@
 <script>
 const FIX_HE = {};
 SM_HIL.FIXTURES.forEach((f) => { FIX_HE[f.id] = f.label; });
-let filter = 'all';
+let fixtureFilter = 'all';
+let hazardFilter = 'all';
 
 function tag(cls, text) {
   return '<span class="tag ' + cls + '">' + text + '</span>';
 }
 
-function render() {
+function updateButtons() {
+  document.querySelectorAll('#filters [data-fixture]').forEach((b) => {
+    const on = b.getAttribute('data-fixture') === fixtureFilter;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('#hazardFilters [data-hazard]').forEach((b) => {
+    const on = b.getAttribute('data-hazard') === hazardFilter;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  const cardHigh = document.getElementById('cardHigh');
+  if (cardHigh) {
+    const isHigh = hazardFilter === 'high';
+    cardHigh.classList.toggle('on', isHigh);
+    cardHigh.setAttribute('aria-pressed', isHigh ? 'true' : 'false');
+  }
+}
+
+function renderStats() {
   const s = SM_HIL.summary();
   document.getElementById('nCases').textContent = String(s.cases);
   document.getElementById('nRun').textContent = String(s.run);
   document.getElementById('nHigh').textContent = String(s.hazards.high || 0);
+  const ch = document.getElementById('countHigh');
+  const cl = document.getElementById('countLow');
+  const cn = document.getElementById('countNone');
+  if (ch) ch.textContent = String(s.hazards.high || 0);
+  if (cl) cl.textContent = String(s.hazards.low || 0);
+  if (cn) cn.textContent = String(s.hazards.none || 0);
+}
 
-  const filters = document.getElementById('filters');
-  filters.textContent = '';
-  const opts = [{ id: 'all', label: 'הכול' }].concat(SM_HIL.FIXTURES);
-  opts.forEach((f) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'btn' + (filter === f.id ? ' on' : '');
-    b.textContent = f.label;
-    b.addEventListener('click', () => { filter = f.id; render(); });
-    filters.appendChild(b);
+function renderCases() {
+  const list = document.getElementById('list');
+  const countSummary = document.getElementById('countSummary');
+  list.textContent = '';
+
+  const matched = SM_HIL.CASES.filter((c) => {
+    const fixOk = fixtureFilter === 'all' || c.fixture === fixtureFilter;
+    const hazOk = hazardFilter === 'all' || c.hazard === hazardFilter;
+    return fixOk && hazOk;
   });
 
-  const list = document.getElementById('list');
-  list.textContent = '';
-  SM_HIL.CASES.filter((c) => filter === 'all' || c.fixture === filter).forEach((c) => {
+  const total = SM_HIL.CASES.length;
+  if (countSummary) {
+    if (matched.length === total) {
+      countSummary.textContent = 'מוצגים ' + total + ' מתוך ' + total + ' מקרי HIL';
+    } else if (matched.length === 1) {
+      countSummary.textContent = 'מוצג מקרה 1 מתוך ' + total + ' (סינון פעיל)';
+    } else {
+      countSummary.textContent = 'מוצגים ' + matched.length + ' מתוך ' + total + ' מקרים (סינון פעיל)';
+    }
+  }
+
+  if (matched.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state card';
+    empty.id = 'emptyMsg';
+    empty.innerHTML =
+      '<p>לא נמצאו מקרי HIL התואמים לשילוב הסינון שנבחר.</p>' +
+      '<button type="button" class="btn" id="resetFilters">איפוס מסננים</button>';
+    list.appendChild(empty);
+    const resetBtn = document.getElementById('resetFilters');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        fixtureFilter = 'all';
+        hazardFilter = 'all';
+        updateButtons();
+        renderCases();
+      });
+    }
+    return;
+  }
+
+  matched.forEach((c) => {
     const el = document.createElement('article');
     el.className = 'case';
     el.innerHTML =
@@ -123,7 +200,49 @@ function render() {
     list.appendChild(el);
   });
 }
-render();
+
+function setFixture(f) {
+  fixtureFilter = f;
+  updateButtons();
+  renderCases();
+}
+
+function setHazard(h) {
+  hazardFilter = h;
+  updateButtons();
+  renderCases();
+}
+
+function init() {
+  renderStats();
+
+  document.querySelectorAll('#filters [data-fixture]').forEach((b) => {
+    b.addEventListener('click', () => setFixture(b.getAttribute('data-fixture')));
+  });
+
+  document.querySelectorAll('#hazardFilters [data-hazard]').forEach((b) => {
+    b.addEventListener('click', () => setHazard(b.getAttribute('data-hazard')));
+  });
+
+  const cardHigh = document.getElementById('cardHigh');
+  if (cardHigh) {
+    const toggleHigh = () => {
+      setHazard(hazardFilter === 'high' ? 'all' : 'high');
+    };
+    cardHigh.addEventListener('click', toggleHigh);
+    cardHigh.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleHigh();
+      }
+    });
+  }
+
+  updateButtons();
+  renderCases();
+}
+
+init();
 </script>
 </body>
 </html>
