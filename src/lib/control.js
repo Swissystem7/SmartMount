@@ -150,8 +150,21 @@
     if (params === null || typeof params !== 'object' || Array.isArray(params)) {
       throw new TypeError('params must be an object');
     }
-    const { luxTop, luxBot } = params;
-    return Number.isFinite(luxTop) && Number.isFinite(luxBot);
+    const { luxTop, luxBot, panel, targetAngle, customLimit } = params;
+    if (!Number.isFinite(luxTop) || !Number.isFinite(luxBot)) {
+      return false;
+    }
+    if (targetAngle !== undefined && !Number.isFinite(targetAngle)) {
+      return false;
+    }
+    if (customLimit !== undefined && !Number.isFinite(customLimit)) {
+      return false;
+    }
+    if (panel !== undefined) {
+      const { limit } = getPanelLimit(panel, customLimit);
+      if (limit === undefined) return false;
+    }
+    return true;
   }
 
   // One auto-loop decision: law + deadband + step quantisation. Non-finite lux
