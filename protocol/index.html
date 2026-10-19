@@ -18,7 +18,7 @@ th{color:var(--muted);font-weight:600;font-size:.75rem}
 code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 pre{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:12px 14px;overflow:auto;font-size:.78rem;line-height:1.55;color:#c9d1d9;direction:ltr;text-align:left}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
+label.sl,p.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
 input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;color:#e8e8f0;border-radius:8px;padding:8px 10px;font:600 .85rem inherit}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
@@ -123,6 +123,14 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
 
     <div class="card">
       <h2>שחקן חוזה</h2>
+      <p class="sl">שיטה</p>
+      <div class="row" role="group" aria-label="שיטת HTTP">
+        <button type="button" class="btn on" data-method="GET" id="mGet" aria-pressed="true">GET</button>
+        <button type="button" class="btn" data-method="POST" id="mPost" aria-pressed="false">POST</button>
+        <button type="button" class="btn" data-method="PUT" id="mPut" aria-pressed="false">PUT</button>
+        <button type="button" class="btn" data-method="DELETE" id="mDelete" aria-pressed="false">DELETE</button>
+      </div>
+      <p class="sl">נתיב</p>
       <div class="row" role="group" aria-label="נתיב">
         <button type="button" class="btn on" data-route="status" id="rStatus" aria-pressed="true">GET /status</button>
         <button type="button" class="btn" data-route="angle" id="rAngle" aria-pressed="false">POST /set-angle</button>
@@ -132,19 +140,33 @@ input[type=text],select{width:100%;background:#0d1117;border:1px solid #30363d;c
       </div>
       <div id="argBox">
         <label class="sl" for="argVal">ערך ארגומנט</label>
-        <input type="text" id="argVal" value="" autocomplete="off" placeholder="אין ארגומנט ל־/status">
+        <input type="text" id="argVal" value="" autocomplete="off" dir="ltr" placeholder="אין ארגומנט ל־/status">
       </div>
-      <div class="row" style="margin-top:12px">
+      <div class="row" style="margin-top:12px" role="group" aria-label="שליחה ודוגמאות">
         <button type="button" class="btn on" id="sendBtn">שלח (סימולציה)</button>
         <button type="button" class="btn" id="exBad">דוגמת 400</button>
         <button type="button" class="btn" id="exQuirk">type=foo</button>
+        <button type="button" class="btn" id="ex405">דוגמת 405</button>
+        <button type="button" class="btn" id="ex404">דוגמת 404</button>
+        <button type="button" class="btn" id="exReset">איפוס מצב</button>
       </div>
       <div class="kv">
-        <div><b class="mono" id="reqLine">GET /status</b><span>בקשה (query string, כמו הלוח)</span></div>
+        <div><b class="mono" id="reqLine" dir="ltr">GET /status</b><span>בקשה (query string, כמו הלוח)</span></div>
         <div><b id="resCode">—</b><span>קוד תשובה</span></div>
       </div>
       <pre id="resBody" aria-live="polite">{}</pre>
       <p class="fine" id="effectNote">אין לוח. <code>src/lib/protocol.js</code> מריץ את אותם כללי ולידציה.</p>
+      <div class="kv">
+        <div><b class="mono" id="stAngle" dir="ltr">0.00°</b><span>זווית — אין כאן לולאת תנועה, אז היא זזה רק ב־/stop</span></div>
+        <div><b class="mono" id="stTarget" dir="ltr">0.00°</b><span>יעד — מה ש־/status ידווח</span></div>
+        <div><b id="stMode">אוטומטי</b><span>מצב</span></div>
+        <div><b id="stPanel">LED (2)</b><span>פאנל</span></div>
+      </div>
+      <p class="fine">
+        <code>PUT</code> על נתיב רשום מקבל כאן <strong>405</strong> — זו ההכרעה של <code>src/lib/protocol.js</code>.
+        הלוח רושם רק <code>HTTP_GET</code>/<code>HTTP_POST</code> ונופל ל־<code>onNotFound</code>, אז הוא היה עונה
+        <strong>404</strong> גם ל־PUT. כל שיטה שגויה אחרת היא 404 בשני הצדדים, ובלי שינוי מצב.
+      </p>
     </div>
   </div>
 
@@ -203,6 +225,10 @@ const state = {
   lux_top: 180, lux_bot: 70,
 };
 let route = 'status';
+// The method is selected separately from the path so the player can reach the
+// two answers no correct request produces: PUT on a registered path (405 in
+// the mirror) and any other wrong method (404 from onNotFound).
+let method = 'GET';
 
 const ARG = {
   status: { method: 'GET', path: '/status', key: null, sample: '' },
@@ -223,9 +249,19 @@ function argsOf() {
   return { [spec.key]: document.getElementById('argVal').value };
 }
 
+// The simulated board state only ever changes through an effect from dispatch.
+// Mirror it, so the clamped and quantised target is visible and not just
+// narrated in the note under the response.
+function updateStateDisplay() {
+  document.getElementById('stAngle').textContent = state.angle.toFixed(2) + '°';
+  document.getElementById('stTarget').textContent = state.target.toFixed(2) + '°';
+  document.getElementById('stMode').textContent = state.auto ? 'אוטומטי' : 'ידני';
+  document.getElementById('stPanel').textContent = panelName() + ' (' + state.panel + ')';
+}
+
 function paintRequest() {
   const spec = ARG[route];
-  document.getElementById('reqLine').textContent = SM_PROTOCOL.requestLine(spec.method, spec.path, argsOf());
+  document.getElementById('reqLine').textContent = SM_PROTOCOL.requestLine(method, spec.path, argsOf());
   document.getElementById('argVal').disabled = !spec.key;
   document.getElementById('argVal').placeholder = spec.key ? spec.key : 'אין ארגומנט ל־' + spec.path;
 }
@@ -236,14 +272,21 @@ function show(res, extra) {
   el.className = res.status === 200 ? 'ok' : 'bad';
   document.getElementById('resBody').textContent = JSON.stringify(res.body, null, 2);
   document.getElementById('effectNote').textContent = extra || 'תשובה לפי חוקי firmware/smart_mount.ino';
+  updateStateDisplay();
 }
 
 function send() {
   const spec = ARG[route];
   const args = argsOf();
-  const res = SM_PROTOCOL.dispatch(spec.method, spec.path, args, state);
+  const res = SM_PROTOCOL.dispatch(method, spec.path, args, state);
   let note = '';
-  if (res.status === 400 && spec.key === 'type') {
+  if (res.status === 405) {
+    note = 'PUT על נתיב רשום → 405 method not allowed, לפי dispatch ב־src/lib/protocol.js.'
+      + ' הלוח עצמו לא רושם PUT בכלל, אז הוא היה עונה 404 מ־onNotFound. המצב לא השתנה.';
+  } else if (res.status === 404) {
+    note = method + ' ' + spec.path + ' לא רשום ב־server.on — onNotFound מחזיר 404 בגוף JSON,'
+      + ' לא text/plain. ההנדלר לא רץ, אז המצב לא השתנה.';
+  } else if (res.status === 400 && spec.key === 'type') {
     note = 'strtol לא צרך את כל type, או שהוא מחוץ ל־0..2 — 400 בלי שינוי מצב. בעבר toInt("foo")=0 בחר OLED בשקט.';
   }
   if (res.effect) {
@@ -279,23 +322,42 @@ function send() {
   show(res, note);
 }
 
-function selectRoute(targetRoute) {
-  route = targetRoute;
-  document.querySelectorAll('[data-route]').forEach((b) => {
-    const on = b.dataset.route === route;
+// Both toolbars are single-select: exactly one button is pressed, and `on`
+// tracks aria-pressed so the sighted and the announced state cannot drift.
+function syncPressed(name, value) {
+  document.querySelectorAll('[data-' + name + ']').forEach((b) => {
+    const on = b.dataset[name] === value;
     b.classList.toggle('on', on);
     if (typeof b.setAttribute === 'function') {
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
   });
+}
+
+function selectMethod(targetMethod) {
+  method = targetMethod;
+  syncPressed('method', method);
+  paintRequest();
+}
+
+function selectRoute(targetRoute) {
+  route = targetRoute;
+  syncPressed('route', route);
   const spec = ARG[route];
   document.getElementById('argVal').value = spec.sample;
-  paintRequest();
+  // Each path is registered with exactly one method, so picking a path also
+  // picks the method the board would accept. selectMethod repaints.
+  selectMethod(spec.method);
 }
 
 document.querySelectorAll('[data-route]').forEach((btn) => {
   btn.addEventListener('click', () => {
     selectRoute(btn.dataset.route);
+  });
+});
+document.querySelectorAll('[data-method]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    selectMethod(btn.dataset.method);
   });
 });
 document.getElementById('argVal').addEventListener('input', paintRequest);
@@ -312,7 +374,28 @@ document.getElementById('exQuirk').addEventListener('click', () => {
   paintRequest();
   send();
 });
+document.getElementById('ex405').addEventListener('click', () => {
+  selectRoute('angle');
+  selectMethod('PUT');
+  send();
+});
+document.getElementById('ex404').addEventListener('click', () => {
+  selectRoute('status');
+  selectMethod('DELETE');
+  send();
+});
+document.getElementById('exReset').addEventListener('click', () => {
+  // The board boots in auto at 0° on the LED panel. set-angle, set-panel and
+  // stop all leave it manual or off-centre, so the player needs a way back.
+  state.angle = 0;
+  state.target = 0;
+  state.auto = true;
+  state.panel = 2;
+  selectRoute('status');
+  send();
+});
 paintRequest();
+updateStateDisplay();
 </script>
 </body>
 </html>
