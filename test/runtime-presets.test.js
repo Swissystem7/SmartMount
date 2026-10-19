@@ -72,6 +72,14 @@ function loadRuntimePage() {
   });
   const buttons = [b20, b30, b40];
 
+  const presetRow = (attr, keys, activeKey) => keys.map((key) => fakeElement('btn-' + attr + '-' + key, {
+    attrs: { 'aria-pressed': key === activeKey ? 'true' : 'false' },
+    classes: key === activeKey ? ['btn', 'on'] : ['btn'],
+    dataset: { [attr]: key },
+  }));
+  const loopButtons = presetRow('loopPreset', ['typical', 'starve', 'wire'], 'typical');
+  const wifiButtons = presetRow('wifiPreset', ['instant', 'typical', 'timeout'], 'timeout');
+
   const inputs = {
     leadVmax: fakeElement('leadVmax'),
     leadVmax2: fakeElement('leadVmax2'),
@@ -136,6 +144,8 @@ function loadRuntimePage() {
     getElementById: (id) => inputs[id] || (inputs[id] = fakeElement(id)),
     querySelectorAll: (sel) => {
       if (sel === '[data-deg]') return buttons;
+      if (sel === '[data-loop-preset]') return loopButtons;
+      if (sel === '[data-wifi-preset]') return wifiButtons;
       return [];
     },
     createElement: (tag) => fakeElement(tag),
@@ -154,8 +164,15 @@ function loadRuntimePage() {
   const scriptContent = html.slice(open + '<script>'.length, close);
   vm.runInContext(scriptContent, ctx);
 
-  return { inputs, buttons };
+  return { inputs, buttons, loopButtons, wifiButtons };
 }
+
+const byKey = (btns, attr, key) => btns.find((b) => b.dataset[attr] === key);
+const assertPressed = (b, on) => {
+  const what = JSON.stringify(b.dataset);
+  assert.equal(b.classList.contains('on'), on, what + ' should' + (on ? '' : ' not') + ' have the "on" class');
+  assert.equal(b.getAttribute('aria-pressed'), on ? 'true' : 'false', what + ' aria-pressed');
+};
 
 test('runtime page HTML contains preset buttons with initial aria-pressed attributes', () => {
   const html = read('runtime/index.html');
@@ -223,4 +240,132 @@ test('moving sliders to custom values deactivates preset buttons (no false activ
     assert.ok(!b.classList.contains('on'), 'no button should have "on" class when fromDeg != 0');
     assert.equal(b.getAttribute('aria-pressed'), 'false', 'all buttons should have aria-pressed=false');
   });
+});
+
+// #140 / #139: the page is RTL, but a slider track that mirrors reads backwards
+// — min on the right. Every page with sliders pins dir=ltr; so does this one.
+test('runtime sliders are forced LTR and carry ARIA range attributes', () => {
+  const html = read('runtime/index.html');
+  assert.match(html, /input\[type=range\],input\[type=number\]\{[^}]*direction:ltr/, 'CSS needs direction:ltr');
+  for (const id of ['fromDeg', 'toDeg', 'httpMs', 'i2cMs', 'wifiMs', 'phase', 'flash', 'moves']) {
+    const tag = new RegExp('<input[^>]+id="' + id + '"[^>]*>');
+    const match = html.match(tag);
+    assert.ok(match, id + ' slider not found');
+    for (const attr of ['dir="ltr"', 'aria-valuemin=', 'aria-valuemax=', 'aria-valuenow=', 'aria-valuetext=']) {
+      assert.ok(match[0].includes(attr), id + ' slider is missing ' + attr);
+    }
+  }
+});
+
+// role="status" alone is not reliably announced on re-render; the sibling pages
+// pair it with aria-live="polite", and all four verdicts here rewrite in place.
+test('every runtime verdict is an aria-live region', () => {
+  const html = read('runtime/index.html');
+  for (const id of ['tVerdict', 'lVerdict', 'cVerdict', 'pVerdict']) {
+    assert.match(html, new RegExp('id="' + id + '" role="status" aria-live="polite"'), id);
+  }
+});
+
+test('runtime page HTML has accessible loop and WiFi scenario rows', () => {
+  const html = read('runtime/index.html');
+  assert.match(html, /<div class="row" role="group" aria-label="תרחישי לולאה" id="loopPresetRow">/);
+  assert.match(html, /<div class="row" role="group" aria-label="תרחישי חיבור WiFi" id="wifiPresetRow">/);
+  for (const key of ['typical', 'starve', 'wire']) {
+    assert.match(html, new RegExp('data-loop-preset="' + key + '" aria-pressed="(true|false)"'), key);
+  }
+  for (const key of ['instant', 'typical', 'timeout']) {
+    assert.match(html, new RegExp('data-wifi-preset="' + key + '" aria-pressed="(true|false)"'), key);
+  }
+});
+
+test('loop scenarios start on the typical 8/2 ms pair and announce it', () => {
+  const { loopButtons, inputs } = loadRuntimePage();
+  assertPressed(byKey(loopButtons, 'loopPreset', 'typical'), true);
+  assertPressed(byKey(loopButtons, 'loopPreset', 'starve'), false);
+  assertPressed(byKey(loopButtons, 'loopPreset', 'wire'), false);
+  assert.equal(inputs.httpMs.getAttribute('aria-valuetext'), '8 ms');
+  assert.equal(inputs.i2cMs.getAttribute('aria-valuetext'), '2 ms');
+});
+
+test('the starve scenario drives both sliders and reaches a starved verdict', () => {
+  const { loopButtons, inputs } = loadRuntimePage();
+  byKey(loopButtons, 'loopPreset', 'starve').fire('click');
+
+  assert.equal(inputs.httpMs.value, '18');
+  assert.equal(inputs.i2cMs.value, '2');
+  assertPressed(byKey(loopButtons, 'loopPreset', 'starve'), true);
+  assertPressed(byKey(loopButtons, 'loopPreset', 'typical'), false);
+  // 18 ms of handleClient is the point of the scenario: pulses go hungry.
+  assert.equal(inputs.kStarve.textContent, 'מורעבים');
+  assert.ok(inputs.lVerdict.className.includes('bad'), 'starved loop is a bad verdict');
+});
+
+test('the I²C-stall scenario moves only the I²C slider', () => {
+  const { loopButtons, inputs } = loadRuntimePage();
+  byKey(loopButtons, 'loopPreset', 'wire').fire('click');
+
+  assert.equal(inputs.httpMs.value, '8');
+  assert.equal(inputs.i2cMs.value, '25');
+  assertPressed(byKey(loopButtons, 'loopPreset', 'wire'), true);
+  assertPressed(byKey(loopButtons, 'loopPreset', 'typical'), false);
+});
+
+// A scenario matches only when *every* slider it drives still holds its value,
+// so a half-matching pair must not leave a button claiming to be pressed.
+test('hand-dragging a loop slider releases every loop scenario', () => {
+  const { loopButtons, inputs } = loadRuntimePage();
+  inputs.i2cMs.value = '5';
+  inputs.i2cMs.fire('input');
+  loopButtons.forEach((b) => assertPressed(b, false));
+
+  // httpMs is still 8, which is the typical *and* the wire value for that one
+  // slider — neither row may light up until i2cMs agrees too.
+  inputs.i2cMs.value = '25';
+  inputs.i2cMs.fire('input');
+  assertPressed(byKey(loopButtons, 'loopPreset', 'wire'), true);
+  assertPressed(byKey(loopButtons, 'loopPreset', 'typical'), false);
+});
+
+test('WiFi scenarios start on timeout and switch on click', () => {
+  const { wifiButtons, inputs } = loadRuntimePage();
+  assertPressed(byKey(wifiButtons, 'wifiPreset', 'timeout'), true);
+  assert.equal(inputs.wifiMs.getAttribute('aria-valuetext'), 'Timeout (10,000 ms)');
+
+  byKey(wifiButtons, 'wifiPreset', 'instant').fire('click');
+  assert.equal(inputs.wifiMs.value, '0');
+  assertPressed(byKey(wifiButtons, 'wifiPreset', 'instant'), true);
+  assertPressed(byKey(wifiButtons, 'wifiPreset', 'timeout'), false);
+  assert.equal(inputs.wifiMs.getAttribute('aria-valuetext'), '0 ms');
+  assert.equal(inputs.kBlock.textContent, '0.0 s');
+
+  byKey(wifiButtons, 'wifiPreset', 'typical').fire('click');
+  assert.equal(inputs.wifiMs.value, '1600');
+  assertPressed(byKey(wifiButtons, 'wifiPreset', 'typical'), true);
+  assertPressed(byKey(wifiButtons, 'wifiPreset', 'instant'), false);
+});
+
+test('a custom WiFi delay releases every WiFi scenario', () => {
+  const { wifiButtons, inputs } = loadRuntimePage();
+  inputs.wifiMs.value = '3200';
+  inputs.wifiMs.fire('input');
+  wifiButtons.forEach((b) => assertPressed(b, false));
+  assert.equal(inputs.wifiMs.getAttribute('aria-valuetext'), '3200 ms');
+});
+
+test('slider aria-valuetext tracks the value and keeps its unit', () => {
+  const { inputs } = loadRuntimePage();
+  inputs.toDeg.value = '25';
+  inputs.phase.value = '50';
+  inputs.flash.value = '1200';
+  inputs.moves.value = '48';
+  inputs.toDeg.fire('input');
+
+  assert.equal(inputs.toDeg.getAttribute('aria-valuenow'), '25');
+  assert.equal(inputs.toDeg.getAttribute('aria-valuetext'), '25°');
+  // phase is a 0–100 slider the page reads as a 0–1 fraction; ARIA reports the
+  // slider's own scale, not the fraction, or a reader would announce "0.5".
+  assert.equal(inputs.phase.getAttribute('aria-valuenow'), '50');
+  assert.equal(inputs.phase.getAttribute('aria-valuetext'), '50%');
+  assert.equal(inputs.flash.getAttribute('aria-valuetext'), '1200 ms');
+  assert.equal(inputs.moves.getAttribute('aria-valuetext'), '48 הטיות');
 });
