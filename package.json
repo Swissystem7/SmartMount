@@ -4,6 +4,7 @@
   "description": "ESP32 anti-glare mount — firmware + browser demo. Not a product.",
   "scripts": {
     "test": "node --test",
+    "pr-size": "node scripts/pr-size.js",
     "sync-params": "node scripts/sync-control-params.js"
   }
 }

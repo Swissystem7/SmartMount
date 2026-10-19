@@ -62,3 +62,19 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 שלושה-עשר מקרים, אפס רצו. המסמך: [HIL.md](HIL.md). העמוד: [`hil/`](../hil/). הנתונים: `src/lib/hil.js`.
 
 ה-GitHub Actions היחיד כאן הוא `.github/workflows/validate.yml`: מריץ את אותה חבילת בדיקות (`npm test`) על כל push ו-pull request. הוא לא ממזג, לא דוחף בכוח ולא פורס. הבדיקות רצות גם במכונה המקומית.
+
+## תקציב שורות ל-PR
+
+`auto_merger` ממזג רק PR של **עד 400 שורות שינוי** (תוספות + מחיקות). PR גדול יותר לא נדחה — הוא פשוט אף פעם לא נמזג, ונשאר פתוח עד שמישהו מפצל אותו ידנית.
+
+`npm run pr-size` סופר את השורות מול `origin/master` ומציע פיצול לקבוצות שכל אחת נכנסת לתקציב:
+
+```
+changed lines vs origin/master: 533 (auto_merger budget: 400)
+over budget by 133. auto_merger will not merge this PR.
+suggested split into 2 PRs:
+  PR 1 — 350 lines: src, docs
+  PR 2 — 183 lines: test, protocol
+```
+
+הפיצול מקובץ לפי תיקיית-על, כי זו היחידה הגסה ביותר שעדיין עומדת בפני עצמה. זו הצעה, לא פסק דין: רק בן אדם יודע אם שתי תיקיות חייבות לנחות יחד. ב-pull request אותו דוח מופיע בסיכום של job בשם `pr-size`, שמדווח בלבד ולא מכשיל את הבנייה.

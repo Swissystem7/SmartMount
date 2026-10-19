@@ -26,3 +26,24 @@ jobs:
           else
             node --test
           fi
+
+  pr-size:
+    # auto_merger only merges a PR of at most 400 changed lines. An oversized PR
+    # is never rejected, it is just never merged — so surface the number (and a
+    # split plan) in the job summary while the PR is still fresh. Reports only;
+    # splitting is a judgement call, not something CI should block on.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Changed lines vs auto_merger budget
+        run: |
+          git fetch --no-tags origin "$GITHUB_BASE_REF"
+          node scripts/pr-size.js --base "origin/$GITHUB_BASE_REF" --warn-only | tee /tmp/pr-size.txt
+          { echo '### PR size'; echo '```'; cat /tmp/pr-size.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
