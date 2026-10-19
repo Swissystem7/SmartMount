@@ -37,20 +37,30 @@ function element() {
   };
 }
 
+function toggleButton(key, value) {
+  const b = element();
+  b.dataset = { [key]: value };
+  b.classList = { toggle() {} };
+  return b;
+}
+
 function boot() {
   const byId = {};
-  for (const id of ['argVal', 'reqLine', 'resCode', 'resBody', 'effectNote', 'sendBtn', 'exBad', 'exQuirk']) {
+  for (const id of [
+    'argVal', 'reqLine', 'resCode', 'resBody', 'effectNote', 'sendBtn',
+    'exBad', 'exQuirk', 'ex405', 'ex404', 'exReset',
+    'stAngle', 'stTarget', 'stMode', 'stPanel',
+  ]) {
     byId[id] = element();
   }
-  const buttons = ['status', 'angle', 'panel', 'mode', 'stop'].map((r) => {
-    const b = element();
-    b.dataset = { route: r };
-    b.classList = { toggle() {} };
-    return b;
-  });
+  const buttons = ['status', 'angle', 'panel', 'mode', 'stop'].map((r) => toggleButton('route', r));
+  // The page also drives a method toolbar. It has to answer a different
+  // selector: one handler per element here, so returning the route buttons for
+  // `[data-method]` would overwrite their click handler with the method one.
+  const methodButtons = ['GET', 'POST', 'PUT', 'DELETE'].map((m) => toggleButton('method', m));
   const document = {
     getElementById: (id) => byId[id],
-    querySelectorAll: () => buttons,
+    querySelectorAll: (sel) => (sel === '[data-method]' ? methodButtons : buttons),
   };
   const ctx = vm.createContext({ document, console });
   for (const lib of ['control-params.js', 'control.js', 'protocol.js']) {
