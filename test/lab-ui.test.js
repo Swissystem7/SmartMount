@@ -7,6 +7,8 @@ const vm = require('node:vm');
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'lab/index.html'), 'utf8');
 
+const LIGHT_PRESET_KEYS = ['window', 'overhead', 'direct', 'low'];
+
 function assertPressed(btn, on) {
   assert.equal(btn.classList.contains('on'), on, `${btn.id} class 'on' mismatch`);
   assert.equal(btn.getAttribute('aria-pressed'), String(on), `${btn.id} aria-pressed mismatch`);
@@ -30,7 +32,10 @@ function fakeElement(id, initial = {}) {
     children,
     innerHTML: '',
     get textContent() { return text; },
-    set textContent(v) { text = String(v); },
+    set textContent(v) {
+      text = String(v);
+      if (!text) children.length = 0;
+    },
     get className() { return [...classes].join(' '); },
     set className(v) {
       classes.clear();
@@ -50,7 +55,7 @@ function fakeElement(id, initial = {}) {
     },
     setAttribute(k, v) { attrs[k] = String(v); },
     getAttribute(k) { return attrs[k] !== undefined ? attrs[k] : null; },
-    appendChild(child) { children.push(child); return child; },
+    appendChild(child) { children.push(child); child.parent = el; return child; },
     addEventListener(type, fn) {
       listeners[type] = listeners[type] || [];
       listeners[type].push(fn);
@@ -64,7 +69,16 @@ function fakeElement(id, initial = {}) {
       });
     },
     querySelector() { return fakeElement('sub-' + Math.random()); },
-    prepend() {}, remove() {}, setPointerCapture() {},
+    // addLog prepends a row then trims via lastChild.remove(), so both have to
+    // really mutate children or the 14-row cap would spin forever.
+    prepend(child) { children.unshift(child); child.parent = el; },
+    get lastChild() { return children.length ? children[children.length - 1] : null; },
+    remove() {
+      const i = el.parent ? el.parent.children.indexOf(el) : -1;
+      if (i >= 0) el.parent.children.splice(i, 1);
+    },
+    parent: null,
+    setPointerCapture() {},
     getScreenCTM() { return null; },
     createSVGPoint() { return { matrixTransform() { return { x: 0, y: 0 }; } }; },
   };
@@ -106,11 +120,31 @@ function loadLabUi() {
     p0: { attrs: { 'data-panel': '0', 'aria-pressed': 'true' }, classes: ['btn', 'on'] },
     p1: { attrs: { 'data-panel': '1', 'aria-pressed': 'false' }, classes: ['btn'] },
     p2: { attrs: { 'data-panel': '2', 'aria-pressed': 'false' }, classes: ['btn'] },
+    clearLog: { attrs: { 'aria-label': 'נקה יומן אירועים' }, classes: ['btn'] },
   };
+
+  // The lighting toolbar mirrors lab/index.html: only `window` starts pressed.
+  for (const key of LIGHT_PRESET_KEYS) {
+    const on = key === 'window';
+    initialButtons['preset-' + key] = {
+      attrs: { 'data-preset': key, 'aria-pressed': String(on) },
+      classes: on ? ['btn', 'on'] : ['btn'],
+      dataset: { preset: key },
+    };
+  }
 
   for (const [id, cfg] of Object.entries(initialButtons)) {
     elements.set(id, fakeElement(id, cfg));
   }
+
+  elements.set('sunX', fakeElement('sunX', {
+    value: '695',
+    attrs: { min: '40', max: '760', dir: 'ltr', 'aria-valuemin': '40', 'aria-valuemax': '760' },
+  }));
+  elements.set('sunY', fakeElement('sunY', {
+    value: '90',
+    attrs: { min: '24', max: '300', dir: 'ltr', 'aria-valuemin': '24', 'aria-valuemax': '300' },
+  }));
 
   const document = {
     getElementById: (id) => getEl(id),
@@ -118,6 +152,9 @@ function loadLabUi() {
     querySelectorAll: (sel) => {
       if (sel === '[data-panel]') {
         return [getEl('p0'), getEl('p1'), getEl('p2')];
+      }
+      if (sel === '#lightPresets [data-preset]') {
+        return LIGHT_PRESET_KEYS.map((k) => getEl('preset-' + k));
       }
       return [];
     },
@@ -129,7 +166,13 @@ function loadLabUi() {
   }
   vm.runInContext(inlineScript(), ctx, { filename: 'lab/index.html' });
 
-  return { ctx, elements, getEl, get: (expr) => vm.runInContext(expr, ctx) };
+  return {
+    ctx,
+    elements,
+    getEl,
+    preset: (key) => getEl('preset-' + key),
+    get: (expr) => vm.runInContext(expr, ctx),
+  };
 }
 
 test('lab/index.html contains accessible toolbar role="group" with aria-labels and aria-live on httpLog', () => {
@@ -285,4 +328,131 @@ test('lab UI toggles bootLie zero-calibration lie on and off cleanly', () => {
   bootLie.fire('click');
   assert.equal(get('lieOffset'), 0);
   assertPressed(bootLie, false);
+});
+
+test('lab/index.html declares the lighting preset toolbar with window pressed', () => {
+  assert.ok(html.includes('role="group" aria-label="תרחישי תאורה בחדר" id="lightPresets"'));
+  assert.match(html, /data-preset="window"[^>]*aria-pressed="true"/);
+  for (const key of ['overhead', 'direct', 'low']) {
+    assert.match(html, new RegExp(`data-preset="${key}"[^>]*aria-pressed="false"`));
+  }
+});
+
+test('lab/index.html pins the sun sliders LTR so they track the scene, not the RTL page', () => {
+  // The scene's x axis runs left-to-right; an RTL range input would invert it.
+  assert.ok(html.includes('input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}'));
+  assert.match(html, /id="sunX"[^>]*dir="ltr"[^>]*aria-valuemin="40"[^>]*aria-valuemax="760"[^>]*aria-valuenow="695"/);
+  assert.match(html, /id="sunY"[^>]*dir="ltr"[^>]*aria-valuemin="24"[^>]*aria-valuemax="300"[^>]*aria-valuenow="90"/);
+});
+
+test('lab/index.html gives the keyboard-focusable sun a visible focus ring', () => {
+  assert.match(html, /id="sun"[^>]*tabindex="0"[^>]*role="img"/);
+  assert.ok(html.includes('#sun:focus,#sun:focus-visible{outline:none}'));
+  assert.ok(html.includes('#sun:focus circle:first-child,#sun:focus-visible circle:first-child{stroke:#58a6ff'));
+});
+
+test('lab/index.html declares the log toolbar with a count and a clear button', () => {
+  assert.ok(html.includes('role="group" aria-label="יומן אירועים"'));
+  assert.match(html, /id="logCount"[^>]*>אין הודעות ביומן</);
+  assert.match(html, /id="clearLog"[^>]*aria-label="נקה יומן אירועים"/);
+});
+
+test('lab UI boots with the window preset pressed and the sliders mirroring the light', () => {
+  const { getEl, preset } = loadLabUi();
+
+  assertPressed(preset('window'), true);
+  for (const key of ['overhead', 'direct', 'low']) assertPressed(preset(key), false);
+
+  assert.equal(getEl('sunX').value, '695');
+  assert.equal(getEl('sunY').value, '90');
+  assert.equal(getEl('sunX').getAttribute('aria-valuenow'), '695');
+  assert.equal(getEl('sunY').getAttribute('aria-valuenow'), '90');
+  assert.equal(getEl('sunX').getAttribute('aria-valuetext'), 'אופקי 695 פיקסלים');
+  assert.equal(getEl('sunY').getAttribute('aria-valuetext'), 'אנכי 90 פיקסלים');
+});
+
+test('lab UI moves the light to each preset and keeps exactly one button pressed', () => {
+  const { getEl, preset, get } = loadLabUi();
+
+  const cases = [
+    ['overhead', 400, 36],
+    ['direct', 520, 160],
+    ['low', 160, 240],
+    ['window', 695, 90],
+  ];
+
+  for (const [key, x, y] of cases) {
+    preset(key).fire('click');
+
+    assert.equal(get('light.x'), x, `${key} light.x`);
+    assert.equal(get('light.y'), y, `${key} light.y`);
+    assert.equal(getEl('sunX').value, String(x));
+    assert.equal(getEl('sunY').value, String(y));
+    assert.equal(getEl('sunXVal').textContent, String(x));
+    assert.equal(getEl('sunYVal').textContent, String(y));
+    assert.equal(getEl('sunX').getAttribute('aria-valuenow'), String(x));
+    assert.equal(getEl('sunY').getAttribute('aria-valuenow'), String(y));
+
+    for (const other of LIGHT_PRESET_KEYS) assertPressed(preset(other), other === key);
+  }
+});
+
+test('lab UI releases every preset once a slider lands off-preset, and re-presses on return', () => {
+  const { getEl, preset, get } = loadLabUi();
+  const sunX = getEl('sunX');
+  assertPressed(preset('window'), true);
+
+  sunX.value = '450';
+  sunX.fire('input');
+  assert.equal(get('light.x'), 450);
+  assert.equal(sunX.getAttribute('aria-valuenow'), '450');
+  assert.equal(getEl('sunXVal').textContent, '450');
+  for (const key of LIGHT_PRESET_KEYS) assertPressed(preset(key), false);
+
+  // Sliding back onto the window coordinates re-lights that preset.
+  sunX.value = '695';
+  sunX.fire('input');
+  assertPressed(preset('window'), true);
+});
+
+test('lab UI arrow keys nudge the light, update slider ARIA, and drop the preset', () => {
+  const { getEl, preset, get } = loadLabUi();
+
+  getEl('sun').fire('keydown', { key: 'ArrowLeft', shiftKey: false, preventDefault() {} });
+  assert.equal(get('light.x'), 683);
+  assert.equal(getEl('sunX').value, '683');
+  assert.equal(getEl('sunX').getAttribute('aria-valuenow'), '683');
+  for (const key of LIGHT_PRESET_KEYS) assertPressed(preset(key), false);
+
+  // Shift doubles the step: 683 + 24 back past 695 to 707.
+  getEl('sun').fire('keydown', { key: 'ArrowRight', shiftKey: true, preventDefault() {} });
+  assert.equal(get('light.x'), 707);
+  assert.equal(getEl('sunX').getAttribute('aria-valuetext'), 'אופקי 707 פיקסלים');
+});
+
+test('lab UI counts log rows in Hebrew and clearLog empties both log and count', () => {
+  const { getEl, preset } = loadLabUi();
+  const log = getEl('log');
+  const logCount = getEl('logCount');
+
+  const before = log.children.length;
+  assert.ok(before > 0, 'boot writes at least one log row');
+  assert.match(logCount.textContent, /הודע/);
+
+  preset('overhead').fire('click');
+  assert.equal(log.children.length, before + 1);
+  assert.equal(logCount.textContent, before + 1 + ' הודעות ביומן');
+
+  getEl('clearLog').fire('click');
+  assert.equal(log.children.length, 0);
+  assert.equal(logCount.textContent, 'אין הודעות ביומן');
+});
+
+test('lab UI caps the log at 14 rows without spinning on the trim loop', () => {
+  const { get, getEl } = loadLabUi();
+  const log = getEl('log');
+
+  for (let i = 0; i < 30; i += 1) get(`addLog('שורה ${i}')`);
+  assert.equal(log.children.length, 14);
+  assert.equal(getEl('logCount').textContent, '14 הודעות ביומן');
 });
