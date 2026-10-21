@@ -40,6 +40,17 @@ test('sizeMount no longer turns a 55″ at 120° into a holds verdict', () => {
   assert.ok(r.requiredNm > 0);
 });
 
+test('sizeMount rejects ±100° from vertical (PR #88 candidate f37a1e8)', () => {
+  // #88 pinned new TypeError('invalid torque inputs'); master (#53) already
+  // throws, with the tilt reason appended — keep the intent, match the message.
+  for (const tiltFromVerticalDeg of [-100, 100]) {
+    assert.throws(
+      () => T.sizeMount({ massKg: 1, cogOffsetM: 0.1, tiltFromVerticalDeg }),
+      /invalid torque inputs: tilt beyond/
+    );
+  }
+});
+
 test('verdict refuses NaN instead of falling through every comparison to holds', () => {
   assert.throws(() => T.verdict({ factor: NaN, selfLocking: true, unpowered: false }), /invalid verdict/);
   assert.throws(() => T.verdict({ factor: undefined, selfLocking: true, unpowered: false }), /invalid verdict/);
