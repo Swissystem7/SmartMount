@@ -1,0 +1,4 @@
+# Tests hash firmware/smart_mount.ino (BUILD.inoSha256) and parse README.md
+# with "\n## " regexes. A CRLF checkout on Windows makes both fail locally
+# while CI on Linux stays green, so pin LF in every working tree.
+* text=auto eol=lf
