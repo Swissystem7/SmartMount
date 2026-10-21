@@ -25,7 +25,7 @@ SmartMount נבדק **על המחשב**, בלי לוח ובלי תלויות (`n
 | הידור | `test/firmware-build.test.js` | אין `min(float, double)`; רשומת ההידור תואמת ל-sha256 של ה-`.ino` |
 | מקרה הנדסי | `test/case.test.js`, `case-ui.test.js` | פסק דין portfolio-only; באגים «תוקנו במקור» לא «אומתו על חומרה»; סינון חומרה וגלילת טבלה; HIL נשאר never-run |
 | דשבורד — ממשק וזווית | `test/dashboard-target-step.test.js`, `dashboard-ui.test.js` | הסקריפט של `dashboard/` רץ ב־`node:vm` עם DOM מזויף: הזווית המוצגת היא הצעד המעוגל (`moveToAngle().target`, 12.3° → 12.24°) באוטו, בידני ובהחלפת פאנל; CLAMP נקבע מפלט החוק, כי גבול QLED מעוגל ל־29.88°; HOLD מחזיק את המוצג; כפתורי תרחיש מהיר, תיקון כיוון סליידרים ב-RTL (‏dir=ltr ו-direction:ltr) וסנכרון נגישות aria-pressed ו-aria-live |
-| רשימת חלקים | `test/bom.test.js` | כל פריט עם מזהה ושם ייחודיים; `getBomItems` מחזיר עותק שאי אפשר להשחית דרכו |
+| רשימת חלקים | `test/bom.test.js`, `spec-bom-filter.test.js` | כל פריט עם מזהה ושם ייחודיים; `getBomItems` מחזיר עותק שאי אפשר להשחית דרכו; סנכרון כפתורי סינון חומרים ב-spec עם aria-pressed והודעות aria-live |
 | בטיחות | `test/safety.test.js`, `spec-safety-ui.test.js` | `getSafetyGuidelines` מחזיר הנחיות חשמל ומכניקה עם מזהה יציב ומיטיגציה, כעותקים שלא משחיתים את המקור; `safety.js` בתבנית UMD + `SM_SAFETY`; סנכרון כפתורי סינון בטיחות ומצב aria-pressed בעמוד המפרט |
 | משוב | `test/feedback.test.js` | `FEEDBACK_URL` שווה למחולל ונשאר קישור טופס קבוע בלי פרמטרים נוספים |
 | גודל PR | `test/pr-split.test.js` | תקציב ה־400 שורות של auto_merger; `--numstat` מפוענח (בינארי = 0, שינוי שם → הנתיב החדש), פיצ'ר שנכנס בתקציב לא נחתך בין PR-ים, כל פלח ≤ התקציב, אף קובץ לא נעלם או מופיע פעמיים, וקובץ בודד שגדול מהתקציב מדווח ולא מוסתר |
