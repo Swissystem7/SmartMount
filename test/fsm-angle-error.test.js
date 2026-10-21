@@ -57,3 +57,14 @@ test('transitions that end in go() set angleErrorDeg to believed minus mechanica
   assert.strictEqual(q.angleErrorDeg, q.believedAngle - q.mechanicalAngle);
   assert.strictEqual(q.angleErrorDeg, 5);
 });
+
+test('SET_ANGLE on safe idle enters MOVING via go() with commanded-minus-actual error (#96)', () => {
+  let q = F.safeBoot(true, true);
+  q = F.step(q, { type: 'HOME_START' });
+  q = F.step(q, { type: 'HOME_FOUND' });
+  q.mechanicalAngle = 10;
+  q.believedAngle = 15;
+  q = F.step(q, { type: 'SET_ANGLE', deg: 25 });
+  assert.strictEqual(q.state, 'MOVING');
+  assert.strictEqual(q.angleErrorDeg, 5);
+});
