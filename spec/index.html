@@ -263,6 +263,13 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
       זה לא FEA ולא מק״ט — זה הסדר-גודל שההאקתון דילג עליו.
     </p>
     <div class="row" role="group" aria-label="פריסט גודל מסך" id="presetRow"></div>
+    <div class="row" role="group" aria-label="פריסט זווית הטיה" id="tiltPresetRow">
+      <button type="button" class="btn on" data-tilt="0" aria-pressed="true">0° (מאונך)</button>
+      <button type="button" class="btn" data-tilt="20" aria-pressed="false">20° (גבול LED)</button>
+      <button type="button" class="btn" data-tilt="30" aria-pressed="false">30° (גבול QLED)</button>
+      <button type="button" class="btn" data-tilt="40" aria-pressed="false">40° (גבול OLED)</button>
+      <button type="button" class="btn" id="btnResetDrivetrain" aria-label="שחזר ברירות מחדל של הקושחה">שחזר ערכי קושחה</button>
+    </div>
     <div class="fields">
       <div>
         <label class="sl" for="massKg">מסת מסך (ק״ג): <span id="massLbl">18</span></label>
@@ -350,6 +357,15 @@ function syncPresetButtons(massKg, cogCm) {
   });
 }
 
+function syncTiltPresetButtons(tilt) {
+  if (typeof document.querySelectorAll !== 'function') return;
+  document.querySelectorAll('#tiltPresetRow [data-tilt]').forEach((b) => {
+    const isMatch = Number(b.dataset.tilt) === tilt;
+    b.classList.toggle('on', isMatch);
+    b.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+  });
+}
+
 function recalc() {
   const massKg = Number($('massKg').value);
   const cogCm = Number($('cogCm').value);
@@ -361,6 +377,7 @@ function recalc() {
   if ($('cogCm').setAttribute) $('cogCm').setAttribute('aria-valuenow', String(cogCm));
   if ($('tiltDeg').setAttribute) $('tiltDeg').setAttribute('aria-valuenow', String(tilt));
   syncPresetButtons(massKg, cogCm);
+  syncTiltPresetButtons(tilt);
   const r = SM_TORQUE.sizeMount({
     massKg,
     cogOffsetM: cogCm / 100,
@@ -398,6 +415,27 @@ function recalc() {
 ['massKg','cogCm','tiltDeg','gearRatio','motorNm','eff','selfLock'].forEach((id) => {
   $(id).addEventListener('input', recalc);
 });
+if (typeof document.querySelectorAll === 'function') {
+  document.querySelectorAll('#tiltPresetRow [data-tilt]').forEach((b) => {
+    b.addEventListener('click', () => {
+      $('tiltDeg').value = b.dataset.tilt;
+      recalc();
+    });
+  });
+}
+const btnReset = $('btnResetDrivetrain');
+if (btnReset && typeof btnReset.addEventListener === 'function') {
+  btnReset.addEventListener('click', () => {
+    $('massKg').value = '18';
+    $('cogCm').value = '8';
+    $('tiltDeg').value = '0';
+    $('gearRatio').value = '5';
+    $('motorNm').value = '0.45';
+    $('eff').value = '0.85';
+    $('selfLock').checked = false;
+    recalc();
+  });
+}
 recalc();
 
 if (typeof document.querySelectorAll === 'function') {
