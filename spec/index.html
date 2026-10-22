@@ -76,73 +76,81 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
   <p class="lead">מסמך ההאקתון הישן (עכשיו בארכיון) העריך ₪35–50 ל־ESP32 + חיישן + מנוע. זה BOM של לוח לחם, לא של תושבת שנושאת 20–40 ק״ג. כאן הרשימה האמיתית — כולל מה שחסר.</p>
 
   <h2>רשימת חומרים</h2>
+  <div class="row" id="bomFilters" role="group" aria-label="סינון פריטי חומרים לפי מצב">
+    <button type="button" class="btn on" data-bom="all" id="btn-bom-all" aria-pressed="true">הכול <span class="tag-count">10</span></button>
+    <button type="button" class="btn" data-bom="ok" id="btn-bom-ok" aria-pressed="false">בקושחה / נדרש <span class="tag-count">4</span></button>
+    <button type="button" class="btn" data-bom="warn" id="btn-bom-warn" aria-pressed="false">אזהרה <span class="tag-count">1</span></button>
+    <button type="button" class="btn" data-bom="miss" id="btn-bom-miss" aria-pressed="false">חסר / לא פתור <span class="tag-count">5</span></button>
+  </div>
+  <p id="bomFilterCount" class="fine" aria-live="polite" style="margin-top:-4px;margin-bottom:10px">מציג 10 מתוך 10 פריטי חומרים</p>
   <div class="card">
     <div class="table-scroll">
     <table>
       <thead>
         <tr><th>פריט</th><th>תפקיד בקושחה</th><th>טווח מחיר</th><th>מצב</th></tr>
       </thead>
-      <tbody>
-        <tr>
+      <tbody id="bomBody">
+        <tr data-status="ok">
           <td>ESP32 DevKit</td>
           <td>בקר, WiFi, I²C, GPIO 18/19</td>
           <td class="num">₪28–45</td>
           <td><span class="tag ok">יש בקושחה</span></td>
         </tr>
-        <tr>
+        <tr data-status="ok">
           <td>BH1750 ×2 (0x23 / 0x5C)</td>
           <td><code>sensorTop</code> / <code>sensorBot</code></td>
           <td class="num">₪18–30 לשניים</td>
           <td><span class="tag ok">יש בקושחה</span></td>
         </tr>
-        <tr>
+        <tr data-status="ok">
           <td>מנהל A4988 / DRV8825</td>
           <td>STEP=18, DIR=19</td>
           <td class="num">₪10–22</td>
           <td><span class="tag ok">מניחים DRIVER</span></td>
         </tr>
-        <tr>
+        <tr data-status="warn">
           <td>NEMA17 1.8° (200 צעדים/סיבוב)</td>
           <td>יחס 1:5 בקושחה, <code>STEPS_PER_DEGREE</code></td>
           <td class="num">₪32–70</td>
           <td><span class="tag warn">לא נועל עצמית</span></td>
         </tr>
-        <tr>
+        <tr data-status="ok">
           <td>ספק 12V ≥2A + ממיר 5V/3.3V</td>
           <td>VMOT למנהל + לוגיקה</td>
           <td class="num">₪25–55</td>
           <td><span class="tag ok">נדרש</span></td>
         </tr>
-        <tr>
+        <tr data-status="miss">
           <td>תיבת גלגלי שיניים 1:5</td>
           <td>מופיעה בקבוע, לא במודל CAD</td>
           <td class="num">₪40–120</td>
           <td><span class="tag miss">אין שרטוט</span></td>
         </tr>
-        <tr>
+        <tr data-status="miss">
           <td>לוח VESA + זרוע פלדה</td>
           <td>נושא את המסך</td>
           <td class="num">₪180–650</td>
           <td><span class="tag miss">לא תוכנן</span></td>
         </tr>
-        <tr>
+        <tr data-status="miss">
           <td>מפעיל נעילה עצמית (תולעת / בלם)</td>
           <td>מונע נפילה בניתוק חשמל</td>
           <td class="num">₪150–480</td>
           <td><span class="tag miss">לא פתור</span></td>
         </tr>
-        <tr>
+        <tr data-status="miss">
           <td>מפסקי קצה / הומינג</td>
           <td>הקושחה עושה <code>setCurrentPosition(0)</code> באתחול</td>
           <td class="num">₪8–20</td>
           <td><span class="tag miss">אין הומינג</span></td>
         </tr>
-        <tr>
+        <tr data-status="miss">
           <td>UL / TÜV / ביטוח נפילת מסך</td>
           <td>—</td>
           <td class="num">אלפי ₪+</td>
           <td><span class="tag miss">לא רלוונטי לקונספט</span></td>
         </tr>
+        <tr id="bomEmptyRow" hidden><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">אין פריטים בקטגוריה זו.</td></tr>
       </tbody>
     </table>
     </div>
@@ -255,6 +263,13 @@ input[type=number]{width:100%;background:#0d1117;border:1px solid #30363d;color:
       זה לא FEA ולא מק״ט — זה הסדר-גודל שההאקתון דילג עליו.
     </p>
     <div class="row" role="group" aria-label="פריסט גודל מסך" id="presetRow"></div>
+    <div class="row" role="group" aria-label="פריסט זווית הטיה" id="tiltPresetRow">
+      <button type="button" class="btn on" data-tilt="0" aria-pressed="true">0° (מאונך)</button>
+      <button type="button" class="btn" data-tilt="20" aria-pressed="false">20° (גבול LED)</button>
+      <button type="button" class="btn" data-tilt="30" aria-pressed="false">30° (גבול QLED)</button>
+      <button type="button" class="btn" data-tilt="40" aria-pressed="false">40° (גבול OLED)</button>
+      <button type="button" class="btn" id="btnResetDrivetrain" aria-label="שחזר ברירות מחדל של הקושחה">שחזר ערכי קושחה</button>
+    </div>
     <div class="fields">
       <div>
         <label class="sl" for="massKg">מסת מסך (ק״ג): <span id="massLbl">18</span></label>
@@ -342,6 +357,15 @@ function syncPresetButtons(massKg, cogCm) {
   });
 }
 
+function syncTiltPresetButtons(tilt) {
+  if (typeof document.querySelectorAll !== 'function') return;
+  document.querySelectorAll('#tiltPresetRow [data-tilt]').forEach((b) => {
+    const isMatch = Number(b.dataset.tilt) === tilt;
+    b.classList.toggle('on', isMatch);
+    b.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+  });
+}
+
 function recalc() {
   const massKg = Number($('massKg').value);
   const cogCm = Number($('cogCm').value);
@@ -353,6 +377,7 @@ function recalc() {
   if ($('cogCm').setAttribute) $('cogCm').setAttribute('aria-valuenow', String(cogCm));
   if ($('tiltDeg').setAttribute) $('tiltDeg').setAttribute('aria-valuenow', String(tilt));
   syncPresetButtons(massKg, cogCm);
+  syncTiltPresetButtons(tilt);
   const r = SM_TORQUE.sizeMount({
     massKg,
     cogOffsetM: cogCm / 100,
@@ -390,7 +415,77 @@ function recalc() {
 ['massKg','cogCm','tiltDeg','gearRatio','motorNm','eff','selfLock'].forEach((id) => {
   $(id).addEventListener('input', recalc);
 });
+if (typeof document.querySelectorAll === 'function') {
+  document.querySelectorAll('#tiltPresetRow [data-tilt]').forEach((b) => {
+    b.addEventListener('click', () => {
+      $('tiltDeg').value = b.dataset.tilt;
+      recalc();
+    });
+  });
+}
+const btnReset = $('btnResetDrivetrain');
+if (btnReset && typeof btnReset.addEventListener === 'function') {
+  btnReset.addEventListener('click', () => {
+    $('massKg').value = '18';
+    $('cogCm').value = '8';
+    $('tiltDeg').value = '0';
+    $('gearRatio').value = '5';
+    $('motorNm').value = '0.45';
+    $('eff').value = '0.85';
+    $('selfLock').checked = false;
+    recalc();
+  });
+}
 recalc();
+
+if (typeof document.querySelectorAll === 'function') {
+  const bomLabels = {
+    all: 'הכול',
+    ok: 'בקושחה / נדרש',
+    warn: 'אזהרה',
+    miss: 'חסר / לא פתור',
+  };
+  let activeBomFilter = 'all';
+
+  function setBomFilter(filterType) {
+    activeBomFilter = filterType;
+    const filterBtns = document.querySelectorAll('#bomFilters [data-bom]');
+    filterBtns.forEach(function (btn) {
+      const on = btn.getAttribute('data-bom') === activeBomFilter;
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+
+    const rows = document.querySelectorAll('#bomBody tr[data-status]');
+    let visibleCount = 0;
+    rows.forEach(function (row) {
+      const st = row.getAttribute('data-status');
+      const show = activeBomFilter === 'all' || st === activeBomFilter;
+      row.hidden = !show;
+      if (show) visibleCount++;
+    });
+
+    const emptyRow = document.getElementById('bomEmptyRow');
+    if (emptyRow) emptyRow.hidden = visibleCount > 0;
+
+    const countEl = document.getElementById('bomFilterCount');
+    if (countEl) {
+      if (activeBomFilter === 'all') {
+        countEl.textContent = 'מציג ' + visibleCount + ' מתוך ' + rows.length + ' פריטי חומרים';
+      } else {
+        const label = bomLabels[activeBomFilter] || activeBomFilter;
+        countEl.textContent = 'מציג ' + visibleCount + ' מתוך ' + rows.length + ' פריטי חומרים (' + label + ')';
+      }
+    }
+  }
+
+  const bomBtns = document.querySelectorAll('#bomFilters [data-bom]');
+  bomBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setBomFilter(btn.getAttribute('data-bom'));
+    });
+  });
+}
 </script>
 <script src="../src/lib/safety.js"></script>
 <script>
