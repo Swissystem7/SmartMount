@@ -28,6 +28,8 @@
 .verdict.ok{background:#1a3a2a;border-color:#238636;color:#7ee787}
 .fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
 label.sl{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 6px}
+input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}
+#dutyPresets,#hoursPresets{margin-bottom:10px}
 .check{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.85rem;color:var(--muted)}
 #rails,#hours{width:100%;height:auto;display:block;background:#0d1117;border-radius:10px;border:1px solid #21262d}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
@@ -88,14 +90,14 @@ td.num{font-variant-numeric:tabular-nums}
   <div class="grid">
     <div class="card">
       <h2>יום עבודה → וואט-שעה</h2>
-      <div class="row" id="dutyPresets" role="group" aria-label="פריסט עומס יומי">
+      <div class="row" id="dutyPresets" role="group" aria-label="תרחישי עבודה מהירים">
         <button type="button" class="btn on" data-duty="firmware" aria-pressed="true">קושחה (סלילים 24h)</button>
         <button type="button" class="btn" data-duty="worm" aria-pressed="false">נעילה עצמית (תולעת)</button>
         <button type="button" class="btn" data-duty="eco" aria-pressed="false">חיסכון (שינה)</button>
         <button type="button" class="btn" data-duty="heavy" aria-pressed="false">עומס משרדי כבד</button>
       </div>
       <label class="sl" for="moves">הטיות ביום: <span id="movesLbl">24</span></label>
-      <input type="range" id="moves" min="0" max="200" step="1" value="24">
+      <input type="range" id="moves" min="0" max="200" step="1" value="24" dir="ltr" aria-valuemin="0" aria-valuemax="200" aria-valuenow="24" aria-valuetext="24 הטיות ביום">
       <label class="check"><input type="checkbox" id="worm"> נעילה עצמית / כיבוי סלילים ב-idle</label>
       <label class="check"><input type="checkbox" id="wifiOn" checked> WiFi דלוק תמיד (כמו הקושחה)</label>
       <div class="kv">
@@ -106,13 +108,13 @@ td.num{font-variant-numeric:tabular-nums}
     <div class="card">
       <h2>חבילת סוללה — טיפוסית</h2>
       <div class="row" id="packs" role="group" aria-label="חבילת סוללה"></div>
-      <div class="row" id="hoursPresets" role="group" aria-label="יעד שעות על החבילה">
-        <button type="button" class="btn" data-hours="8" aria-pressed="false">8 שעות</button>
-        <button type="button" class="btn on" data-hours="24" aria-pressed="true">24 שעות</button>
-        <button type="button" class="btn" data-hours="48" aria-pressed="false">48 שעות</button>
+      <div class="row" id="hoursPresets" role="group" aria-label="יעדי שעות מהירים">
+        <button type="button" class="btn" data-hours="8" aria-pressed="false">8 שעות (משמרת)</button>
+        <button type="button" class="btn on" data-hours="24" aria-pressed="true">24 שעות (יממה)</button>
+        <button type="button" class="btn" data-hours="48" aria-pressed="false">48 שעות (יומיים)</button>
       </div>
       <label class="sl" for="hoursWanted">שעות רצויות: <span id="hoursLbl">24</span></label>
-      <input type="range" id="hoursWanted" min="2" max="72" step="1" value="24">
+      <input type="range" id="hoursWanted" min="2" max="72" step="1" value="24" dir="ltr" aria-valuemin="2" aria-valuemax="72" aria-valuenow="24" aria-valuetext="24 שעות יעד">
       <svg id="hours" viewBox="0 0 640 120" role="img" aria-label="שעות על החבילה" dir="ltr"></svg>
       <div class="kv">
         <div><b id="bHours">—</b><span>שעות על החבילה (DoD 80%, ממיר 85%)</span></div>
@@ -121,7 +123,7 @@ td.num{font-variant-numeric:tabular-nums}
         <div><b id="bRail">—</b><span>פס 12 V</span></div>
         <div><b id="bBest">—</b><span>הקטנה מהרשימה שעומדת ביעד</span></div>
       </div>
-      <div class="verdict meh" id="bVerdict" role="status">—</div>
+      <div class="verdict meh" id="bVerdict" role="status" aria-live="polite">—</div>
       <p class="fine" id="packNote">—</p>
     </div>
   </div>
@@ -155,39 +157,6 @@ const MODE_HE = {
   moving: 'בתנועה + WiFi',
   'wifi-sleep-hold': 'החזקה, WiFi ישן',
 };
-
-// Slider ids must match the preset table so a dragged slider cannot leave a lying button.
-const DUTY_PRESETS = {
-  firmware: { moves: 24, worm: false, wifiOn: true },
-  worm: { moves: 24, worm: true, wifiOn: true },
-  eco: { moves: 10, worm: true, wifiOn: false },
-  heavy: { moves: 80, worm: false, wifiOn: true },
-};
-
-function syncDutyPresets() {
-  const box = $('dutyPresets');
-  if (!box || !box.querySelectorAll) return;
-  const moves = Number($('moves').value);
-  const worm = $('worm').checked;
-  const wifiOn = $('wifiOn').checked;
-  box.querySelectorAll('[data-duty]').forEach((b) => {
-    const p = DUTY_PRESETS[b.dataset.duty];
-    const match = !!p && p.moves === moves && p.worm === worm && p.wifiOn === wifiOn;
-    b.classList.toggle('on', match);
-    b.setAttribute('aria-pressed', match ? 'true' : 'false');
-  });
-}
-
-function syncHoursPresets() {
-  const box = $('hoursPresets');
-  if (!box || !box.querySelectorAll) return;
-  const h = Number($('hoursWanted').value);
-  box.querySelectorAll('[data-hours]').forEach((b) => {
-    const match = Number(b.dataset.hours) === h;
-    b.classList.toggle('on', match);
-    b.setAttribute('aria-pressed', match ? 'true' : 'false');
-  });
-}
 
 function paintRails(draw) {
   const maxMa = Math.max(draw.motor12vAvgMa, draw.logic3v3Ma, 200);
@@ -247,6 +216,73 @@ function initModes() {
   updateModeMetrics();
 }
 
+const DUTY_PRESETS = {
+  firmware: { moves: 24, worm: false, wifiOn: true },
+  worm: { moves: 24, worm: true, wifiOn: true },
+  eco: { moves: 10, worm: true, wifiOn: false },
+  heavy: { moves: 80, worm: true, wifiOn: true },
+};
+
+function syncDutyPresets(activeKey) {
+  document.querySelectorAll('#dutyPresets [data-duty]').forEach((btn) => {
+    const on = btn.getAttribute('data-duty') === activeKey;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function detectDutyPreset() {
+  const moves = Number($('moves').value);
+  const worm = $('worm').checked;
+  const wifiOn = $('wifiOn').checked;
+  for (const [key, p] of Object.entries(DUTY_PRESETS)) {
+    if (p.moves === moves && p.worm === worm && p.wifiOn === wifiOn) {
+      return key;
+    }
+  }
+  return null;
+}
+
+function selectDutyPreset(key) {
+  const p = DUTY_PRESETS[key];
+  if (!p) return;
+  $('moves').value = String(p.moves);
+  $('worm').checked = p.worm;
+  $('wifiOn').checked = p.wifiOn;
+  syncDutyPresets(key);
+  battery();
+}
+
+function initDutyPresets() {
+  document.querySelectorAll('#dutyPresets [data-duty]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectDutyPreset(btn.getAttribute('data-duty'));
+    });
+  });
+}
+
+function syncHoursPresets(activeHours) {
+  document.querySelectorAll('#hoursPresets [data-hours]').forEach((btn) => {
+    const on = btn.getAttribute('data-hours') === String(activeHours);
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function selectHoursPreset(h) {
+  $('hoursWanted').value = String(h);
+  syncHoursPresets(String(h));
+  battery();
+}
+
+function initHoursPresets() {
+  document.querySelectorAll('#hoursPresets [data-hours]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectHoursPreset(btn.getAttribute('data-hours'));
+    });
+  });
+}
+
 function paintHours(r) {
   const maxH = Math.max(r.hoursWanted, r.hoursOnPack, 1);
   const w = Math.min(560, (r.hoursOnPack / maxH) * 560);
@@ -264,8 +300,14 @@ function paintHours(r) {
 
 function battery() {
   const moves = Number($('moves').value);
+  const hours = Number($('hoursWanted').value);
   $('movesLbl').textContent = moves;
-  $('hoursLbl').textContent = $('hoursWanted').value;
+  $('hoursLbl').textContent = hours;
+  $('moves').setAttribute('aria-valuenow', String(moves));
+  $('moves').setAttribute('aria-valuetext', moves + ' הטיות ביום');
+  $('hoursWanted').setAttribute('aria-valuenow', String(hours));
+  $('hoursWanted').setAttribute('aria-valuetext', hours + ' שעות יעד');
+
   const move = SM_TIMING.moveProfile({ fromDeg: 0, toDeg: 20 });
   const day = SM_POWER.sizeBudget({
     movesPerDay: moves,
@@ -282,7 +324,7 @@ function battery() {
     moveDurationSec: Math.max(move.tTotalSec, 0.2),
     selfLocking: $('worm').checked,
     wifiOn: $('wifiOn').checked,
-    hoursWanted: Number($('hoursWanted').value),
+    hoursWanted: hours,
   });
   paintHours(r);
   $('bHours').textContent = r.hoursOnPack.toFixed(1) + ' h';
@@ -302,8 +344,6 @@ function battery() {
   const v = $('bVerdict');
   v.className = 'verdict ' + (r.kind.indexOf('cannot') >= 0 || r.kind === 'hold-kills-pack' ? 'bad' : r.kind.indexOf('worm') >= 0 ? 'ok' : 'meh');
   v.textContent = text[r.kind] || r.kind;
-  syncDutyPresets();
-  syncHoursPresets();
 }
 
 function selectPack(id) {
@@ -332,40 +372,28 @@ function initPacks() {
   });
 }
 
+function onDutyInput() {
+  syncDutyPresets(detectDutyPreset());
+  battery();
+}
+
+function onHoursInput() {
+  syncHoursPresets($('hoursWanted').value);
+  battery();
+}
+
+['moves', 'worm', 'wifiOn'].forEach((id) => {
+  $(id).addEventListener('input', onDutyInput);
+  $(id).addEventListener('change', onDutyInput);
+});
+$('hoursWanted').addEventListener('input', onHoursInput);
+$('hoursWanted').addEventListener('change', onHoursInput);
+
 initModes();
 initPacks();
+initDutyPresets();
+initHoursPresets();
 battery();
-
-const dutyPresetBox = $('dutyPresets');
-if (dutyPresetBox && dutyPresetBox.querySelectorAll) {
-  dutyPresetBox.querySelectorAll('[data-duty]').forEach((b) => {
-    b.addEventListener('click', () => {
-      const p = DUTY_PRESETS[b.dataset.duty];
-      if (!p) return;
-      $('moves').value = String(p.moves);
-      $('worm').checked = p.worm;
-      $('wifiOn').checked = p.wifiOn;
-      battery();
-    });
-  });
-}
-const hoursPresetBox = $('hoursPresets');
-if (hoursPresetBox && hoursPresetBox.querySelectorAll) {
-  hoursPresetBox.querySelectorAll('[data-hours]').forEach((b) => {
-    b.addEventListener('click', () => {
-      $('hoursWanted').value = b.dataset.hours;
-      battery();
-    });
-  });
-}
-
-['moves', 'hoursWanted'].forEach((id) => {
-  $(id).addEventListener('input', battery);
-});
-['worm', 'wifiOn'].forEach((id) => {
-  $(id).addEventListener('input', battery);
-  $(id).addEventListener('change', battery);
-});
 </script>
 </body>
 </html>

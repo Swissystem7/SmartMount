@@ -110,6 +110,7 @@ function loadPowerPage() {
 
   const document = {
     getElementById: (id) => elements[id] || (elements[id] = fakeElement(id)),
+    querySelectorAll: () => [],
     createElement: (tag) => {
       const el = fakeElement('el-' + Math.random());
       el.tag = tag;
