@@ -266,3 +266,29 @@ test('switching panel buttons updates panel limits, ARIA states, and slider boun
   assert.equal(ui.elements.manual.getAttribute('aria-valuemin'), '-40');
   assert.equal(ui.elements.manual.getAttribute('aria-valuemax'), '40');
 });
+
+test('manual angle label follows the clamp when switching to a tighter panel', () => {
+  const ui = loadDashboardUI();
+  const { PANEL_LIMITS } = require('../src/lib/control.js');
+  const ledLimit = PANEL_LIMITS.LED;
+  assert.ok(PANEL_LIMITS.OLED > ledLimit, 'test needs OLED to allow more tilt than LED');
+
+  ui.elements.modeBtn.fire('click'); // manual
+  ui.getPanel('OLED').fire('click');
+  const wide = String(ledLimit + 5);
+  ui.elements.manual.value = wide;
+  ui.elements.manual.fire('input');
+  assert.equal(ui.elements.manualVal.textContent, wide);
+
+  ui.getPanel('LED').fire('click');
+  assert.equal(ui.elements.manual.value, String(ledLimit), 'slider clamped to the LED cap');
+  assert.equal(ui.elements.manualVal.textContent, String(ledLimit), 'label shows the clamped value, not the stale one');
+  assert.equal(ui.elements.manual.getAttribute('aria-valuenow'), String(ledLimit));
+
+  // Same on the negative side.
+  ui.getPanel('OLED').fire('click');
+  ui.elements.manual.value = String(-(ledLimit + 5));
+  ui.elements.manual.fire('input');
+  ui.getPanel('LED').fire('click');
+  assert.equal(ui.elements.manualVal.textContent, String(-ledLimit));
+});
