@@ -124,13 +124,15 @@ input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}
     const luxBot = Number(botEl.value);
     document.getElementById('luxTopVal').textContent = String(luxTop);
     document.getElementById('luxBotVal').textContent = String(luxBot);
-    document.getElementById('manualVal').textContent = String(manEl.value);
 
     const limit = PANEL_LIMITS[panel];
     manEl.min = String(-limit);
     manEl.max = String(limit);
     if (Number(manEl.value) > limit) manEl.value = String(limit);
     if (Number(manEl.value) < -limit) manEl.value = String(-limit);
+    // Label after the clamp: switching to a tighter panel (OLED 40° -> LED)
+    // used to leave the label on the old value while the slider sat at the cap.
+    document.getElementById('manualVal').textContent = String(manEl.value);
 
     topEl.setAttribute('aria-valuenow', String(luxTop));
     topEl.setAttribute('aria-valuetext', luxTop < 0 ? 'כשל חיישן' : luxTop + ' lux');
