@@ -15,6 +15,10 @@
 .kv div{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
 .kv b{display:block;font-size:1.05rem;font-variant-numeric:tabular-nums}
 .kv span{font-size:.7rem;color:var(--muted)}
+.kv div.clickable{cursor:pointer;transition:border-color .15s, background .15s}
+.kv div.clickable:hover,.kv div.clickable:focus{border-color:#58a6ff;outline:none}
+.kv div.clickable.on{border-color:#f85149;background:#200d11}
+.filter-title{font-size:.75rem;color:var(--muted);font-weight:600;margin:10px 0 6px}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .case{background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:14px 16px;margin-bottom:10px}
 .case h3{font-size:.95rem;margin-bottom:6px}
@@ -26,6 +30,7 @@
 .tag.none{background:#21262d;color:#8b949e}
 .tag.low{background:#2d1f00;color:#e3b341}
 .tag.high{background:#3a1010;color:#f85149}
+.count-summary{font-size:.8rem;color:var(--muted);margin:8px 0 12px}
 .fine{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:10px}
 .note-warn{background:#2d1f00;border:1px solid #9e6a03;color:#e3b341;border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;margin:12px 0}
 </style>
@@ -65,9 +70,10 @@
   <div class="kv">
     <div><b id="nCases">—</b><span>מקרים</span></div>
     <div><b id="nRun">0</b><span>רצו על לוח</span></div>
-    <div><b id="nHigh">—</b><span>סיכון גבוה</span></div>
+    <div id="cardHigh" class="clickable" tabindex="0" role="button" aria-pressed="false" aria-label="סינון מהיר לסיכון גבוה"><b id="nHigh">—</b><span>סיכון גבוה</span></div>
     <div><b>never-run</b><span>סטטוס קשיח בקוד</span></div>
   </div>
+  <div class="filter-title">סינון לפי מתקן בדיקה</div>
   <div class="row" id="filters" role="group" aria-label="סינון לפי מתקן">
     <button type="button" class="btn on" data-fixture="all" aria-pressed="true">הכול</button>
     <button type="button" class="btn" data-fixture="usb" aria-pressed="false">ESP32 על USB-UART בלבד</button>
@@ -75,6 +81,14 @@
     <button type="button" class="btn" data-fixture="motor" aria-pressed="false">מנוע על שולחן, בלי מסך</button>
     <button type="button" class="btn" data-fixture="dummy" aria-pressed="false">מסה מדומה על הזרוע — לא טלוויזיה</button>
   </div>
+  <div class="filter-title">סינון לפי רמת סיכון בטיחותי</div>
+  <div class="row" id="hazardFilters" role="group" aria-label="סינון לפי רמת סיכון">
+    <button type="button" class="btn on" data-hazard="all" aria-pressed="true">כל רמות הסיכון</button>
+    <button type="button" class="btn" data-hazard="high" aria-pressed="false">סיכון גבוה (<span id="countHigh">1</span>)</button>
+    <button type="button" class="btn" data-hazard="low" aria-pressed="false">סיכון נמוך (<span id="countLow">5</span>)</button>
+    <button type="button" class="btn" data-hazard="none" aria-pressed="false">ללא סיכון (<span id="countNone">7</span>)</button>
+  </div>
+  <p class="count-summary" id="countSummary" aria-live="polite">מוצגים 13 מתוך 13 מקרי HIL</p>
   <div id="list" role="region" aria-live="polite"></div>
   <p class="fine">
     המקור: <code>src/lib/hil.js</code>. הבדיקות נועלות שאין מקרה «עבר»,
@@ -86,6 +100,7 @@
 const FIX_HE = {};
 SM_HIL.FIXTURES.forEach((f) => { FIX_HE[f.id] = f.label; });
 let filter = 'all';
+let hazardFilter = 'all';
 
 function tag(cls, text) {
   return '<span class="tag ' + cls + '">' + text + '</span>';
@@ -96,17 +111,43 @@ function renderStats() {
   document.getElementById('nCases').textContent = String(s.cases);
   document.getElementById('nRun').textContent = String(s.run);
   document.getElementById('nHigh').textContent = String(s.hazards.high || 0);
+  const ch = document.getElementById('countHigh');
+  const cl = document.getElementById('countLow');
+  const cn = document.getElementById('countNone');
+  if (ch) ch.textContent = String(s.hazards.high || 0);
+  if (cl) cl.textContent = String(s.hazards.low || 0);
+  if (cn) cn.textContent = String(s.hazards.none || 0);
 }
 
 function renderCases() {
   const list = document.getElementById('list');
   list.textContent = '';
-  const filtered = SM_HIL.CASES.filter((c) => filter === 'all' || c.fixture === filter);
+  const filtered = SM_HIL.CASES.filter((c) =>
+    (filter === 'all' || c.fixture === filter) && (hazardFilter === 'all' || c.hazard === hazardFilter));
+  const total = SM_HIL.CASES.length;
+  const countSummary = document.getElementById('countSummary');
+  if (countSummary) {
+    if (filtered.length === total) countSummary.textContent = 'מוצגים ' + total + ' מתוך ' + total + ' מקרי HIL';
+    else if (filtered.length === 1) countSummary.textContent = 'מוצג מקרה 1 מתוך ' + total + ' (סינון פעיל)';
+    else countSummary.textContent = 'מוצגים ' + filtered.length + ' מתוך ' + total + ' מקרים (סינון פעיל)';
+  }
   if (!filtered.length) {
     const empty = document.createElement('p');
     empty.className = 'fine';
     empty.id = 'emptyMsg';
-    empty.textContent = 'אין מקרים התואמים לסינון שנבחר.';
+    empty.textContent = 'אין מקרים התואמים לסינון שנבחר. ';
+    const reset = document.createElement('button');
+    reset.type = 'button';
+    reset.className = 'btn';
+    reset.id = 'resetFilters';
+    reset.textContent = 'איפוס מסננים';
+    reset.addEventListener('click', () => {
+      filter = 'all';
+      hazardFilter = 'all';
+      updateFilterButtons();
+      renderCases();
+    });
+    empty.appendChild(reset);
     list.appendChild(empty);
     return;
   }
@@ -135,6 +176,23 @@ function updateFilterButtons() {
     btn.classList.toggle('on', on);
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
+  document.querySelectorAll('#hazardFilters [data-hazard]').forEach((btn) => {
+    const on = btn.getAttribute('data-hazard') === hazardFilter;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  const cardHigh = document.getElementById('cardHigh');
+  if (cardHigh) {
+    const isHigh = hazardFilter === 'high';
+    cardHigh.classList.toggle('on', isHigh);
+    cardHigh.setAttribute('aria-pressed', isHigh ? 'true' : 'false');
+  }
+}
+
+function setHazard(newHazard) {
+  hazardFilter = newHazard;
+  updateFilterButtons();
+  renderCases();
 }
 
 function setFilter(newFilter) {
@@ -166,8 +224,27 @@ function initFilters() {
   });
 }
 
+function initHazardFilters() {
+  document.querySelectorAll('#hazardFilters [data-hazard]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setHazard(btn.getAttribute('data-hazard'));
+    });
+  });
+  const cardHigh = document.getElementById('cardHigh');
+  if (!cardHigh) return;
+  const toggleHigh = () => setHazard(hazardFilter === 'high' ? 'all' : 'high');
+  cardHigh.addEventListener('click', toggleHigh);
+  cardHigh.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleHigh();
+    }
+  });
+}
+
 renderStats();
 initFilters();
+initHazardFilters();
 renderCases();
 </script>
 </body>
