@@ -400,3 +400,74 @@ test('keyboard navigation on light element deactivates active scenario preset (n
   assertPressed(scenarioButtons.scOver, true);
 });
 
+
+function assertRangeAria(el, now, text) {
+  assert.equal(el.getAttribute('aria-valuenow'), now, el.id + ' aria-valuenow');
+  assert.equal(el.getAttribute('aria-valuetext'), text, el.id + ' aria-valuetext');
+}
+
+test('geometry and optics range inputs carry static aria-valuemin/max/now/valuetext matching min/max/value', () => {
+  const html = read('geometry/index.html');
+  const ids = ['lightX', 'lightY', 'eyeX', 'eyeY', 'tilt', 'srcNits', 'srcArea', 'srcDist', 'refl'];
+  for (const id of ids) {
+    const m = html.match(new RegExp('<input type="range" id="' + id + '"[^>]*>'));
+    assert.ok(m, id + ' range input must exist');
+    const attr = (name) => {
+      const a = m[0].match(new RegExp('\\s' + name + '="([^"]*)"'));
+      return a ? a[1] : null;
+    };
+    assert.equal(attr('aria-valuemin'), attr('min'), id + ' aria-valuemin');
+    assert.equal(attr('aria-valuemax'), attr('max'), id + ' aria-valuemax');
+    assert.equal(attr('aria-valuenow'), attr('value'), id + ' aria-valuenow');
+    assert.ok(attr('aria-valuetext'), id + ' aria-valuetext');
+  }
+});
+
+test('page load syncs aria-valuenow/valuetext on every geometry and optics range input', () => {
+  const { sliders } = loadGeometryPage();
+  assertRangeAria(sliders.lightX, '280', '280');
+  assertRangeAria(sliders.lightY, '36', '36');
+  assertRangeAria(sliders.eyeX, '560', '560');
+  assertRangeAria(sliders.eyeY, '268', '268');
+  assertRangeAria(sliders.tilt, '0', '0°');
+  assertRangeAria(sliders.srcNits, '20000', '20000 cd/m²');
+  assertRangeAria(sliders.srcArea, '4', '4 סמ״ר');
+  assertRangeAria(sliders.srcDist, '2', '2.0 מ׳');
+  assertRangeAria(sliders.refl, '0.06', '0.060');
+});
+
+test('slider input, scenario buttons and keyboard nudges keep geometry range ARIA in sync', () => {
+  const { scenarioButtons, sliders, elements } = loadGeometryPage();
+
+  sliders.tilt.value = '15';
+  sliders.tilt.fire('input', { target: sliders.tilt });
+  assertRangeAria(sliders.tilt, '15', '15°');
+
+  sliders.lightX.value = '400';
+  sliders.lightX.fire('input');
+  assertRangeAria(sliders.lightX, '400', '400');
+
+  elements.eye.fire('keydown', { key: 'ArrowUp', preventDefault() {} });
+  assertRangeAria(sliders.eyeY, '256', '256');
+
+  scenarioButtons.scFace.fire('click');
+  assertRangeAria(sliders.lightX, '760', '760');
+  assertRangeAria(sliders.lightY, '140', '140');
+  assertRangeAria(sliders.eyeX, '520', '520');
+  assertRangeAria(sliders.eyeY, '250', '250');
+  assertRangeAria(sliders.tilt, '0', '0°');
+});
+
+test('optics presets and optics slider input keep optics range ARIA in sync', () => {
+  const { opticsButtons, sliders } = loadGeometryPage();
+
+  opticsButtons.optMatte.fire('click');
+  assertRangeAria(sliders.srcNits, '4000', '4000 cd/m²');
+  assertRangeAria(sliders.srcArea, '12000', '12000 סמ״ר');
+  assertRangeAria(sliders.srcDist, '1.4', '1.4 מ׳');
+  assertRangeAria(sliders.refl, '0.015', '0.015');
+
+  sliders.srcDist.value = '3.5';
+  sliders.srcDist.fire('input');
+  assertRangeAria(sliders.srcDist, '3.5', '3.5 מ׳');
+});
