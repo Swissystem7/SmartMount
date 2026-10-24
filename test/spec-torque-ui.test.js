@@ -12,9 +12,11 @@ function fakeElement(id, initial = {}) {
   const attrs = { ...initial.attrs };
   const classes = new Set(initial.classes || []);
   let text = initial.text || '';
+  let val = initial.value !== undefined ? String(initial.value) : '0';
   return {
     id,
-    value: initial.value !== undefined ? String(initial.value) : '0',
+    get value() { return val; },
+    set value(v) { val = String(v); },
     checked: initial.checked || false,
     attrs,
     dataset: initial.dataset || {},
@@ -72,9 +74,9 @@ function loadSpecTorquePage() {
   const inputs = {
     presetRow,
     btnResetDrivetrain,
-    massKg: fakeElement('massKg', { value: '18', attrs: { 'aria-valuemin': '4', 'aria-valuemax': '45', 'aria-valuenow': '18', dir: 'ltr' } }),
-    cogCm: fakeElement('cogCm', { value: '8', attrs: { 'aria-valuemin': '3', 'aria-valuemax': '18', 'aria-valuenow': '8', dir: 'ltr' } }),
-    tiltDeg: fakeElement('tiltDeg', { value: '0', attrs: { 'aria-valuemin': '0', 'aria-valuemax': '40', 'aria-valuenow': '0', dir: 'ltr' } }),
+    massKg: fakeElement('massKg', { value: '18', attrs: { 'aria-valuemin': '4', 'aria-valuemax': '45', 'aria-valuenow': '18', 'aria-valuetext': '18 ק״ג', dir: 'ltr' } }),
+    cogCm: fakeElement('cogCm', { value: '8', attrs: { 'aria-valuemin': '3', 'aria-valuemax': '18', 'aria-valuenow': '8', 'aria-valuetext': '8 ס״מ', dir: 'ltr' } }),
+    tiltDeg: fakeElement('tiltDeg', { value: '0', attrs: { 'aria-valuemin': '0', 'aria-valuemax': '40', 'aria-valuenow': '0', 'aria-valuetext': '0°', dir: 'ltr' } }),
     gearRatio: fakeElement('gearRatio', { value: '5' }),
     motorNm: fakeElement('motorNm', { value: '0.45' }),
     eff: fakeElement('eff', { value: '0.85' }),
@@ -130,6 +132,9 @@ test('spec page HTML contains tilt preset buttons and LTR slider attributes', ()
   assert.match(html, /id="tiltDeg"[^>]*dir="ltr"/);
   assert.match(html, /id="massKg"[^>]*dir="ltr"/);
   assert.match(html, /id="cogCm"[^>]*dir="ltr"/);
+  assert.match(html, /id="massKg"[^>]*aria-valuemin="4"[^>]*aria-valuemax="45"[^>]*aria-valuenow="18"[^>]*aria-valuetext="18 ק״ג"/);
+  assert.match(html, /id="cogCm"[^>]*aria-valuemin="3"[^>]*aria-valuemax="18"[^>]*aria-valuenow="8"[^>]*aria-valuetext="8 ס״מ"/);
+  assert.match(html, /id="tiltDeg"[^>]*aria-valuemin="0"[^>]*aria-valuemax="40"[^>]*aria-valuenow="0"[^>]*aria-valuetext="0°"/);
 });
 
 test('spec page initializes tilt preset buttons with 0° active and aria-pressed=true', () => {
@@ -155,6 +160,7 @@ test('clicking tilt preset button updates tiltDeg slider, aria-pressed, and verd
   assert.equal(inputs.tiltDeg.value, '20');
   assert.equal(inputs.tiltLbl.textContent, '20');
   assert.equal(inputs.tiltDeg.getAttribute('aria-valuenow'), '20');
+  assert.equal(inputs.tiltDeg.getAttribute('aria-valuetext'), '20°');
   assert.ok(b20.classList.contains('on'));
   assert.equal(b20.getAttribute('aria-pressed'), 'true');
   assert.ok(!b0.classList.contains('on'));
@@ -169,6 +175,7 @@ test('moving tilt slider to custom angle deactivates all tilt presets', () => {
 
   assert.equal(inputs.tiltLbl.textContent, '15');
   assert.equal(inputs.tiltDeg.getAttribute('aria-valuenow'), '15');
+  assert.equal(inputs.tiltDeg.getAttribute('aria-valuetext'), '15°');
   tiltButtons.forEach((b) => {
     assert.ok(!b.classList.contains('on'), `button ${b.dataset.tilt}° must not be on for custom angle`);
     assert.equal(b.getAttribute('aria-pressed'), 'false');
@@ -181,6 +188,7 @@ test('moving tilt slider to custom angle deactivates all tilt presets', () => {
   const b30 = tiltButtons.find((b) => b.dataset.tilt === '30');
   assert.ok(b30.classList.contains('on'));
   assert.equal(b30.getAttribute('aria-pressed'), 'true');
+  assert.equal(inputs.tiltDeg.getAttribute('aria-valuetext'), '30°');
 });
 
 test('clicking reset drivetrain restores firmware defaults and triggers recalculation', () => {
@@ -203,6 +211,12 @@ test('clicking reset drivetrain restores firmware defaults and triggers recalcul
   assert.equal(inputs.massKg.value, '18');
   assert.equal(inputs.cogCm.value, '8');
   assert.equal(inputs.tiltDeg.value, '0');
+  assert.equal(inputs.massKg.getAttribute('aria-valuenow'), '18');
+  assert.equal(inputs.massKg.getAttribute('aria-valuetext'), '18 ק״ג');
+  assert.equal(inputs.cogCm.getAttribute('aria-valuenow'), '8');
+  assert.equal(inputs.cogCm.getAttribute('aria-valuetext'), '8 ס״מ');
+  assert.equal(inputs.tiltDeg.getAttribute('aria-valuenow'), '0');
+  assert.equal(inputs.tiltDeg.getAttribute('aria-valuetext'), '0°');
   assert.equal(inputs.gearRatio.value, '5');
   assert.equal(inputs.motorNm.value, '0.45');
   assert.equal(inputs.eff.value, '0.85');
@@ -211,4 +225,43 @@ test('clicking reset drivetrain restores firmware defaults and triggers recalcul
   const b0 = tiltButtons.find((b) => b.dataset.tilt === '0');
   assert.ok(b0.classList.contains('on'));
   assert.equal(b0.getAttribute('aria-pressed'), 'true');
+});
+
+test('screen size preset buttons update massKg and cogCm aria-valuenow and aria-valuetext', () => {
+  const { inputs, presetRowChildren } = loadSpecTorquePage();
+  const b65 = presetRowChildren.find((b) => b.textContent && b.textContent.includes('65″'));
+  assert.ok(b65, '65″ preset button should exist');
+
+  b65.fire('click');
+
+  assert.equal(inputs.massKg.value, '28');
+  assert.equal(inputs.massKg.getAttribute('aria-valuenow'), '28');
+  assert.equal(inputs.massKg.getAttribute('aria-valuetext'), '28 ק״ג');
+  assert.equal(inputs.cogCm.value, '10');
+  assert.equal(inputs.cogCm.getAttribute('aria-valuenow'), '10');
+  assert.equal(inputs.cogCm.getAttribute('aria-valuetext'), '10 ס״מ');
+
+  const b43 = presetRowChildren.find((b) => b.textContent && b.textContent.includes('43″'));
+  assert.ok(b43, '43″ preset button should exist');
+
+  b43.fire('click');
+
+  assert.equal(inputs.massKg.value, '8');
+  assert.equal(inputs.massKg.getAttribute('aria-valuenow'), '8');
+  assert.equal(inputs.massKg.getAttribute('aria-valuetext'), '8 ק״ג');
+  assert.equal(inputs.cogCm.value, '6');
+  assert.equal(inputs.cogCm.getAttribute('aria-valuenow'), '6');
+  assert.equal(inputs.cogCm.getAttribute('aria-valuetext'), '6 ס״מ');
+});
+
+test('selfLock change event triggers recalculation and updates verdict', () => {
+  const { inputs } = loadSpecTorquePage();
+
+  assert.equal(inputs.tOff.textContent, 'נופל');
+
+  // Toggle selfLock on with change event
+  inputs.selfLock.checked = true;
+  inputs.selfLock.fire('change');
+
+  assert.equal(inputs.tOff.textContent, 'לא מחזיק');
 });
