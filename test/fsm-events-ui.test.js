@@ -89,6 +89,7 @@ function loadFsmEventsPage() {
   };
 
   const eventKeys = [
+    'BOOT_OK', 'BOOT_TO',
     'GLARE', 'CLEAR_ROOM', 'DEG12', 'DEG99', 'AUTO', 'MANUAL', 'PANEL0', 'STOP',
     'ARRIVE', 'TICK', 'HOME_START', 'HOME_FOUND',
     'SENSOR_FAIL', 'SENSOR_OK', 'STALL', 'LIMIT', 'POWER', 'CLEAR',
@@ -153,6 +154,11 @@ test('fsm page HTML contains event button groups with role="group" and aria-labe
   const html = read('fsm/index.html');
   assert.match(
     html,
+    /<div class="row" role="group" aria-label="אתחול">/,
+    'boot row must have role="group" and aria-label'
+  );
+  assert.match(
+    html,
     /<div class="row" role="group" aria-label="דגימה ופקודות">/,
     'sampling and commands row must have role="group" and aria-label'
   );
@@ -168,9 +174,10 @@ test('fsm page HTML contains event button groups with role="group" and aria-labe
   );
 });
 
-test('fsm page HTML initializes all 18 event buttons with aria-pressed="false"', () => {
+test('fsm page HTML initializes all 20 event buttons with aria-pressed="false"', () => {
   const html = read('fsm/index.html');
   const evKeys = [
+    'BOOT_OK', 'BOOT_TO',
     'GLARE', 'CLEAR_ROOM', 'DEG12', 'DEG99', 'AUTO', 'MANUAL', 'PANEL0', 'STOP',
     'ARRIVE', 'TICK', 'HOME_START', 'HOME_FOUND',
     'SENSOR_FAIL', 'SENSOR_OK', 'STALL', 'LIMIT', 'POWER', 'CLEAR',
@@ -257,3 +264,37 @@ test('clicking clearLog button clears log entries and resets log count', () => {
   assert.equal(glareBtn.classList.contains('on'), false);
   assert.equal(glareBtn.getAttribute('aria-pressed'), 'false');
 });
+
+test('clicking boot event button activates it with .on and aria-pressed=true and logs transition', () => {
+  const { eventButtons, scenarioButtons, elements } = loadFsmEventsPage();
+
+  const bootOkBtn = eventButtons.find((b) => b.dataset.ev === 'BOOT_OK');
+  const bootToBtn = eventButtons.find((b) => b.dataset.ev === 'BOOT_TO');
+
+  assert.equal(bootOkBtn.classList.contains('on'), false);
+  assert.equal(bootOkBtn.getAttribute('aria-pressed'), 'false');
+
+  bootOkBtn.fire('click');
+
+  assert.equal(bootOkBtn.classList.contains('on'), true);
+  assert.equal(bootOkBtn.getAttribute('aria-pressed'), 'true');
+  assert.equal(bootToBtn.classList.contains('on'), false);
+  assert.equal(bootToBtn.getAttribute('aria-pressed'), 'false');
+
+  assert.equal(elements.log.children.length, 2);
+  assert.equal(elements.logCount.textContent, '2 אירועים ביומן');
+
+  // Scenario buttons are deactivated
+  assert.equal(scenarioButtons.scReset.classList.contains('on'), false);
+  assert.equal(scenarioButtons.scReset.getAttribute('aria-pressed'), 'false');
+
+  // Clicking another boot event button switches active event
+  bootToBtn.fire('click');
+  assert.equal(bootToBtn.classList.contains('on'), true);
+  assert.equal(bootToBtn.getAttribute('aria-pressed'), 'true');
+  assert.equal(bootOkBtn.classList.contains('on'), false);
+  assert.equal(bootOkBtn.getAttribute('aria-pressed'), 'false');
+  assert.equal(elements.log.children.length, 3);
+  assert.equal(elements.logCount.textContent, '3 אירועים ביומן');
+});
+
