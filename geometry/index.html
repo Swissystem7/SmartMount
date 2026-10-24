@@ -95,15 +95,15 @@ input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}
         <button type="button" class="btn" id="scLow" aria-pressed="false">בוהק מלמטה</button>
       </div>
       <label class="sl" for="lightX">אור אופקי: <span id="lightXVal">280</span></label>
-      <input type="range" id="lightX" min="40" max="780" value="280" dir="ltr">
+      <input type="range" id="lightX" min="40" max="780" value="280" dir="ltr" aria-valuemin="40" aria-valuemax="780" aria-valuenow="280" aria-valuetext="280">
       <label class="sl" for="lightY">אור אנכי: <span id="lightYVal">36</span></label>
-      <input type="range" id="lightY" min="20" max="380" value="36" dir="ltr">
+      <input type="range" id="lightY" min="20" max="380" value="36" dir="ltr" aria-valuemin="20" aria-valuemax="380" aria-valuenow="36" aria-valuetext="36">
       <label class="sl" for="eyeX">עין אופקית: <span id="eyeXVal">560</span></label>
-      <input type="range" id="eyeX" min="40" max="780" value="560" dir="ltr">
+      <input type="range" id="eyeX" min="40" max="780" value="560" dir="ltr" aria-valuemin="40" aria-valuemax="780" aria-valuenow="560" aria-valuetext="560">
       <label class="sl" for="eyeY">עין אנכית: <span id="eyeYVal">268</span></label>
-      <input type="range" id="eyeY" min="20" max="380" value="268" dir="ltr">
+      <input type="range" id="eyeY" min="20" max="380" value="268" dir="ltr" aria-valuemin="20" aria-valuemax="380" aria-valuenow="268" aria-valuetext="268">
       <label class="sl" for="tilt">הטיית מסך: <span id="tiltVal">0°</span> (ידני — לא חיישן)</label>
-      <input type="range" id="tilt" min="-20" max="40" value="0" dir="ltr">
+      <input type="range" id="tilt" min="-20" max="40" value="0" dir="ltr" aria-valuemin="-20" aria-valuemax="40" aria-valuenow="0" aria-valuetext="0°">
       <div class="kv">
         <div><b id="kInc">—</b><span>זווית פגיעה</span></div>
         <div><b id="kRef">—</b><span>זווית החזרה</span></div>
@@ -132,13 +132,13 @@ input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}
         <button type="button" class="btn" id="optMatte" aria-pressed="false">ציפוי מט</button>
       </div>
       <label class="sl" for="srcNits">בהירות מקור: <span id="srcNitsVal">20000</span> cd/m²</label>
-      <input type="range" id="srcNits" min="200" max="25000" step="100" value="20000" dir="ltr">
+      <input type="range" id="srcNits" min="200" max="25000" step="100" value="20000" dir="ltr" aria-valuemin="200" aria-valuemax="25000" aria-valuenow="20000" aria-valuetext="20000 cd/m²">
       <label class="sl" for="srcArea">שטח מקור: <span id="srcAreaVal">4</span> סמ״ר</label>
-      <input type="range" id="srcArea" min="1" max="20000" step="1" value="4" dir="ltr">
+      <input type="range" id="srcArea" min="1" max="20000" step="1" value="4" dir="ltr" aria-valuemin="1" aria-valuemax="20000" aria-valuenow="4" aria-valuetext="4 סמ״ר">
       <label class="sl" for="srcDist">מרחק לחיישן עליון: <span id="srcDistVal">2.0</span> מ׳</label>
-      <input type="range" id="srcDist" min="0.4" max="4" step="0.1" value="2" dir="ltr">
+      <input type="range" id="srcDist" min="0.4" max="4" step="0.1" value="2" dir="ltr" aria-valuemin="0.4" aria-valuemax="4" aria-valuenow="2" aria-valuetext="2.0 מ׳">
       <label class="sl" for="refl">החזר ספקולרי: <span id="reflVal">0.06</span></label>
-      <input type="range" id="refl" min="0.005" max="0.12" step="0.005" value="0.06" dir="ltr">
+      <input type="range" id="refl" min="0.005" max="0.12" step="0.005" value="0.06" dir="ltr" aria-valuemin="0.005" aria-valuemax="0.12" aria-valuenow="0.06" aria-valuetext="0.060">
     </div>
     <div class="card">
       <h2>שני מדדים, שתי החלטות</h2>
@@ -168,6 +168,13 @@ let eye = { x: 560, y: 268 };
 let drag = null;
 let scene = 'over';
 
+function syncRangeAria(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.setAttribute('aria-valuenow', String(el.value));
+  el.setAttribute('aria-valuetext', text);
+}
+
 function syncGeomSliders() {
   const map = [
     ['lightX', light.x], ['lightY', light.y],
@@ -179,7 +186,9 @@ function syncGeomSliders() {
     if (el && el.value !== String(rounded)) el.value = String(rounded);
     const lab = document.getElementById(pair[0] + 'Val');
     if (lab) lab.textContent = String(rounded);
+    syncRangeAria(pair[0], String(rounded));
   });
+  syncRangeAria('tilt', tilt + '°');
 }
 
 function norm(x, y) {
@@ -466,6 +475,10 @@ function paintOptics(rayHitsEye) {
   document.getElementById('srcAreaVal').textContent = String(areaCm2);
   document.getElementById('srcDistVal').textContent = dist.toFixed(1);
   document.getElementById('reflVal').textContent = reflectance.toFixed(3);
+  syncRangeAria('srcNits', sourceNits + ' cd/m²');
+  syncRangeAria('srcArea', areaCm2 + ' סמ״ר');
+  syncRangeAria('srcDist', dist.toFixed(1) + ' מ׳');
+  syncRangeAria('refl', reflectance.toFixed(3));
   const s = SM_OPTICS.sampleScene({
     sourceNits,
     sourceAreaM2: areaCm2 / 10000,
