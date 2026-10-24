@@ -97,7 +97,7 @@ input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}
         <button type="button" class="btn on" id="modeBtn" aria-pressed="true">אוטומטי</button>
       </div>
       <label class="sl" for="manual">זווית ידנית: <span id="manualVal">0</span>°</label>
-      <input type="range" id="manual" min="-40" max="40" value="0" disabled dir="ltr" aria-valuemin="-20" aria-valuemax="20" aria-valuenow="0" aria-valuetext="0°">
+      <input type="range" id="manual" min="-20" max="20" value="0" disabled dir="ltr" aria-valuemin="-20" aria-valuemax="20" aria-valuenow="0" aria-valuetext="0°">
       <p class="fine">ידני עובר דרך <code>moveToAngle</code> — הצמדה לגבול ועיגול לצעד, כמו בקושחה: הזווית המוצגת היא ה־<code>target</code> ש־<code>/status</code> מחזיר.</p>
     </section>
   </div>
@@ -216,6 +216,14 @@ input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}
     });
   }
 
+  function detectPreset(top, bot) {
+    for (const key of Object.keys(PRESETS)) {
+      const p = PRESETS[key];
+      if (p.top === top && p.bot === bot) return key;
+    }
+    return null;
+  }
+
   presetBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
       const key = btn.getAttribute('data-preset');
@@ -229,13 +237,16 @@ input[type=range]{width:100%;accent-color:#58a6ff;direction:ltr}
   });
 
   function onSliderInput() {
-    syncPresets(null);
+    syncPresets(detectPreset(Number(topEl.value), Number(botEl.value)));
     paint();
   }
 
   topEl.addEventListener('input', onSliderInput);
+  topEl.addEventListener('change', onSliderInput);
   botEl.addEventListener('input', onSliderInput);
+  botEl.addEventListener('change', onSliderInput);
   manEl.addEventListener('input', paint);
+  manEl.addEventListener('change', paint);
 
   document.querySelectorAll('[data-panel]').forEach(function (b) {
     b.textContent = b.getAttribute('data-panel') + ' ' + PANEL_LIMITS[b.getAttribute('data-panel')] + '°';
