@@ -228,6 +228,46 @@ test('manual slider adjustments deactivate preset buttons', () => {
   ui.presets.forEach((b) => assertPressed(b, false));
 });
 
+test('sliding lux inputs to values matching a preset re-activates that preset button', () => {
+  const ui = loadDashboardUI();
+
+  // Initially off-preset
+  ui.presets.forEach((b) => assertPressed(b, false));
+
+  // Move sliders to match 'glare' preset (1200, 200)
+  ui.elements.luxTop.value = '1200';
+  ui.elements.luxBot.value = '200';
+  ui.elements.luxTop.fire('input');
+  assertPressed(ui.getPreset('glare'), true);
+  ui.presets.filter((b) => b !== ui.getPreset('glare')).forEach((b) => assertPressed(b, false));
+
+  // Move to match 'balance' preset (400, 400)
+  ui.elements.luxTop.value = '400';
+  ui.elements.luxBot.value = '400';
+  ui.elements.luxBot.fire('input');
+  assertPressed(ui.getPreset('balance'), true);
+  assertPressed(ui.getPreset('glare'), false);
+
+  // Move to match 'fault' preset (-1, 200)
+  ui.elements.luxTop.value = '-1';
+  ui.elements.luxBot.value = '200';
+  ui.elements.luxTop.fire('input');
+  assertPressed(ui.getPreset('fault'), true);
+  assertPressed(ui.getPreset('balance'), false);
+
+  // Move to match 'dark' preset (0, 0)
+  ui.elements.luxTop.value = '0';
+  ui.elements.luxBot.value = '0';
+  ui.elements.luxBot.fire('input');
+  assertPressed(ui.getPreset('dark'), true);
+  assertPressed(ui.getPreset('fault'), false);
+
+  // Move off-preset
+  ui.elements.luxTop.value = '50';
+  ui.elements.luxTop.fire('input');
+  ui.presets.forEach((b) => assertPressed(b, false));
+});
+
 test('switching between auto and manual modes synchronizes mode button and manual slider', () => {
   const ui = loadDashboardUI();
 
