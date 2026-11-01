@@ -63,3 +63,22 @@ test('docs/HIL.md exists and refuses to claim a run', () => {
   assert.match(md, /להכריז/);
   assert.doesNotMatch(md, /all cases passed/i);
 });
+
+test('validateBoardRunLog inspects real board logs and matches HIL criteria', () => {
+  const sampleLog = `
+    rst:0x1 (POWERON_RESET),boot:0x13
+    SmartMount starting...
+    Sensor BH1750 (0x23) initialized
+    WiFi connected, IP address: 192.168.1.50
+    GET /status returned 200 OK
+    Sensor read error — holding position
+  `;
+
+  const result = H.validateBoardRunLog(sampleLog);
+  assert.equal(result.hasBoot, true);
+  assert.equal(result.hasSensorInit, true);
+  assert.equal(result.hasWifi, true);
+  assert.equal(result.hasHoldSafety, true);
+  assert.deepEqual(result.matchedCases, ['HIL-01', 'HIL-02', 'HIL-03']);
+  assert.equal(result.statusPreserved, 'never-run');
+});
