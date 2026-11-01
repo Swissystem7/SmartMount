@@ -193,6 +193,28 @@
     };
   }
 
+  function validateBoardRunLog(logText) {
+    const raw = String(logText || '');
+    const hasBoot = /SmartMount starting|ESP-ROM|rst:0x/i.test(raw);
+    const hasSensorInit = /BH1750.*(0x23|0x5C)|Sensor/i.test(raw);
+    const hasWifi = /WiFi connected|IP address|\/status/i.test(raw);
+    const hasHoldSafety = /holding position|Sensor read error/i.test(raw);
+
+    const matched = [];
+    if (hasBoot) matched.push('HIL-01');
+    if (hasWifi && /\/status/i.test(raw)) matched.push('HIL-02');
+    if (hasHoldSafety) matched.push('HIL-03');
+
+    return {
+      hasBoot,
+      hasSensorInit,
+      hasWifi,
+      hasHoldSafety,
+      matchedCases: matched,
+      statusPreserved: STATUS,
+    };
+  }
+
   return {
     STATUS,
     FIXTURES,
@@ -200,5 +222,6 @@
     byId,
     byFixture,
     summary,
+    validateBoardRunLog,
   };
 });
