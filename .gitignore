@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 .env
 *.db
 __pycache__/
@@ -7,3 +7,5 @@ __pycache__/
 Thumbs.db
 dist/
 build/
+coverage/
+test-results/

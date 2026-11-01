@@ -76,6 +76,11 @@ node scripts/sync-control-params.js
 
 הסקריפט ממלא בלוק מסומן ב־`firmware/smart_mount.ino` ומייצר את `src/lib/control-params.js`. הדשבורד והמעבדה טוענים את אותו קובץ JS (בלי bundler). הבדיקות נכשלות אם ה־JSON והקוד שנוצר מתפצלים.
 
+## Sentry ו־Codecov
+
+- **Sentry:** מוגדר דרך `<meta name="sentry-dsn" content="__SENTRY_DSN__">` ב־`index.html` ומודול `src/lib/sentryLoader.js`. ללא DSN תקף (סוד `SENTRY_DSN`), Sentry אינו מופעל ואינו שולח דבר.
+- **Codecov:** צעד העלאת כיסוי בדיקות ב־CI (`.github/workflows/validate.yml`) ופקודת `npm run coverage` (`tools/codecov.js`). בהיעדר `CODECOV_TOKEN`, ההעלאה מדולגת בשקט והבדיקות מצליחות.
+
 ## כנות
 
 - הדמו מציג נתוני סימולציה. הבאנר בדשבורד אומר את זה במפורש.
