@@ -26,3 +26,16 @@ jobs:
           else
             node --test
           fi
+      - name: Generate coverage
+        run: |
+          mkdir -p coverage
+          node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info
+      - name: Upload coverage to Codecov
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          fail_ci_if_error: false
