@@ -28,6 +28,7 @@ jobs:
           fi
       - name: Generate coverage
         run: |
+          mkdir -p coverage
           node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info
       - name: Upload coverage to Codecov
         if: ${{ env.CODECOV_TOKEN != '' }}
