@@ -95,11 +95,15 @@ a { color: var(--accent); }
   color: #c9d1d9;
   border-radius: 8px;
   padding: 8px 12px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   font: 600 0.8rem inherit;
 }
 .btn:hover { border-color: var(--accent); color: var(--accent); }
-.btn.on { background: #1f4068; border-color: var(--accent); color: var(--accent); }
+.btn.on { background: #1f4068; border-color: var(--accent); color: #8fc2ff; }
 .btn.danger.on { background: #3a1010; border-color: #f85149; color: #f85149; }
 :focus-visible {
   outline: 2px solid var(--accent);
@@ -139,3 +143,5 @@ a { color: var(--accent); }
 }
 
 .cut-note{background:#111120;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:10px 12px;margin:0 0 14px;font-size:.84rem;line-height:1.6;color:#c9d1d9}
+
+input[type=range] { min-height: 44px; }
