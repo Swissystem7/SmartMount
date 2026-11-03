@@ -69,11 +69,15 @@
     if (typeof customLimit === 'object' && customLimit !== null) {
       customLimit = customLimit.limit ?? customLimit.maxAngle ?? customLimit.max;
     }
-    if (typeof customLimit === 'number' && Number.isFinite(customLimit)) {
-      return { panel, limit: customLimit };
-    }
-    if (panel === 'CUSTOM' && customLimit !== undefined) {
-      return { panel, limit: customLimit };
+    // A custom limit is a tilt cap in degrees: finite and not negative. NaN,
+    // a string or ±Infinity used to come back as the limit itself, so the law
+    // returned NaN (a NaN step count) or an uncapped 235°; a negative cap
+    // pinned every angle to that negative value. Reject them instead.
+    if (customLimit !== undefined) {
+      if (typeof customLimit === 'number' && Number.isFinite(customLimit) && customLimit >= 0) {
+        return { panel, limit: customLimit };
+      }
+      return { panel, limit: undefined };
     }
     // PANEL_LIMITS is a plain object, so PANEL_LIMITS['toString'] is an inherited FUNCTION, not
     // undefined: the guard used to wave it through and the control law then returned NaN - a
