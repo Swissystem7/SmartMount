@@ -10,7 +10,7 @@ SmartMount היא **הדגמת קונספט חומרה לפריט תיק עבו�
 
 SmartMount is a **portfolio piece, not a product** (market verdict: PARK). It is ESP32 firmware (`firmware/smart_mount.ino`) that reads two BH1750 light sensors and tilts a screen with a stepper when their ratio suggests glare, plus a static Hebrew site that runs the same control law in the browser.
 
-- **What is measured:** the firmware compiles for ESP32 (arduino-cli, esp32 core 3.3.12 and 2.0.17, 27.9.2026). Before that fix it did not compile at all. 140+ host tests pin the control law, the HTTP contract and every cell of the state machine.
+- **What is measured:** the firmware compiles for ESP32 (arduino-cli, esp32 core 3.3.12 and 2.0.17, 27.9.2026). Before that fix it did not compile at all. About 500 host tests pin the control law, the HTTP contract and every cell of the state machine.
 - **What is not:** it has never been flashed to a board. The glare threshold is not calibrated. There is no homing switch, so position zero is a guess. The 12-case bench plan (HIL) has not run.
 - **Start here (90 seconds):** https://swissystem7.github.io/SmartMount/case/ (Hebrew).
 - **Contact:** a public GitHub issue form, https://github.com/Swissystem7/SmartMount/issues/new?template=recruiter.yml. Please do not post a phone number or email there.
@@ -86,3 +86,16 @@ node scripts/sync-control-params.js
 - הדמו מציג נתוני סימולציה. הבאנר בדשבורד אומר את זה במפורש.
 - BOM של ₪35–50 שהופיע בהאקתון הוא ESP32 + חיישן + מנוע בסיסי — בלי פלדה, בלמים, UL/TÜV או אחריות לנפילת מסך. הטווח הכנה במפרט: אלקטרוניקה ≈₪110–220; תושבת שנשאת מסך הרבה יותר.
 - אין מנוי, אין אחריות יצרן, אין סליקה. מסמך ההאקתון שדיבר על Cloud ₪9.90 הועבר ל־[docs/archive/](docs/archive/).
+
+## Development (English)
+
+Node 20 or later, no npm dependencies. Works the same on Windows, macOS and Linux.
+
+```
+npm ci       # uses package-lock.json; installs nothing
+npm test     # node --test
+npm run smoke        # optional: 390px headless check, needs Playwright installed
+npm run sync-params  # after editing config/control-params.json
+```
+
+How the pieces fit: [ARCHITECTURE.md](ARCHITECTURE.md). What the tests prove: [docs/TESTING.md](docs/TESTING.md). On Windows, keep LF line endings (`.gitattributes` enforces them); a CRLF checkout breaks the firmware hash test.
