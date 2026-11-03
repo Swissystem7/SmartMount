@@ -197,7 +197,11 @@
     const raw = String(logText || '');
     const hasBoot = /SmartMount starting|ESP-ROM|rst:0x/i.test(raw);
     const hasSensorInit = /BH1750.*(0x23|0x5C)|Sensor/i.test(raw);
-    const hasWifi = /WiFi connected|IP address|\/status/i.test(raw);
+    // The .ino prints exactly "IP: " + WiFi.localIP() on connect (protocol.js
+    // SERIAL_WIFI_OK), never "WiFi connected" or "IP address". Without the
+    // real line, a board that did join the network read as hasWifi=false.
+    const hasWifi = /WiFi connected|IP address|\/status/i.test(raw) ||
+      /^\s*IP: \d{1,3}(?:\.\d{1,3}){3}\s*$/m.test(raw);
     const hasHoldSafety = /holding position|Sensor read error/i.test(raw);
 
     const matched = [];
