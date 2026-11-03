@@ -98,4 +98,13 @@ npm run smoke        # optional: 390px headless check, needs Playwright installe
 npm run sync-params  # after editing config/control-params.json
 ```
 
+End-to-end tests (Playwright, desktop + 360px mobile, no network) live in `e2e/` with their own `package.json`, so the site and `npm test` stay dependency-free:
+
+```
+npm --prefix e2e ci && npm --prefix e2e exec playwright install chromium   # once per machine
+npm run test:e2e     # installs e2e/ from its lockfile, serves the repo on 127.0.0.1:4174, runs e2e/tests
+```
+
+They cover the home page and navigation, every page in Hebrew RTL without sideways scroll, the case filter, the dashboard control law (glare, failed sensor, manual), the lab fault console (dead sensor, `deg=99`, WiFi cut, panel switch) and the torque calculator.
+
 How the pieces fit: [ARCHITECTURE.md](ARCHITECTURE.md). What the tests prove: [docs/TESTING.md](docs/TESTING.md). On Windows, keep LF line endings (`.gitattributes` enforces them); a CRLF checkout breaks the firmware hash test.

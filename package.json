@@ -10,6 +10,7 @@
     "coverage": "node tools/codecov.js",
     "smoke": "node scripts/smoke.js",
     "sync-params": "node scripts/sync-control-params.js",
-    "pr-size": "node scripts/pr-size.js"
+    "pr-size": "node scripts/pr-size.js",
+    "test:e2e": "npm --prefix e2e ci --no-audit --no-fund && npm --prefix e2e test"
   }
 }

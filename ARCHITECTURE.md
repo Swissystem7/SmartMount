@@ -41,6 +41,7 @@ Requires Node 20 or later (CI uses 22). No npm dependencies.
 npm ci            # lockfile only; installs nothing
 npm test          # node --test, all suites
 npm run smoke     # optional, needs Playwright + Chromium installed
+npm run test:e2e  # optional Playwright E2E suite; its dependency lives in e2e/package.json, not here
 npm run sync-params
 npm run pr-size
 ```
