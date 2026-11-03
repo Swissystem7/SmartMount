@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Compile firmware/smart_mount.ino for ESP32 on this machine. No board, no flash.
 # Needs arduino-cli (https://arduino.github.io/arduino-cli/). The esp32 core is
-# several GB. Not run in CI — this repo has no CI on purpose.
+# several GB. Not run in CI: .github/workflows/validate.yml runs only npm test.
 #
 # On success it prints the sha256 of the .ino. Put it, with the flash/RAM
 # numbers, into BUILD in src/lib/case.js; test/firmware-build.test.js checks it.

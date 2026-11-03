@@ -2,6 +2,9 @@
   "name": "smartmount",
   "private": true,
   "description": "ESP32 anti-glare mount — firmware + browser demo. Not a product.",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node --test",
     "coverage": "node tools/codecov.js",
