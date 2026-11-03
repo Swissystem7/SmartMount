@@ -284,7 +284,11 @@
     const bestPack = smallestPackFor(requiredWh, needsMotorRail);
 
     let kind = 'hours-ok';
-    if (!pack.canMotor12v && motorNeeded && day.holdW > 0) kind = 'pack-cannot-motor-rail';
+    // holdW is the winding I²R and is > 0 whether or not the coils stay on,
+    // so gating on it sent a worm build to 'pack-cannot-motor-rail' ("coils
+    // on drain it anyway") and left 'pack-cannot-move-pulse' unreachable.
+    // Idle coils are what make it a hold problem.
+    if (!pack.canMotor12v && motorNeeded && day.coilsIdle > 0) kind = 'pack-cannot-motor-rail';
     else if (!pack.canMotor12v && day.coilsIdle === 0 && day.moveW > 0) kind = 'pack-cannot-move-pulse';
     else if (day.coilsIdle > 0 && hoursOnPack < 6) kind = 'hold-kills-pack';
     else if (day.coilsIdle === 0 && hoursOnPack >= 12) kind = 'worm-makes-ups-viable';
