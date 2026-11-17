@@ -7,6 +7,10 @@
     "coverage": "node tools/codecov.js",
     "smoke": "node scripts/smoke.js",
     "sync-params": "node scripts/sync-control-params.js",
-    "pr-size": "node scripts/pr-size.js"
+    "pr-size": "node scripts/pr-size.js",
+    "check:style": "biome check"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.7"
   }
 }
