@@ -162,11 +162,12 @@ test('the only GitHub Actions workflow is the test run, and it never merges, for
   assert.doesNotMatch(wf, /pr merge|merge --auto|--admin|deploy-pages|pages-build|--force/);
 });
 
-test('package.json stays dependency-free', () => {
+test('package.json has no runtime dependencies', () => {
   const pkg = JSON.parse(read('package.json'));
   assert.equal(pkg.dependencies, undefined);
-  assert.equal(pkg.devDependencies, undefined);
+  assert.deepEqual(pkg.devDependencies, { '@biomejs/biome': '2.6.7' });
   assert.equal(pkg.scripts.test, 'node --test');
+  assert.equal(pkg.scripts['check:style'], 'biome check');
 });
 
 test('375px: wide tables scroll inside their box and grid columns may shrink (Chromium measured 512px / 410px before)', () => {

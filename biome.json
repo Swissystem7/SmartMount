@@ -1,0 +1,138 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.7/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": ["**/*.js"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "none"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "noInnerDeclarations": "warn"
+      },
+      "suspicious": {
+        "noRedeclare": "warn",
+        "noAssignInExpressions": "warn",
+        "useIterableCallbackReturn": "warn"
+      }
+    }
+  },
+  "assist": {
+    "enabled": false
+  },
+  "overrides": [
+    {
+      "includes": [
+        "config/contact.js",
+        "scripts/lib/pr-split.js",
+        "scripts/pr-size.js",
+        "scripts/smoke.js",
+        "scripts/sync-control-params.js",
+        "src/lib/alts.js",
+        "src/lib/bom.js",
+        "src/lib/case.js",
+        "src/lib/contact.js",
+        "src/lib/control-params.js",
+        "src/lib/control.js",
+        "src/lib/feedback.js",
+        "src/lib/fsm-table.js",
+        "src/lib/fsm.js",
+        "src/lib/gantt-chart.js",
+        "src/lib/hil.js",
+        "src/lib/optics.js",
+        "src/lib/power.js",
+        "src/lib/protocol.js",
+        "src/lib/safety.js",
+        "src/lib/sentryLoader.js",
+        "src/lib/timing.js",
+        "src/lib/torque.js",
+        "src/lib/userValidation.js",
+        "test/alts-search.test.js",
+        "test/alts-ui.test.js",
+        "test/alts.test.js",
+        "test/bh1750-begin-addr.test.js",
+        "test/bom.test.js",
+        "test/case-ui.test.js",
+        "test/case.test.js",
+        "test/contact.test.js",
+        "test/control-params.test.js",
+        "test/control.test.js",
+        "test/dashboard-target-step.test.js",
+        "test/dashboard-ui.test.js",
+        "test/deadband-target.test.js",
+        "test/emergency-stop.test.js",
+        "test/firmware-min-types.test.js",
+        "test/firmware-mirror.test.js",
+        "test/fsm-angle-error.test.js",
+        "test/fsm-events-ui.test.js",
+        "test/fsm-matrix.test.js",
+        "test/fsm-stop.test.js",
+        "test/fsm-ui.test.js",
+        "test/fsm.test.js",
+        "test/gantt-chart.test.js",
+        "test/geometry-facing.test.js",
+        "test/geometry-ui.test.js",
+        "test/hil-example-1.test.js",
+        "test/hil-hazard-ui.test.js",
+        "test/hil-ui.test.js",
+        "test/lab-stop.test.js",
+        "test/lab-target-mirror.test.js",
+        "test/lab-ui.test.js",
+        "test/landing-ui.test.js",
+        "test/lroundf-float32.test.js",
+        "test/optics-params.test.js",
+        "test/optics-unknown.test.js",
+        "test/optics.test.js",
+        "test/pages.test.js",
+        "test/power-best-pack.test.js",
+        "test/power-day-24h.test.js",
+        "test/power-presets-interactions.test.js",
+        "test/power-presets-ui.test.js",
+        "test/power-ui.test.js",
+        "test/power.test.js",
+        "test/pr-split.test.js",
+        "test/protocol-demo-target.test.js",
+        "test/protocol-method-matrix.test.js",
+        "test/protocol-methods-ui.test.js",
+        "test/protocol-ui.test.js",
+        "test/protocol.test.js",
+        "test/runtime-loop-presets.test.js",
+        "test/runtime-presets.test.js",
+        "test/sentryCodecov.test.js",
+        "test/spec-bom-filter.test.js",
+        "test/spec-presets.test.js",
+        "test/spec-safety-ui.test.js",
+        "test/spec-torque-ui.test.js",
+        "test/status-lux-null.test.js",
+        "test/testing-doc.test.js",
+        "test/timing.test.js",
+        "test/torque-tilt-domain.test.js",
+        "test/torque.test.js",
+        "test/userValidation.test.js",
+        "tools/codecov.js"
+      ],
+      "formatter": {
+        "enabled": false
+      }
+    }
+  ]
+}
